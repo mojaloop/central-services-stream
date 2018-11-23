@@ -1,0 +1,215 @@
+# CircleCI v2 Config
+version: 2
+
+defaults_working_directory: &defaults_working_directory
+  working_directory: /home/circleci/project
+
+defaults_docker_node: &defaults_docker_node
+  docker:
+    - image: mhart/alpine-node:8.9.4
+
+defaults_Dependencies: &defaults_Dependencies |
+    apk --no-cache add git
+    apk --no-cache add ca-certificates
+    apk --no-cache add curl
+    apk --no-cache add openssh-client
+    apk --no-cache add bash
+    apk add --no-cache -t build-dependencies make gcc g++ python libtool autoconf automake
+    npm config set unsafe-perm true
+    npm install -g node-gyp
+
+defaults_awsCliDependencies: &defaults_awsCliDependencies |
+    apk --no-cache add \
+            python \
+            py-pip \
+            groff \
+            less \
+            mailcap
+    pip install --upgrade awscli==1.14.5 s3cmd==2.0.1 python-magic
+    apk -v --purge del py-pip
+
+defaults_npm_auth: &defaults_npm_auth
+  name: Update NPM registry auth token
+  command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > .npmrc
+
+defaults_npm_publish_version: &defaults_npm_publish
+  name: Update version to prerelease
+  command: |
+    source $BASH_ENV
+    echo "Publishing tag $CIRCLE_TAG"
+    npm publish --tag $CIRCLE_TAG --access public
+
+defaults_npm_publish_release: &defaults_npm_publish_release
+  name: Publish NPM $RELEASE_TAG artifact
+  command: |
+    source $BASH_ENV
+    echo "Publishing tag $RELEASE_TAG"
+    npm publish --tag $RELEASE_TAG --access public
+
+jobs:
+  setup:
+    <<: *defaults_working_directory
+    <<: *defaults_docker_node
+    steps:
+      - run:
+          name: Install general dependencies
+          command: *defaults_Dependencies
+      - checkout
+      - run:
+          name: Update NPM install
+          command: npm install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - node_modules
+
+  test-unit:
+    <<: *defaults_working_directory
+    <<: *defaults_docker_node
+    steps:
+      - run:
+          name: Install general dependencies
+          command: *defaults_Dependencies
+      - checkout
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run:
+          name: Install tape, tapes and tap-xunit
+          command: npm install tape tapes tap-xunit
+      - run:
+          name: Create dir for test results
+          command: mkdir -p ./test/results
+      - run:
+          name: Execute unit tests
+          command: npm -s run test:xunit > ./test/results/tape.xml
+      - store_artifacts:
+          path: ./test/results
+          prefix: test
+      - store_test_results:
+          path: ./test/results
+
+  test-coverage:
+    <<: *defaults_working_directory
+    <<: *defaults_docker_node
+    steps:
+      - run:
+          name: Install general dependencies
+          command: *defaults_Dependencies
+      - run:
+          name: Install AWS CLI dependencies
+          command: *defaults_awsCliDependencies
+      - checkout
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run:
+          name: Execute code coverage check
+          command: npm -s run test:coverage-check
+      - store_artifacts:
+          path: coverage
+          prefix: test
+      - store_test_results:
+          path: coverage/lcov.info
+      - run:
+          name: Copy code coverage to SonarQube
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ];
+            then
+                echo "Sending lcov.info to SonarQube..."
+                aws s3 cp coverage/lcov.info $AWS_S3_DIR_SONARQUBE/central-services-stream/lcov.info
+            else
+                echo "Not a release (env CIRCLE_BRANCH != 'master'), skipping sending lcov.info to SonarQube."
+            fi
+
+  build-snapshot:
+    <<: *defaults_working_directory
+    <<: *defaults_docker_node
+    steps:
+      - run:
+          name: Install general dependencies
+          command: *defaults_Dependencies
+      - checkout
+      - run:
+          name: setup environment vars for SNAPSHOT release
+          command: |
+            echo 'export RELEASE_TAG=$RELEASE_TAG_SNAPSHOT' >> $BASH_ENV
+      - run:
+          <<: *defaults_npm_auth
+      - run:
+          <<: *defaults_npm_publish_release
+
+  build:
+    <<: *defaults_working_directory
+    <<: *defaults_docker_node
+    steps:
+      - run:
+          name: Install general dependencies
+          command: *defaults_Dependencies
+      - checkout
+      - run:
+          name: setup environment vars for LATEST release
+          command: |
+            echo 'export RELEASE_TAG=$RELEASE_TAG_PROD' >> $BASH_ENV
+      - run:
+          <<: *defaults_npm_auth
+      - run:
+          <<: *defaults_npm_publish_release
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - setup:
+          context: org-global
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              ignore:
+                - /feature*/
+                - /bugfix*/
+      - test-unit:
+          context: org-global
+          requires:
+            - setup
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              ignore:
+                - /feature*/
+                - /bugfix*/
+      - test-coverage:
+          context: org-global
+          requires:
+            - setup
+          filters:
+            tags:
+              only: /.*/
+            branches:
+              ignore:
+                - /feature*/
+                - /bugfix*/
+      - build-snapshot:
+          context: org-global
+          requires:
+            - setup
+            - test-unit
+            - test-coverage
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*\-snapshot+((\.[0-9]+)?)/
+            branches:
+              ignore:
+                - /.*/
+      - build:
+          context: org-global
+          requires:
+            - setup
+            - test-unit
+            - test-coverage
+          filters:
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore:
+                - /.*/

@@ -1,0 +1,50 @@
+{
+  "name": "@mojaloop/central-services-stream",
+  "version": "3.9.0-snapshot",
+  "description": "Streaming library code for central services",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "npm run test:unit | faucet",
+    "pretest": "standard",
+    "test:unit": "tapes 'test/**/*.test.js'",
+    "test:xunit": "npm run test:unit | tap-xunit",
+    "test:coverage": "istanbul cover tapes -- 'test/**/*.test.js'",
+    "test:coveragekafka": "istanbul cover tapes -- 'test/kafka/**/*.test.js'",
+    "test:coverage-check": "npm run test:coverage && istanbul check-coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mojaloop/central-services-stream.git"
+  },
+  "keywords": [
+    "shared",
+    "central",
+    "services"
+  ],
+  "author": "ModusBox",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/mojaloop/central-services-stream/issues"
+  },
+  "homepage": "https://github.com/mojaloop/central-services-stream#readme",
+  "dependencies": {
+    "async": "2.6.0",
+    "bluebird": "3.5.1",
+    "debug": "3.1.0",
+    "events": "3.0.0",
+    "node-rdkafka": "2.4.2",
+  },
+  "devDependencies": {
+    "faucet": "0.0.1",
+    "istanbul": "1.1.0-alpha.1",
+    "pre-commit": "1.2.2",
+    "sinon": "4.5.0",
+    "standard": "10.0.3",
+    "tap-xunit": "2.2.0",
+    "tape": "4.9.0",
+    "tapes": "4.1.0"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  }
+}
