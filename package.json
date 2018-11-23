@@ -28,11 +28,12 @@
   },
   "homepage": "https://github.com/mojaloop/central-services-stream#readme",
   "dependencies": {
+    "@mojaloop/central-services-shared": "3.9.1-snapshot",
     "async": "2.6.0",
     "bluebird": "3.5.1",
     "debug": "3.1.0",
     "events": "3.0.0",
-    "node-rdkafka": "2.4.2",
+    "node-rdkafka": "2.4.2"
   },
   "devDependencies": {
     "faucet": "0.0.1",

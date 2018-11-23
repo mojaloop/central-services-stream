@@ -4,8 +4,8 @@
 
 'use strict'
 
-const Producer = require('central-services-shared').Kafka.Producer
-const Logger = require('central-services-shared').Logger
+const Producer = require('@mojaloop/central-services-stream').Kafka.Producer
+const Logger = require('@mojaloop/central-services-shared').Logger
 
 var testProducer = async () => {
   console.log('testProducer::start')

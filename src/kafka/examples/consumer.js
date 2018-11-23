@@ -33,7 +33,7 @@
 
 const Consumer = require('../').Consumer
 const ConsumerEnums = require('../').Consumer.ENUMS
-const Logger = require('../../logger')
+const Logger = require('@mojaloop/central-services-shared').Logger
 
 const testConsumer = async () => {
   console.log('Instantiate consumer')

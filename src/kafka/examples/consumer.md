@@ -1,9 +1,9 @@
 *Example Consumer*
 
 ```JSON
-const Consumer = require('central-services-shared').Kafka.Consumer
-const ConsumerEnums = require('central-services-shared').Kafka.Consumer.ENUMS
-const Logger = require('central-services-shared').Logger
+const Consumer = require('@mojaloop/central-services-stream').Kafka.Consumer
+const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
+const Logger = require('@mojaloop/central-services-shared').Logger
 
 const testConsumer = async () => {
   Logger.info('Instantiate consumer')

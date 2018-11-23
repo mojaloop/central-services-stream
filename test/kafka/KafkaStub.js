@@ -32,7 +32,7 @@
 'use strict'
 
 const EventEmitter = require('events')
-const Logger = require('../../src/logger').Logger
+const Logger = require('@mojaloop/central-services-shared').Logger
 
 const metadataSampleStub = {
   orig_broker_id: 1,

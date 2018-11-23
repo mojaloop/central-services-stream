@@ -37,7 +37,7 @@
 'use strict'
 
 const EventEmitter = require('events')
-const Logger = require('../logger')
+const Logger = require('@mojaloop/central-services-shared').Logger
 const Kafka = require('node-rdkafka')
 const Protocol = require('./protocol')
 

@@ -1,6 +1,6 @@
 const Test = require('tapes')(require('tape'))
 const Protocol = require('../../../src/kafka').Protocol
-const Logger = require('../../../src/logger')
+const Logger = require('@mojaloop/central-services-shared').Logger
 const Sinon = require('sinon')
 
 var reason = {

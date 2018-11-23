@@ -39,7 +39,7 @@
 const Promise = require('bluebird')
 const EventEmitter = require('events')
 const async = require('async')
-const Logger = require('../logger')
+const Logger = require('@mojaloop/central-services-shared').Logger
 const Kafka = require('node-rdkafka')
 
 const Protocol = require('./protocol')
