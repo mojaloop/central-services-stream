@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/mojaloop/central-services-stream#readme",
   "dependencies": {
-    "@mojaloop/central-services-shared": "3.9.1-snapshot",
+    "@mojaloop/central-services-shared": "4.1.0-snapshot",
     "async": "2.6.0",
     "bluebird": "3.5.1",
     "debug": "3.1.0",

@@ -196,9 +196,6 @@ exports.ENUMS = ENUMS
 class Consumer extends EventEmitter {
   constructor (topics = [], config = {}) {
     super()
-    // if (!config) {
-    //   throw new Error('missing a config object')
-    // } else {
     if (!config.options) {
       config.options = {
         mode: CONSUMER_MODES.recursive,
@@ -225,7 +222,6 @@ class Consumer extends EventEmitter {
     if (!config.logger) {
       config.logger = Logger
     }
-    // }
 
     let { logger } = config
     logger.silly('Consumer::constructor() - start')
@@ -235,6 +231,17 @@ class Consumer extends EventEmitter {
     this._status.runningInConsumeOnceMode = false
     this._status.runningInConsumeMode = false
     this._status.running = true
+
+    // setup default onReady emit handler
+    super.on('ready', arg => {
+      Logger.debug(`Consumer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
+    })
+
+    // setup default onError emit handler
+    super.on('error', error => {
+      Logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error.message})`)
+    })
+
     logger.silly('Consumer::constructor() - end')
   }
 
