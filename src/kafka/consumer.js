@@ -239,7 +239,7 @@ class Consumer extends EventEmitter {
 
     // setup default onError emit handler
     super.on('error', error => {
-      Logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error.message})`)
+      Logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
     })
 
     logger.silly('Consumer::constructor() - end')
@@ -397,7 +397,7 @@ class Consumer extends EventEmitter {
             super.emit('recursive', message.error, payload)
           }
         }).catch((err) => {
-          Logger.error(err)
+          logger.error(`Consumer::consume()::syncQueue.queue - error: ${err}`)
           super.emit('error', err)
           callbackDone()
           if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
@@ -486,7 +486,9 @@ class Consumer extends EventEmitter {
           }
           if (this._config.options.sync) {
             this._syncQueue.push({error, messages}, function (err, result) {
-              if (err) { logger.error(err) }
+              if (err) {
+                logger.error(`Consumer::_consumePoller()::syncQueue.push - error: ${error}`)
+              }
             })
           } else {
             Promise.resolve(workDoneCb(error, messages)).then((response) => {
@@ -554,7 +556,7 @@ class Consumer extends EventEmitter {
         if (this._config.options.sync) {
           this._syncQueue.push({error, messages}, (error, result) => {
             if (error) {
-              logger.error(error)
+              logger.error(`Consumer::_consumerRecursive()::syncQueue.push - error: ${error}`)
             }
           })
         } else {
