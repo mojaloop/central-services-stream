@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 /*****
  License
  --------------
@@ -195,9 +196,6 @@ exports.ENUMS = ENUMS
 class Consumer extends EventEmitter {
   constructor (topics = [], config = {}) {
     super()
-    // if (!config) {
-    //   throw new Error('missing a config object')
-    // } else {
     if (!config.options) {
       config.options = {
         mode: CONSUMER_MODES.recursive,
@@ -224,7 +222,6 @@ class Consumer extends EventEmitter {
     if (!config.logger) {
       config.logger = Logger
     }
-    // }
 
     let { logger } = config
     logger.silly('Consumer::constructor() - start')
@@ -234,6 +231,17 @@ class Consumer extends EventEmitter {
     this._status.runningInConsumeOnceMode = false
     this._status.runningInConsumeMode = false
     this._status.running = true
+
+    // setup default onReady emit handler
+    super.on('ready', arg => {
+      Logger.debug(`Consumer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
+    })
+
+    // setup default onError emit handler
+    super.on('error', error => {
+      Logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
+    })
+
     logger.silly('Consumer::constructor() - end')
   }
 
@@ -388,6 +396,13 @@ class Consumer extends EventEmitter {
           if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
             super.emit('recursive', message.error, payload)
           }
+        }).catch((err) => {
+          logger.error(`Consumer::consume()::syncQueue.queue - error: ${err}`)
+          super.emit('error', err)
+          callbackDone()
+          if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
+            super.emit('recursive', err, payload)
+          }
         })
       }, 1)
 
@@ -453,6 +468,7 @@ class Consumer extends EventEmitter {
       this._consumer.consume(batchSize, (error, messages) => {
         if (error || !messages.length) {
           if (error) {
+            super.emit('error', error)
             logger.error(`Consumer::_consumerPoller() - ERROR - ${error}`)
           } else {
             // logger.debug(`Consumer::_consumerPoller() - POLL EMPTY PING`)
@@ -470,10 +486,17 @@ class Consumer extends EventEmitter {
           }
           if (this._config.options.sync) {
             this._syncQueue.push({error, messages}, function (err, result) {
-              if (err) { logger.error(err) }
+              if (err) {
+                logger.error(`Consumer::_consumePoller()::syncQueue.push - error: ${error}`)
+              }
             })
           } else {
-            workDoneCb(error, messages)
+            Promise.resolve(workDoneCb(error, messages)).then((response) => {
+              Logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
+            }).catch((err) => {
+              Logger.error(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${err}`)
+              super.emit('error', err)
+            })
             super.emit('batch', messages)
           }
         }
@@ -508,6 +531,9 @@ class Consumer extends EventEmitter {
     let { logger } = this._config
     this._consumer.consume(batchSize, (error, messages) => {
       if (error || !messages.length) {
+        if (error) {
+          super.emit('error', error)
+        }
         if (this._status.running) {
           return setTimeout(() => {
             return this._consumeRecursive(recursiveTimeout, batchSize, workDoneCb)
@@ -529,10 +555,17 @@ class Consumer extends EventEmitter {
 
         if (this._config.options.sync) {
           this._syncQueue.push({error, messages}, (error, result) => {
-            if (error) { logger.error(error) }
+            if (error) {
+              logger.error(`Consumer::_consumerRecursive()::syncQueue.push - error: ${error}`)
+            }
           })
         } else {
-          workDoneCb(error, messages)
+          Promise.resolve(workDoneCb(error, messages)).then((response) => {
+            Logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
+          }).catch((err) => {
+            Logger.error(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${err}`)
+            super.emit('error', err)
+          })
           super.emit('recursive', error, messages)
           super.emit('batch', messages)
         }
@@ -557,7 +590,9 @@ class Consumer extends EventEmitter {
     let { logger } = this._config
     this._consumer.consume((error, message) => {
       if (error || !message) {
-
+        if (error) {
+          super.emit('error', error)
+        }
       } else {
         var parsedValue = Protocol.parseValue(message.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
         message.value = parsedValue
@@ -571,7 +606,12 @@ class Consumer extends EventEmitter {
             if (err) { logger.error(err) }
           })
         } else {
-          workDoneCb(error, message)
+          Promise.resolve(workDoneCb(error, message)).then((response) => {
+            Logger.debug(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${response}`)
+          }).catch((err) => {
+            Logger.error(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${err}`)
+            super.emit('error', err)
+          })
         }
         // super.emit('batch', message) // not applicable in flow mode since its one message at a time
       }

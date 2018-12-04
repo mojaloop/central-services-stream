@@ -1,3 +1,4 @@
+/* eslint-disable prefer-promise-reject-errors */
 /*****
  License
  --------------
@@ -446,6 +447,11 @@ Test('Consumer test', (consumerTests) => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(Sinon.match(arg, true), 'on Ready event received')
     })
+
+    c.on('error', error => {
+      Logger.error(`error: ${error}`)
+    })
+
     // consume 'message' event
     c.on('message', message => {
       Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
@@ -607,6 +613,212 @@ Test('Consumer test', (consumerTests) => {
           } else {
             resolve(false)
             assert.fail('message not processed')
+          }
+        })
+      })
+    })
+  })
+
+  consumerTests.test('Test Consumer::consume flow sync=true, messageAsJson=false with callback exception', (assert) => {
+    config = {
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.flow,
+        batchSize: 1,
+        recursiveTimeout: 100,
+        messageCharset: 'utf8',
+        messageAsJSON: false,
+        sync: true,
+        consumeTimeout: 1000
+      },
+      rdkafkaConf: {
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger: Logger
+    }
+
+    var consumeCount = 0
+    var errorMessageThrown = 'this is an error thrown'
+    var errorMessageRejected = 'this is an error rejected'
+
+    var c = new Consumer(topicsList, config)
+
+    var errorHandledThrown = false
+    var errorHandledRejected = false
+    var processedNextMessage = false
+    c.on('error', error => {
+      Logger.debug(`OMG - ${error}`)
+      if (error instanceof Error) {
+        assert.equal(error.message, errorMessageThrown)
+        assert.ok(true, 'Error handled by throw')
+        errorHandledThrown = true
+      } else if (typeof error === 'string') {
+        assert.equal(error, errorMessageRejected)
+        assert.ok(true, 'Error handled by rejection')
+        errorHandledRejected = true
+        if (processedNextMessage) {
+          assert.pass('All errors handled')
+          assert.end()
+        }
+      }
+    })
+
+    // consume 'ready' event
+    c.on('ready', arg => {
+      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+    })
+    // consume 'message' event
+    c.on('message', message => {
+      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      assert.ok(message, 'on Message event received')
+    })
+
+    c.connect().then(result => {
+      assert.ok(Sinon.match(result, true))
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          consumeCount = consumeCount + 1
+          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          assert.ok(true, 'Message processed by the flow consumer')
+          resolve(true)
+        })
+      })
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          consumeCount = consumeCount + 1
+          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          assert.ok(true, 'Message processed by the flow to throw exception consumer')
+          throw new Error(errorMessageThrown)
+        })
+      })
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          consumeCount = consumeCount + 1
+          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          assert.ok(true, 'Message processed by the flow to throw exception consumer')
+          reject(errorMessageRejected)
+        })
+      })
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          consumeCount = consumeCount + 1
+          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          assert.ok(true, 'Message processed by the flow consumer')
+          resolve(true)
+          processedNextMessage = true
+          if (errorHandledThrown && errorHandledRejected) {
+            assert.pass('All errors handled')
+            assert.end()
+          }
+        })
+      })
+    })
+  })
+
+  consumerTests.test('Test Consumer::consume flow sync=false, messageAsJson=false with callback exception', (assert) => {
+    config = {
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.flow,
+        batchSize: 1,
+        recursiveTimeout: 100,
+        messageCharset: 'utf8',
+        messageAsJSON: false,
+        sync: false,
+        consumeTimeout: 1000
+      },
+      rdkafkaConf: {
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger: Logger
+    }
+
+    var consumeCount = 0
+    var errorMessageThrown = 'this is an error thrown'
+    var errorMessageRejected = 'this is an error rejected'
+
+    var c = new Consumer(topicsList, config)
+
+    var errorHandledThrown = false
+    var errorHandledRejected = false
+    var processedNextMessage = false
+    c.on('error', error => {
+      Logger.debug(`OMG - ${error}`)
+      if (error instanceof Error) {
+        assert.equal(error.message, errorMessageThrown)
+        assert.ok(true, 'Error handled by throw')
+        errorHandledThrown = true
+      } else if (typeof error === 'string') {
+        assert.equal(error, errorMessageRejected)
+        assert.ok(true, 'Error handled by rejection')
+        errorHandledRejected = true
+        if (processedNextMessage) {
+          assert.pass('All errors handled')
+          assert.end()
+        }
+      }
+    })
+
+    // consume 'ready' event
+    c.on('ready', arg => {
+      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+    })
+    // consume 'message' event
+    c.on('message', message => {
+      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      assert.ok(message, 'on Message event received')
+    })
+
+    c.connect().then(result => {
+      assert.ok(Sinon.match(result, true))
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          consumeCount = consumeCount + 1
+          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          assert.ok(true, 'Message processed by the flow consumer')
+          resolve(true)
+        })
+      })
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          consumeCount = consumeCount + 1
+          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          assert.ok(true, 'Message processed by the flow to throw exception consumer')
+          throw new Error(errorMessageThrown)
+        })
+      })
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          consumeCount = consumeCount + 1
+          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          assert.ok(true, 'Message processed by the flow to throw exception consumer')
+          reject(errorMessageRejected)
+        })
+      })
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          consumeCount = consumeCount + 1
+          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          assert.ok(true, 'Message processed by the flow consumer')
+          resolve(true)
+          processedNextMessage = true
+          if (errorHandledThrown && errorHandledRejected) {
+            assert.pass('All errors handled')
+            assert.end()
           }
         })
       })
@@ -1277,6 +1489,188 @@ Test('Consumer test', (consumerTests) => {
     })
   })
 
+  consumerTests.test('Test Consumer::consume recursive sync=true, messageAsJson=false with callback exception', (assert) => {
+    config = {
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.recursive,
+        batchSize: 1,
+        recursiveTimeout: 100,
+        messageCharset: 'utf8',
+        messageAsJSON: false,
+        sync: true,
+        consumeTimeout: 1000
+      },
+      rdkafkaConf: {
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger: Logger
+    }
+
+    var errorMessageThrown = 'this is an error thrown'
+    var errorMessageRejected = 'this is an error rejected'
+
+    var c = new Consumer(topicsList, config)
+
+    // consume 'ready' event
+    c.on('ready', arg => {
+      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+    })
+    // consume 'message' event
+    var recursiveCount = 0
+    c.on('message', message => {
+      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      assert.ok(message, 'on Message event received')
+    })
+
+    var errorHandledThrown = false
+    var errorHandledRejected = false
+    var processedNextMessage = false
+    c.on('error', error => {
+      Logger.debug(`OMG - ${error}`)
+      if (error instanceof Error) {
+        assert.equal(error.message, errorMessageThrown)
+        assert.ok(true, 'Error handled by throw')
+        errorHandledThrown = true
+      } else if (typeof error === 'string') {
+        assert.equal(error, errorMessageRejected)
+        assert.ok(true, 'Error handled by rejection')
+        errorHandledRejected = true
+        if (processedNextMessage) {
+          assert.pass('All errors handled')
+          assert.end()
+        }
+      }
+    })
+
+    c.on('batch', messages => {
+      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      assert.ok(messages, 'on Batch event received')
+      assert.ok(Array.isArray(messages), 'batch of messages received')
+    })
+
+    c.connect().then(result => {
+      assert.ok(Sinon.match(result, true))
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          recursiveCount = recursiveCount + 1
+          Logger.info(`consume::callback[recursiveCount=${recursiveCount}] ${error}, ${JSON.stringify(message)}`)
+          if (recursiveCount > 3) {
+            c.disconnect()
+            assert.ok(true, 'Message processed by the recursive consumer')
+            processedNextMessage = true
+            if (errorHandledThrown && errorHandledRejected) {
+              assert.pass('All errors handled')
+              assert.end()
+            }
+          } else if (recursiveCount === 2) {
+            throw new Error(errorMessageThrown)
+          } else if (recursiveCount === 3) {
+            reject(errorMessageRejected)
+          } else {
+            resolve(true)
+          }
+        })
+      })
+    })
+  })
+
+  consumerTests.test('Test Consumer::consume recursive sync=false, messageAsJson=false with callback exception', (assert) => {
+    config = {
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.recursive,
+        batchSize: 1,
+        recursiveTimeout: 100,
+        messageCharset: 'utf8',
+        messageAsJSON: false,
+        sync: false,
+        consumeTimeout: 1000
+      },
+      rdkafkaConf: {
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger: Logger
+    }
+
+    var errorMessageThrown = 'this is an error thrown'
+    var errorMessageRejected = 'this is an error rejected'
+
+    var c = new Consumer(topicsList, config)
+
+    // consume 'ready' event
+    c.on('ready', arg => {
+      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+    })
+    // consume 'message' event
+    var recursiveCount = 0
+    c.on('message', message => {
+      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      assert.ok(message, 'on Message event received')
+    })
+
+    var errorHandledThrown = false
+    var errorHandledRejected = false
+    var processedNextMessage = false
+    c.on('error', error => {
+      Logger.debug(`OMG - ${error}`)
+      if (error instanceof Error) {
+        assert.equal(error.message, errorMessageThrown)
+        assert.ok(true, 'Error handled by throw')
+        errorHandledThrown = true
+      } else if (typeof error === 'string') {
+        assert.equal(error, errorMessageRejected)
+        assert.ok(true, 'Error handled by rejection')
+        errorHandledRejected = true
+        if (processedNextMessage) {
+          assert.pass('All errors handled')
+          assert.end()
+        }
+      }
+    })
+
+    c.on('batch', messages => {
+      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      assert.ok(messages, 'on Batch event received')
+      assert.ok(Array.isArray(messages), 'batch of messages received')
+    })
+
+    c.connect().then(result => {
+      assert.ok(Sinon.match(result, true))
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          recursiveCount = recursiveCount + 1
+          Logger.info(`consume::callback[recursiveCount=${recursiveCount}] ${error}, ${JSON.stringify(message)}`)
+          if (recursiveCount > 3) {
+            assert.ok(true, 'Message processed by the recursive consumer')
+            resolve(true)
+            c.disconnect()
+            processedNextMessage = true
+            if (errorHandledThrown && errorHandledRejected) {
+              assert.pass('All errors handled')
+              assert.end()
+            }
+          } else if (recursiveCount === 2) {
+            throw new Error(errorMessageThrown)
+          } else if (recursiveCount === 3) {
+            reject(errorMessageRejected)
+          } else {
+            assert.ok(true, 'Message processed by the recursive consumer')
+            resolve(true)
+          }
+        })
+      })
+    })
+  })
+
   consumerTests.test('Test Consumer::consume poller sync=false, messageAsJson=true, batchSize=0', (assert) => {
     config = {
       options: {
@@ -1309,6 +1703,156 @@ Test('Consumer test', (consumerTests) => {
         assert.equals(error.message.toString(), 'batchSize option is not valid - Select an integer greater then 0')
         assert.end()
       }
+    })
+  })
+
+  consumerTests.test('Test Consumer::consume poller sync=false, messageAsJson=true, batchSize=0 with Callback exception', (assert) => {
+    config = {
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.poll,
+        batchSize: 10,
+        recursiveTimeout: 100,
+        messageCharset: 'utf8',
+        messageAsJSON: true,
+        sync: false,
+        consumeTimeout: 1000
+      },
+      rdkafkaConf: {
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger: Logger
+    }
+
+    var errorMessageThrown = 'this is an error thrown'
+    var errorMessageRejected = 'this is an error rejected'
+
+    var c = new Consumer(topicsList, config)
+
+    var pollCount = 0
+    var errorHandledThrown = false
+    var errorHandledRejected = false
+    var processedNextMessage = false
+    c.on('error', error => {
+      Logger.debug(`OMG - ${error}`)
+      if (error instanceof Error) {
+        assert.equal(error.message, errorMessageThrown)
+        assert.ok(true, 'Error handled by throw')
+        errorHandledThrown = true
+      } else if (typeof error === 'string') {
+        assert.equal(error, errorMessageRejected)
+        assert.ok(true, 'Error handled by rejection')
+        errorHandledRejected = true
+        if (processedNextMessage) {
+          assert.pass('All errors handled')
+          assert.end()
+        }
+      }
+    })
+
+    c.connect().then(result => {
+      assert.ok(Sinon.match(result, true))
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          pollCount = pollCount + 1
+          Logger.info(`consume::callback[recursiveCount=${pollCount}] ${error}, ${JSON.stringify(message)}`)
+          if (pollCount > 3) {
+            assert.ok(true, 'Message processed by the recursive consumer')
+            resolve(true)
+            c.disconnect()
+            processedNextMessage = true
+            if (errorHandledThrown && errorHandledRejected) {
+              assert.pass('All errors handled')
+              assert.end()
+            }
+          } else if (pollCount === 2) {
+            throw new Error(errorMessageThrown)
+          } else if (pollCount === 3) {
+            reject(errorMessageRejected)
+          } else {
+            assert.ok(true, 'Message processed by the recursive consumer')
+            resolve(true)
+          }
+        })
+      })
+    })
+  })
+
+  consumerTests.test('Test Consumer::consume poller sync=true, messageAsJson=true, batchSize=0 with Callback exception', (assert) => {
+    config = {
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.poll,
+        batchSize: 10,
+        recursiveTimeout: 100,
+        messageCharset: 'utf8',
+        messageAsJSON: true,
+        sync: true,
+        consumeTimeout: 1000
+      },
+      rdkafkaConf: {
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger: Logger
+    }
+
+    var errorMessageThrown = 'this is an error thrown'
+    var errorMessageRejected = 'this is an error rejected'
+
+    var c = new Consumer(topicsList, config)
+
+    var pollCount = 0
+    var errorHandledThrown = false
+    var errorHandledRejected = false
+    var processedNextMessage = false
+    c.on('error', error => {
+      Logger.debug(`OMG - ${error}`)
+      if (error instanceof Error) {
+        assert.equal(error.message, errorMessageThrown)
+        assert.ok(true, 'Error handled by throw')
+        errorHandledThrown = true
+      } else if (typeof error === 'string') {
+        assert.equal(error, errorMessageRejected)
+        assert.ok(true, 'Error handled by rejection')
+        errorHandledRejected = true
+        if (processedNextMessage) {
+          assert.pass('All errors handled')
+          assert.end()
+        }
+      }
+    })
+
+    c.connect().then(result => {
+      assert.ok(Sinon.match(result, true))
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          pollCount = pollCount + 1
+          Logger.info(`consume::callback[recursiveCount=${pollCount}] ${error}, ${JSON.stringify(message)}`)
+          if (pollCount > 3) {
+            assert.ok(true, 'Message processed by the recursive consumer')
+            resolve(true)
+            c.disconnect()
+            processedNextMessage = true
+            if (errorHandledThrown && errorHandledRejected) {
+              assert.pass('All errors handled')
+              assert.end()
+            }
+          } else if (pollCount === 2) {
+            throw new Error(errorMessageThrown)
+          } else if (pollCount === 3) {
+            reject(errorMessageRejected)
+          } else {
+            assert.ok(true, 'Message processed by the recursive consumer')
+            resolve(true)
+          }
+        })
+      })
     })
   })
 
@@ -1448,6 +1992,10 @@ Test('Consumer test', (consumerTests) => {
     )
 
     var pollCount = 0
+
+    c.on('error', error => {
+      Logger.debug(`OMG - ${error}`)
+    })
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
