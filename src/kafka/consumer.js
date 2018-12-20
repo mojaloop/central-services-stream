@@ -45,6 +45,24 @@ const Kafka = require('node-rdkafka')
 
 const Protocol = require('./protocol')
 
+class Poller extends EventEmitter {
+  constructor (timeout = 100) {
+    super()
+    this.timeout = timeout
+  }
+
+  poll () {
+    setTimeout(() => {
+      Logger.silly(`Poller::poll - timeout = ${this.timeout}`)
+      this.emit('poll')
+    }, this.timeout)
+  }
+
+  onPoll (cb) {
+    this.on('poll', cb)
+  }
+}
+
 /**
  * Consumer ENUMs
  *
@@ -463,15 +481,20 @@ class Consumer extends EventEmitter {
    */
   _consumePoller (pollFrequency = 10, batchSize, workDoneCb) {
     let { logger } = this._config
-    this._pollInterval = setInterval(() => {
+
+    var pollTask = () => {
+      // logger.info('pollTask::START')
       // if (this._status.running) {
       this._consumer.consume(batchSize, (error, messages) => {
+        // logger.info('_consumer.consume::START')
         if (error || !messages.length) {
           if (error) {
             super.emit('error', error)
             logger.error(`Consumer::_consumerPoller() - ERROR - ${error}`)
+            poller.poll() // we want to poll after we have failed processing the message.
           } else {
             // logger.debug(`Consumer::_consumerPoller() - POLL EMPTY PING`)
+            poller.poll() // we want to poll after we have nothing else to poll from
           }
         } else {
           // lets transform the messages into the desired format
@@ -493,17 +516,82 @@ class Consumer extends EventEmitter {
           } else {
             Promise.resolve(workDoneCb(error, messages)).then((response) => {
               Logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
+              poller.poll() // we want to poll after we have processed the message.
             }).catch((err) => {
               Logger.error(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${err}`)
               super.emit('error', err)
+              poller.poll() // we want to poll after we have failed processing the message.
             })
             super.emit('batch', messages)
           }
         }
       })
       // }
-    }, pollFrequency)
+      // return Promise.resolve(true)
+    }
+
+    let poller = new Poller(pollFrequency)
+
+    poller.onPoll(() => {
+      Logger.silly('Poller::onPoll - START')
+      pollTask()
+      Logger.silly('Poller::onPoll - END')
+    })
+
+    // Initial start
+    poller.poll()
+    //
+    // var PromisePoller = require('promise-poller').default
+    //
+    // var poller = PromisePoller({
+    //   taskFn: pollTask,
+    //   interval: pollFrequency, // milliseconds
+    //   retries: 5
+    // })
   }
+  // _consumePoller (pollFrequency = 10, batchSize, workDoneCb) {
+  //   let { logger } = this._config
+  //   this._pollInterval = setInterval(() => {
+  //     // if (this._status.running) {
+  //     this._consumer.consume(batchSize, (error, messages) => {
+  //       if (error || !messages.length) {
+  //         if (error) {
+  //           super.emit('error', error)
+  //           logger.error(`Consumer::_consumerPoller() - ERROR - ${error}`)
+  //         } else {
+  //           // logger.debug(`Consumer::_consumerPoller() - POLL EMPTY PING`)
+  //         }
+  //       } else {
+  //         // lets transform the messages into the desired format
+  //         messages.map(msg => {
+  //           var parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+  //           msg.value = parsedValue
+  //         })
+  //         if (this._config.options.messageAsJSON) {
+  //           logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
+  //         } else {
+  //           logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${messages}}`)
+  //         }
+  //         if (this._config.options.sync) {
+  //           this._syncQueue.push({error, messages}, function (err, result) {
+  //             if (err) {
+  //               logger.error(`Consumer::_consumePoller()::syncQueue.push - error: ${error}`)
+  //             }
+  //           })
+  //         } else {
+  //           Promise.resolve(workDoneCb(error, messages)).then((response) => {
+  //             Logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
+  //           }).catch((err) => {
+  //             Logger.error(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${err}`)
+  //             super.emit('error', err)
+  //           })
+  //           super.emit('batch', messages)
+  //         }
+  //       }
+  //     })
+  //     // }
+  //   }, pollFrequency)
+  // }
 
   /**
    * (Internal) Consume Recursively

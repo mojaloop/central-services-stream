@@ -203,7 +203,7 @@ class Producer extends EventEmitter {
       this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
 
       this._producer.on('event.log', log => {
-        logger.silly(log.message)
+        logger.silly(`Producer::on_event_log - ${log.message}`)
       })
 
       this._producer.on('event.error', error => {
