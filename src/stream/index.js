@@ -1,5 +1,6 @@
 'use strict'
 
 module.exports = {
-  Consumer: require('./consumer')
+  Consumer: require('./consumer'),
+  StreamConsumer: require('./streamConsumer')
 }
