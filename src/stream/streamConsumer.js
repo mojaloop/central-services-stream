@@ -24,9 +24,8 @@
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
- * Pedro Barreto <pedrob@crosslaketech.com> <-- Author
- * Miguel de Barros <miguel.debarros@modusbox.com> <-- Adapted into OSS Stream
-
+ * Miguel de Barros <miguel.debarros@modusbox.com>
+ * Pedro Barreto <pedrob@crosslaketech.com>
  --------------
  ******/
 
