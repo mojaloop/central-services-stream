@@ -67,7 +67,7 @@ class Consumer extends EventEmitter {
         'group.id': this._group_id,
         'metadata.broker.list': this._broker_list,
         'enable.auto.commit': true,
-        "socket.keepalive.enable": true
+        'socket.keepalive.enable': true
         // 'offset.store.method': 'broker'
         // 'offset_commit_cb': this._offset_commit_cb.bind(this), // not necessary
         // 'rebalance_cb': this._on_rebalancing_cb.bind(this), // this must be commented out otherwise we need to add our own rebalancing algorithm
@@ -138,20 +138,20 @@ class Consumer extends EventEmitter {
     })
   }
 
-  _on_rebalancing_cb (err, assignment) {
-    Logger.debug(`Consumer[${this._topics}].on_rebalancing_cb - assignment: ${assignment}`)
-    if (err.code === Kafka.CODES.ERRORS.ERR__ASSIGN_PARTITIONS) {
-      // Note: this can throw when you are disconnected. Take care and wrap it in
-      // a try catch if that matters to you
-      // this.assign(assignment);
-    } else if (err.code == Kafka.CODES.ERRORS.ERR__REVOKE_PARTITIONS) {
-      // Same as above
-      // this.unassign();
-    } else {
-      // We had a real error
-      Logger.error(`Consumer[${this._topics}].on_rebalancing_cb - error: ${err}`)
-    }
-  }
+  // _on_rebalancing_cb (err, assignment) {
+  //   Logger.debug(`Consumer[${this._topics}].on_rebalancing_cb - assignment: ${assignment}`)
+  //   if (err.code === Kafka.CODES.ERRORS.ERR__ASSIGN_PARTITIONS) {
+  //     // Note: this can throw when you are disconnected. Take care and wrap it in
+  //     // a try catch if that matters to you
+  //     // this.assign(assignment);
+  //   } else if (err.code === Kafka.CODES.ERRORS.ERR__REVOKE_PARTITIONS) {
+  //     // Same as above
+  //     // this.unassign();
+  //   } else {
+  //     // We had a real error
+  //     Logger.error(`Consumer[${this._topics}].on_rebalancing_cb - error: ${err}`)
+  //   }
+  // }
 
   _on_subscribed (topics) {
     Logger.debug(`Consumer[${this._topics}].on_subscribed - topics ${topics}`)
@@ -168,17 +168,17 @@ class Consumer extends EventEmitter {
     this.emit('ready')
   }
 
-  _offset_commit_cb (err, topic_partitions) {
-    if (err) {
-      // There was an error committing
-      Logger.error(`Consumer[${this._topics}].on_commit_cb - error: ${err}`)
-    } else {
-      // Commit went through. Let's log the topic partitions
-      Logger.debug(`Consumer[${this._topics}].on_commit_cb - Commit ok for topic: ${topic_partitions}`)
-    }
-
-    this._consumer.consume() //
-  }
+  // _offset_commit_cb (err, topic_partitions) {
+  //   if (err) {
+  //     // There was an error committing
+  //     Logger.error(`Consumer[${this._topics}].on_commit_cb - error: ${err}`)
+  //   } else {
+  //     // Commit went through. Let's log the topic partitions
+  //     Logger.debug(`Consumer[${this._topics}].on_commit_cb - Commit ok for topic: ${topic_partitions}`)
+  //   }
+  //
+  //   this._consumer.consume() //
+  // }
 
   async _on_data (data) {
     Logger.debug(`Consumer[${this._topics}].on_data - topic: ${data.topic} partition: ${data.partition} offset: ${data.offset}`)
@@ -207,7 +207,7 @@ class Consumer extends EventEmitter {
     // })
 
     await this._handler_fn(null, msg)
-    this._consumer.consume(1)
+    // this._consumer.consume(1)
   }
 
   _on_error (err) {
