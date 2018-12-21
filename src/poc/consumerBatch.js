@@ -35,6 +35,7 @@ const Kafka = require('node-rdkafka')
 const assert = require('assert')
 const EventEmitter = require('events')
 const Protocol = require('../kafka/protocol')
+const async = require('async')
 
 class Consumer extends EventEmitter {
   constructor (topics = [], config = {}, handler_fn) {
@@ -50,14 +51,28 @@ class Consumer extends EventEmitter {
     this._topics = topics
     this._handler_fn = handler_fn
     this._auto_offset = config.topicConf['auto.offset.reset']
+    this._syncEnabled = config.options.sync
+    this._pollFrequency = config.options.pollFrequency
 
     Logger.debug(`Consumer[${this._topics}]._broker_list: ${this._broker_list}`)
     Logger.debug(`Consumer[${this._topics}]._group_id: ${this._group_id}`)
     Logger.debug(`Consumer[${this._topics}]._client_id: ${this._client_id}`)
     Logger.debug(`Consumer[${this._topics}]._topics: ${this._topics}`)
     Logger.debug(`Consumer[${this._topics}]._auto_offset: ${this._auto_offset}`)
+    Logger.debug(`Consumer[${this._topics}]._syncEnabled: ${this._syncEnabled}`)
+    Logger.debug(`Consumer[${this._topics}]._pollFrequency: ${this._pollFrequency}`)
 
     // const consumer_id = Math.random().toString(36).substring(2, 6) + Math.random().toString(36).substring(2, 6);
+
+    if (this._syncEnabled === true) {
+      Logger.debug(`Consumer[${this._topics}].constructor - creating sync queue`)
+      this._syncQueue = async.queue( async (message) => {
+        await this._handler_fn(null, message)
+      })
+
+      // this._syncQueue.drain = () => {
+      // }
+    }
 
     this._consumer = new Kafka.KafkaConsumer(
       // rdkafkaConf
@@ -160,11 +175,33 @@ class Consumer extends EventEmitter {
 
     // consumer.consume(); // flowing mode / stream
 
-    this._consumer.consume()
-
-    // setInterval(()=>{
-    // 	this._consumer.consume(1)
-    // }, 1000);
+    // this._consumer.consume()
+    const consumeFunc = async (err, messages) => {
+      if (messages && messages.length > 0) {
+        Logger.debug(`Consumer[${this._topics}].consumeFunc - err: ${err}, msg: ${messages}`)
+        messages.forEach(async (data) => {
+          const msg = {
+            key: data.key,
+            offset: data.offset,
+            partition: data.partition,
+            size: data.size,
+            timestamp: data.timestamp,
+            topic: data.topic,
+            value: Protocol.parseValue(data.value, 'utf8', true)
+          }
+          if (this._syncEnabled) {
+            this._syncQueue.push(msg)
+          } else {
+            await this._handler_fn(null, msg)
+          }
+        })
+      } else {
+        Logger.silly(`Consumer[${this._topics}].consumeFunc - err: ${err}, msg: ${messages}`)
+      }
+    }
+    setInterval(() => {
+      this._consumer.consume(1, consumeFunc)
+    }, this._pollFrequency)
     this.emit('ready')
   }
 
@@ -194,7 +231,6 @@ class Consumer extends EventEmitter {
       value: Protocol.parseValue(data.value, 'utf8', true)
     }
 
-
     // if (!msg || !msg.timestamp) { return }
     // call handler
     // varl err = ''
@@ -206,7 +242,11 @@ class Consumer extends EventEmitter {
     //   this._consumer.consume(1); // uncomment if the using auto-commit=true
     // })
 
-    await this._handler_fn(null, msg)
+    // if (this._syncEnabled) {
+    //   this._syncQueue.push(msg)
+    // } else {
+    //   await this._handler_fn(null, msg)
+    // }
     // this._consumer.consume(1)
   }
 

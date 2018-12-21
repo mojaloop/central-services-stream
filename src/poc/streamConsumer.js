@@ -34,6 +34,7 @@ const Kafka = require('node-rdkafka')
 const assert = require('assert')
 const EventEmitter = require('events')
 const Protocol = require('../kafka/protocol')
+const async = require('async')
 
 class StreamConsumer extends EventEmitter {
   constructor (topics = [], config = {}, handler_fn) {
@@ -49,14 +50,26 @@ class StreamConsumer extends EventEmitter {
     this._topics = topics
     this._handler_fn = handler_fn
     this._auto_offset = config.topicConf['auto.offset.reset']
+    this._syncEnabled = config.options.sync
 
-    Logger.debug(`KafkaReadStream[${this._topics}]._broker_list: ${this._broker_list}`)
-    Logger.debug(`KafkaReadStream[${this._topics}]._group_id: ${this._group_id}`)
-    Logger.debug(`KafkaReadStream[${this._topics}]._client_id: ${this._client_id}`)
-    Logger.debug(`KafkaReadStream[${this._topics}]._topics: ${this._topics}`)
-    Logger.debug(`KafkaReadStream[${this._topics}]._auto_offset: ${this._auto_offset}`)
+    Logger.debug(`StreamConsumer[${this._topics}]._broker_list: ${this._broker_list}`)
+    Logger.debug(`StreamConsumer[${this._topics}]._group_id: ${this._group_id}`)
+    Logger.debug(`StreamConsumer[${this._topics}]._client_id: ${this._client_id}`)
+    Logger.debug(`StreamConsumer[${this._topics}]._topics: ${this._topics}`)
+    Logger.debug(`StreamConsumer[${this._topics}]._auto_offset: ${this._auto_offset}`)
+    Logger.debug(`StreamConsumer[${this._topics}]._syncEnabled: ${this._syncEnabled}`)
 
     // const consumer_id = Math.random().toString(36).substring(2, 6) + Math.random().toString(36).substring(2, 6);
+
+    if (this._syncEnabled === true) {
+      Logger.debug(`StreamConsumer[${this._topics}].constructor - creating sync queue`)
+      this._syncQueue = async.queue( async (message) => {
+        await this._handler_fn(null, message)
+      })
+
+      // this._syncQueue.drain = () => {
+      // }
+    }
 
     // rdkafkaConf
     const globalConf = {
@@ -88,8 +101,8 @@ class StreamConsumer extends EventEmitter {
     // })
 
     this._stream.on('ready', (consumer_info, consumer_metadata) => {
-      Logger.debug(`KafkaReadStream[${this._topics}].on_ready - node-rdkafka v${Kafka.librdkafkaVersion} info - ${JSON.stringify(consumer_info)}`)
-      Logger.silly(`KafkaReadStream[${this._topics}].on_ready - node-rdkafka v${Kafka.librdkafkaVersion} metadata - ${JSON.stringify(consumer_metadata)}`)
+      Logger.debug(`StreamConsumer[${this._topics}].on_ready - node-rdkafka v${Kafka.librdkafkaVersion} info - ${JSON.stringify(consumer_info)}`)
+      Logger.silly(`StreamConsumer[${this._topics}].on_ready - node-rdkafka v${Kafka.librdkafkaVersion} metadata - ${JSON.stringify(consumer_metadata)}`)
       this._consumer_info = consumer_info
       this._consumer_metadata = consumer_metadata
     })
@@ -100,15 +113,15 @@ class StreamConsumer extends EventEmitter {
 
     // other events
     this._stream.on('event.throttle', () => {
-      Logger.debug(`KafkaReadStream[${this._topics}].on_event_throttle - consumer throttled`)
+      Logger.debug(`StreamConsumer[${this._topics}].on_event_throttle - consumer throttled`)
     })
 
     this._stream.on('disconnected', () => {
-      Logger.debug(`KafkaReadStream[${this._topics}].on_disconnected - consumer disconnected`)
+      Logger.debug(`StreamConsumer[${this._topics}].on_disconnected - consumer disconnected`)
     })
 
     this._stream.on('event.log', log => {
-      Logger.silly(`KafkaReadStream[${this._topics}].on_event_log - ${log.message}`)
+      Logger.silly(`StreamConsumer[${this._topics}].on_event_log - ${log.message}`)
     })
   }
 
@@ -154,7 +167,7 @@ class StreamConsumer extends EventEmitter {
   // }
 
   async _on_data (data) {
-    Logger.debug(`KafkaReadStream[${this._topics}].on_data - topic: ${data.topic} partition: ${data.partition} offset: ${data.offset}`)
+    Logger.debug(`StreamConsumer[${this._topics}].on_data - topic: ${data.topic} partition: ${data.partition} offset: ${data.offset}`)
 
     // const msg = JSON.parse(data.value.toString())
     const msg = {
@@ -166,7 +179,11 @@ class StreamConsumer extends EventEmitter {
       topic: data.topic,
       value: Protocol.parseValue(data.value, 'utf8', true)
     }
-    await this._handler_fn(null, msg)
+    if (this._syncEnabled) {
+      this._syncQueue.push(msg)
+    } else {
+      await this._handler_fn(null, msg)
+    }
   }
 
   _on_error (err) {
