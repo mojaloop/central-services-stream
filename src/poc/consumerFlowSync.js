@@ -173,25 +173,23 @@ class Consumer extends EventEmitter {
 
     // consumer.consume(); // flowing mode / stream
 
-    const consumeFunc = async (err, messages) => {
-      if (messages && messages.length > 0) {
-        Logger.debug(`Consumer[${this._topics}].consumeFunc - err: ${err}, msg: ${messages}`)
-        messages.forEach(async (data) => {
-          const msg = {
-            key: data.key,
-            offset: data.offset,
-            partition: data.partition,
-            size: data.size,
-            timestamp: data.timestamp,
-            topic: data.topic,
-            value: Protocol.parseValue(data.value, 'utf8', true)
-          }
-          if (this._syncEnabled) {
-            this._syncQueue.push(msg)
-          } else {
-            await this._handler_fn(null, msg)
-          }
-        })
+    const consumeFunc = async (err, data) => {
+      if (data) {
+        Logger.debug(`Consumer[${this._topics}].consumeFunc - err: ${err}, msg: ${data}`)
+        const msg = {
+          key: data.key,
+          offset: data.offset,
+          partition: data.partition,
+          size: data.size,
+          timestamp: data.timestamp,
+          topic: data.topic,
+          value: Protocol.parseValue(data.value, 'utf8', true)
+        }
+        if (this._syncEnabled) {
+          this._syncQueue.push(msg)
+        } else {
+          await this._handler_fn(null, msg)
+        }
       } else {
         Logger.silly(`Consumer[${this._topics}].consumeFunc - err: ${err}, msg: ${messages}`)
       }
