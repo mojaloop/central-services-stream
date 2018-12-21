@@ -203,7 +203,7 @@ class Producer extends EventEmitter {
       this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
 
       if (this._config.options['pollInterval']) {
-        this.setPollInterval(this._config.options['pollIntervalMs'])
+        this.setPollInterval(this._config.options['pollInterval'])
       }
 
       this._producer.on('event.log', log => {

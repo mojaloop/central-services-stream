@@ -32,6 +32,7 @@
 
 const Logger = require('@mojaloop/central-services-shared').Logger
 const ConsumerFlow = require('./consumerFlow')
+const ConsumerFlowSync = require('./consumerFlowSync')
 const ConsumerBatch = require('./consumerBatch')
 const StreamConsumer = require('./streamConsumer')
 const Node = require('./node')
@@ -45,7 +46,8 @@ const ENUMS = {
   pocConsumerFlow: 3,
   pocConsumerBatch: 4,
   pocStream: 5,
-  pocNode: 6
+  pocNode: 6,
+  pocConsumerFlowSync: 7
 }
 
 const createConsumer = async (topicName = [], config = {}, command) => {
@@ -98,6 +100,14 @@ const createConsumer = async (topicName = [], config = {}, command) => {
     case ENUMS.pocConsumerFlow:
       Logger.info(`createConsumer['${topicName}'] - creating Kafka PoC Flow Consumer`)
       consumer = new ConsumerFlow(topicList, config, command)
+      consumer.connect()
+      consumer.on('ready', () => {
+        Logger.info(`createConsumer['${topicName}'] - connected`)
+      })
+      break
+    case ENUMS.pocConsumerFlowSync:
+      Logger.info(`createConsumer['${topicName}'] - creating Kafka PoC FlowSync Consumer`)
+      consumer = new ConsumerFlowSync(topicList, config, command)
       consumer.connect()
       consumer.on('ready', () => {
         Logger.info(`createConsumer['${topicName}'] - connected`)

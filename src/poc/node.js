@@ -163,7 +163,11 @@ class Consumer extends EventEmitter {
           if (Object.keys(commit_res[topic]).length <= 0) { return }
 
           const per_topic_commit_res = commit_res[topic]
-          if (per_topic_commit_res['errorCode']) { console.warn(`commited partition ${per_topic_commit_res['partition']} with errorCode: ${per_topic_commit_res['partition']}`) } else { console.log(`commited partition ${per_topic_commit_res['partition']}`) }
+          if (per_topic_commit_res['errorCode']) {
+            Logger.silly(`NodeConsumer[${this._topics}]._commit - commited partition ${per_topic_commit_res['partition']} with errorCode: ${per_topic_commit_res['partition']}`)
+          } else {
+            Logger.silly(`NodeConsumer[${this._topics}]._commit - commited partition ${per_topic_commit_res['partition']}`)
+          }
         }
       })
 
