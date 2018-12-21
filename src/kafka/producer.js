@@ -111,7 +111,7 @@ const
  * var producer = new Producer({
  *  options: {
  *   {
- *     pollIntervalMs: 100,
+ *     pollInterval: 100,
  *     messageCharset: 'utf8'
  *   },
  *   rdkafkaConf: {
@@ -201,6 +201,10 @@ class Producer extends EventEmitter {
     logger.silly('Producer::connect() - start')
     return new Promise((resolve, reject) => {
       this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
+
+      if (this._config.options['pollInterval']) {
+        this.setPollInterval(this._config.options['pollIntervalMs'])
+      }
 
       this._producer.on('event.log', log => {
         logger.silly(`Producer::on_event_log - ${log.message}`)
@@ -298,6 +302,22 @@ class Producer extends EventEmitter {
       this._config.logger.debug(e)
       throw e
     }
+  }
+
+
+
+  /**
+   * Set automatic polling for events.
+   *
+   * We need to run poll in order to learn about new events that have occurred.
+   * If you would like this done on an interval with disconnects and reconnections
+   * managed, you can do it here
+   *
+   * @param {number} interval - Interval, in milliseconds, to poll. Note that Node-rdkafka defaults this to 1000.
+   */
+  async setPollInterval (interval) {
+    this._config.options['pollInterval'] = interval
+    this._producer.setPollInterval(interval)
   }
 
   // /**

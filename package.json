@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "4.3.4-performance",
+  "version": "4.3.5-performance",
   "description": "Streaming library code for central services",
   "main": "src/index.js",
   "scripts": {
