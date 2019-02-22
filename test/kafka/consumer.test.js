@@ -53,7 +53,7 @@ Test('Consumer test', (consumerTests) => {
 
   // lets setup the tests
   consumerTests.beforeEach((test) => {
-    sandbox = Sinon.sandbox.create()
+    sandbox = Sinon.createSandbox()
     // clock = Sinon.useFakeTimers({
     //   now: Date.now(),
     //   shouldAdvanceTime: true
@@ -2049,7 +2049,7 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
 
   // lets setup the tests
   consumerTests.beforeEach((test) => {
-    sandbox = Sinon.sandbox.create()
+    sandbox = Sinon.createSandbox()
 
     config = {
       options: {

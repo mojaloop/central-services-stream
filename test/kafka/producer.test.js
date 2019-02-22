@@ -48,7 +48,7 @@ Test('Producer test', (producerTests) => {
 
   // lets setup the tests
   producerTests.beforeEach((test) => {
-    sandbox = Sinon.sandbox.create()
+    sandbox = Sinon.createSandbox()
     config = {
       options: {
         pollIntervalMs: 100,
@@ -233,7 +233,7 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
 
   // lets setup the tests
   producerTests.beforeEach((test) => {
-    sandbox = Sinon.sandbox.create()
+    sandbox = Sinon.createSandbox()
 
     config = {
       options: {
