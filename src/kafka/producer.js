@@ -178,7 +178,7 @@ class Producer extends EventEmitter {
     if (!config.logger) {
       config.logger = Logger
     }
-    let {logger} = config
+    let { logger } = config
     logger.silly('Producer::constructor() - start')
     this._config = config
     this._status = {}
@@ -197,7 +197,7 @@ class Producer extends EventEmitter {
    * @returns {Promise} - Returns a promise: resolved if successful, or rejection if connection failed
    */
   async connect () {
-    let {logger} = this._config
+    let { logger } = this._config
     logger.silly('Producer::connect() - start')
     return new Promise((resolve, reject) => {
       this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)

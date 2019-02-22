@@ -52,6 +52,7 @@ typings/
 # IntelliJ #
 # --------------- #
 .idea/
+*.iml
 
 # Yarn Integrity file
 .yarn-integrity

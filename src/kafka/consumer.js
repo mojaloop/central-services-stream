@@ -485,7 +485,7 @@ class Consumer extends EventEmitter {
             logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${messages}}`)
           }
           if (this._config.options.sync) {
-            this._syncQueue.push({error, messages}, function (err, result) {
+            this._syncQueue.push({ error, messages }, function (err, result) {
               if (err) {
                 logger.error(`Consumer::_consumePoller()::syncQueue.push - error: ${error}`)
               }
@@ -554,7 +554,7 @@ class Consumer extends EventEmitter {
         }
 
         if (this._config.options.sync) {
-          this._syncQueue.push({error, messages}, (error, result) => {
+          this._syncQueue.push({ error, messages }, (error, result) => {
             if (error) {
               logger.error(`Consumer::_consumerRecursive()::syncQueue.push - error: ${error}`)
             }
@@ -602,7 +602,7 @@ class Consumer extends EventEmitter {
           logger.debug(`Consumer::_consumerFlow() - message: ${message}`)
         }
         if (this._config.options.sync) {
-          this._syncQueue.push({error, message}, function (err, result) {
+          this._syncQueue.push({ error, message }, function (err, result) {
             if (err) { logger.error(err) }
           })
         } else {

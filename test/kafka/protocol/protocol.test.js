@@ -147,7 +147,7 @@ Test('Protocol::parseMessage - no params', function (assert) {
 
 Test('Protocol::parseNotify', function (assert) {
   var test = Protocol.parseNotify(parseN)
-   // Logger.debug(test)
+  // Logger.debug(test)
   assert.ok(Sinon.match(test, parseN))
   assert.end()
 })

@@ -201,7 +201,7 @@ Test('Producer test', (producerTests) => {
     producer.connect().then(result => {
       assert.ok(Sinon.match(result, true))
 
-      producer.sendMessage({message: {test: 'test'}, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {}}, {topicName: 'test', key: '1234'}).then(results => {
+      producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'test', key: '1234' }).then(results => {
         producer.disconnect(discoCallback)
       })
     })
@@ -210,14 +210,14 @@ Test('Producer test', (producerTests) => {
   producerTests.test('Test Producer::sendMessage producer null', (assert) => {
     var producer = new Producer(config)
     producer.sendMessage({
-      message: {test: 'test'},
+      message: { test: 'test' },
       from: 'testAccountSender',
       to: 'testAccountReceiver',
       type: 'application/json',
       pp: '',
       id: 'id',
       metadata: {}
-    }, {topicName: 'test', key: '1234'}).then(results => {}).catch((e) => {
+    }, { topicName: 'test', key: '1234' }).then(results => {}).catch((e) => {
       assert.ok(e.message, 'You must call and await .connect() before trying to produce messages.')
       assert.end()
     })
