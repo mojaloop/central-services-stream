@@ -40,7 +40,7 @@ const testConsumer = async () => {
         // resolve(false)
         reject(error)
       }
-      if (message) { // check if there is a valid message comming back
+      if (message) { // check if there is a valid message coming back
         Logger.debug(`Message Received by callback function - ${JSON.stringify(message)}`)
         // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
         if (Array.isArray(message) && message.length != null && message.length > 0) {

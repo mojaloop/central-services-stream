@@ -107,7 +107,7 @@ class KafkaClient extends EventEmitter {
       Logger.error(err)
     }
   }) {
-    var metadataSample = { ...metadataSampleStub }
+    let metadataSample = { ...metadataSampleStub }
 
     if (cb) {
       cb(null, metadataSample)
@@ -176,10 +176,10 @@ class KafkaConsumer extends KafkaClient {
     }
 
     if (number > 0) {
-      var messageBatchSample = [0, 1, 2, 3, 4, 5, 6, 7, 9]
+      let messageBatchSample = [0, 1, 2, 3, 4, 5, 6, 7, 9]
 
       messageBatchSample = messageBatchSample.map(index => {
-        var newMessageSample = { ...messageSample }
+        let newMessageSample = { ...messageSample }
         newMessageSample.key = index
         newMessageSample.offset = index
         newMessageSample.timestamp = (new Date()).getTime()
@@ -190,7 +190,7 @@ class KafkaConsumer extends KafkaClient {
       this.emit('batch', messageBatchSample)
     }
     const copyOfMessageSample = { ...messageSample }
-    // var copyOfMessageSample = {}
+    // let copyOfMessageSample = {}
     // Object.assign(copyOfMessageSample, messageSample)
     cb(null, messageSample)
     this.emit('data', copyOfMessageSample)
@@ -218,7 +218,7 @@ class KafkaConsumer extends KafkaClient {
   }
 
   getWatermarkOffsets (topic, partition) {
-    var watermarkOffsetSample = { ...watermarkOffsetSampleStub }
+    let watermarkOffsetSample = { ...watermarkOffsetSampleStub }
     this._dummyFunction()
     return watermarkOffsetSample
   }

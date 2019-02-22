@@ -55,7 +55,7 @@ const parseValue = (value, encoding = 'utf8', asJSON = true) => {
   //   return value
   // }
 
-  var parsedValue = value.toString(encoding)
+  let parsedValue = value.toString(encoding)
 
   if (asJSON) {
     try {

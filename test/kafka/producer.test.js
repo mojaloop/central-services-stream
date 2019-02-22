@@ -90,7 +90,7 @@ Test('Producer test', (producerTests) => {
 
   producerTests.test('Test Producer::constructor', (assert) => {
     const ProducerSpy = Sinon.spy(Producer.prototype, 'constructor')
-    var producer = new ProducerSpy(config)
+    let producer = new ProducerSpy(config)
     assert.ok(producer, 'Producer instance created')
     assert.ok(ProducerSpy.calledOnce, 'Producer constructor called once')
     assert.end()
@@ -98,7 +98,7 @@ Test('Producer test', (producerTests) => {
 
   producerTests.test('Test Producer::constructor null', (assert) => {
     try {
-      var producer = new Producer(null)
+      let producer = new Producer(null)
       assert.ok(producer, 'Producer instance created')
       assert.end()
     } catch (error) {
@@ -109,7 +109,7 @@ Test('Producer test', (producerTests) => {
 
   producerTests.test('Test Producer::constructor null', (assert) => {
     try {
-      var producer = new Producer()
+      let producer = new Producer()
       assert.ok(producer, 'Producer instance created')
       assert.end()
     } catch (error) {
@@ -128,7 +128,7 @@ Test('Producer test', (producerTests) => {
     )
 
     assert.plan(2)
-    var producer = new Producer(config)
+    let producer = new Producer(config)
 
     // consume 'message' event
     producer.on('error', error => {
@@ -144,7 +144,7 @@ Test('Producer test', (producerTests) => {
 
   producerTests.test('Test Producer::connect', (assert) => {
     assert.plan(2)
-    var producer = new Producer(config)
+    let producer = new Producer(config)
     producer.on('ready', arg => {
       console.log(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(Sinon.match(arg, true), 'on Ready event received')
@@ -157,14 +157,14 @@ Test('Producer test', (producerTests) => {
   })
 
   producerTests.test('Test Producer::disconnect', (assert) => {
-    var discoCallback = (err, metrics) => {
+    let discoCallback = (err, metrics) => {
       if (err) {
         Logger.error(err)
       }
       assert.equal(typeof metrics.connectionOpened, 'number')
       assert.end()
     }
-    var producer = new Producer(config)
+    let producer = new Producer(config)
     producer.connect().then(() => {
       producer.disconnect(discoCallback)
     })
@@ -172,7 +172,7 @@ Test('Producer test', (producerTests) => {
 
   producerTests.test('Test Producer::disconnect', (assert) => {
     try {
-      var producer = new Producer(config)
+      let producer = new Producer(config)
       producer.disconnect()
       assert.ok(true)
       assert.end()
@@ -184,8 +184,8 @@ Test('Producer test', (producerTests) => {
 
   producerTests.test('Test Producer::sendMessage', (assert) => {
     assert.plan(3)
-    var producer = new Producer(config)
-    var discoCallback = (err, metrics) => {
+    let producer = new Producer(config)
+    let discoCallback = (err, metrics) => {
       if (err) {
         Logger.error(err)
       }
@@ -208,7 +208,7 @@ Test('Producer test', (producerTests) => {
   })
 
   producerTests.test('Test Producer::sendMessage producer null', (assert) => {
-    var producer = new Producer(config)
+    let producer = new Producer(config)
     producer.sendMessage({
       message: { test: 'test' },
       from: 'testAccountSender',
@@ -262,7 +262,7 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
 
     sandbox.stub(Kafka, 'Producer').callsFake(
       () => {
-        var k = new KafkaStubs.KafkaProducerForEventTests()
+        let k = new KafkaStubs.KafkaProducerForEventTests()
         return k
       }
     )
@@ -278,8 +278,8 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
 
   producerTests.test('Test Producer::connect - test KafkaProducer events: event.log, event.error, error, deliver-report', (assert) => {
     assert.plan(4)
-    var producer = new Producer(config)
-    var discoCallback = (err) => {
+    let producer = new Producer(config)
+    let discoCallback = (err) => {
       if (err) {
         Logger.error(err)
       }
