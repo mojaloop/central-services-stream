@@ -1561,6 +1561,7 @@ Test('Consumer test', (consumerTests) => {
           Logger.info(`consume::callback[recursiveCount=${recursiveCount}] ${error}, ${JSON.stringify(message)}`)
           if (recursiveCount > 3) {
             c.disconnect()
+            c.removeAllListeners()
             assert.ok(true, 'Message processed by the recursive consumer')
             processedNextMessage = true
             if (errorHandledThrown && errorHandledRejected) {
