@@ -874,6 +874,7 @@ Test('Consumer test', (consumerTests) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
             c.disconnect()
+            c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the poller consumer')
             assert.end()
           } else {
@@ -900,6 +901,7 @@ Test('Consumer test', (consumerTests) => {
             } else {
               resolve(false)
               c.disconnect()
+              c.removeAllListeners(['batch', 'message', 'ready'])
               assert.fail('message not processed')
             }
           }
@@ -957,6 +959,7 @@ Test('Consumer test', (consumerTests) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
             c.disconnect()
+            c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the poller consumer')
             assert.end()
           } else {
@@ -983,6 +986,7 @@ Test('Consumer test', (consumerTests) => {
             } else {
               resolve(false)
               c.disconnect()
+              c.removeAllListeners(['batch', 'message', 'ready'])
               assert.fail('message not processed')
             }
           }
@@ -1040,6 +1044,7 @@ Test('Consumer test', (consumerTests) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
             c.disconnect()
+            c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the poller consumer')
             assert.end()
           } else {
@@ -1066,6 +1071,7 @@ Test('Consumer test', (consumerTests) => {
             } else {
               resolve(false)
               c.disconnect()
+              c.removeAllListeners(['batch', 'message', 'ready'])
               assert.fail('message not processed')
             }
           }
@@ -1123,6 +1129,7 @@ Test('Consumer test', (consumerTests) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
             c.disconnect()
+            c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the poller consumer')
             assert.end()
           } else {
@@ -1149,6 +1156,7 @@ Test('Consumer test', (consumerTests) => {
             } else {
               resolve(false)
               c.disconnect()
+              c.removeAllListeners(['batch', 'message', 'ready'])
               assert.fail('message not processed')
             }
           }
@@ -1206,6 +1214,7 @@ Test('Consumer test', (consumerTests) => {
           recursiveCount = recursiveCount + 1
           if (recursiveCount > 1) {
             c.disconnect()
+            c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the recursive consumer')
             assert.end()
           } else {
@@ -1289,6 +1298,7 @@ Test('Consumer test', (consumerTests) => {
           recursiveCount = recursiveCount + 1
           if (recursiveCount > 1) {
             c.disconnect()
+            c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the recursive consumer')
             assert.end()
           } else {
@@ -1372,6 +1382,7 @@ Test('Consumer test', (consumerTests) => {
           recursiveCount = recursiveCount + 1
           if (recursiveCount > 1) {
             c.disconnect()
+            c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the recursive consumer')
             assert.end()
           } else {
@@ -1456,6 +1467,7 @@ Test('Consumer test', (consumerTests) => {
           recursiveCount = recursiveCount + 1
           if (recursiveCount > 1) {
             c.disconnect()
+            c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the recursive consumer')
             assert.end()
           } else {
@@ -1561,7 +1573,7 @@ Test('Consumer test', (consumerTests) => {
           Logger.info(`consume::callback[recursiveCount=${recursiveCount}] ${error}, ${JSON.stringify(message)}`)
           if (recursiveCount > 3) {
             c.disconnect()
-            c.removeAllListeners()
+            c.removeAllListeners(['batch', 'error', 'message', 'ready'])
             assert.ok(true, 'Message processed by the recursive consumer')
             processedNextMessage = true
             if (errorHandledThrown && errorHandledRejected) {
@@ -1654,6 +1666,7 @@ Test('Consumer test', (consumerTests) => {
             assert.ok(true, 'Message processed by the recursive consumer')
             resolve(true)
             c.disconnect()
+            c.removeAllListeners(['batch', 'error', 'ready'])
             processedNextMessage = true
             if (errorHandledThrown && errorHandledRejected) {
               assert.pass('All errors handled')
@@ -1764,6 +1777,7 @@ Test('Consumer test', (consumerTests) => {
             assert.ok(true, 'Message processed by the recursive consumer')
             resolve(true)
             c.disconnect()
+            c.removeAllListeners(['error'])
             processedNextMessage = true
             if (errorHandledThrown && errorHandledRejected) {
               assert.pass('All errors handled')
@@ -1839,6 +1853,7 @@ Test('Consumer test', (consumerTests) => {
             assert.ok(true, 'Message processed by the recursive consumer')
             resolve(true)
             c.disconnect()
+            c.removeAllListeners(['error'])
             processedNextMessage = true
             if (errorHandledThrown && errorHandledRejected) {
               assert.pass('All errors handled')
@@ -2006,6 +2021,7 @@ Test('Consumer test', (consumerTests) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
             c.disconnect()
+            c.removeAllListeners(['error'])
             assert.ok(true, 'Message processed once by the poller consumer')
           } else {
             if (error) {
@@ -2031,6 +2047,7 @@ Test('Consumer test', (consumerTests) => {
             } else {
               resolve(false)
               c.disconnect()
+              c.removeAllListeners(['error'])
               assert.fail('message not processed')
             }
           }
