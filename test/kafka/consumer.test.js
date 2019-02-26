@@ -53,7 +53,7 @@ Test('Consumer test', (consumerTests) => {
 
   // lets setup the tests
   consumerTests.beforeEach((test) => {
-    sandbox = Sinon.sandbox.create()
+    sandbox = Sinon.createSandbox()
     // clock = Sinon.useFakeTimers({
     //   now: Date.now(),
     //   shouldAdvanceTime: true
@@ -82,7 +82,7 @@ Test('Consumer test', (consumerTests) => {
 
     sandbox.stub(Kafka, 'KafkaConsumer').callsFake(
       () => {
-        var k = new KafkaStubs.KafkaConsumer()
+        let k = new KafkaStubs.KafkaConsumer()
         return k
       }
     )
@@ -98,7 +98,7 @@ Test('Consumer test', (consumerTests) => {
 
   consumerTests.test('Test Consumer::constructor', (assert) => {
     const ConsumerSpy = Sinon.spy(Consumer.prototype, 'constructor')
-    var c = new ConsumerSpy(topicsList, config)
+    let c = new ConsumerSpy(topicsList, config)
     assert.ok(c, 'Consumer instance created')
     assert.ok(ConsumerSpy.calledOnce, 'Consumer constructor called once')
     ConsumerSpy.restore()
@@ -107,7 +107,7 @@ Test('Consumer test', (consumerTests) => {
 
   consumerTests.test('Test Consumer::constructor - no config', (assert) => {
     try {
-      var c = new Consumer(topicsList, {})
+      let c = new Consumer(topicsList, {})
       assert.ok(c, 'Consumer instance created')
       assert.end()
     } catch (error) {
@@ -118,14 +118,14 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::constructor - no params', (assert) => {
-    // var c = new Consumer()
+    // let c = new Consumer()
     assert.ok(true)
     assert.end()
   })
 
   consumerTests.test('Test Consumer::connect', (assert) => {
     assert.plan(2)
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(Sinon.match(arg, true), 'on Ready event received')
@@ -145,7 +145,7 @@ Test('Consumer test', (consumerTests) => {
     )
 
     assert.plan(2)
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'message' event
     c.on('error', error => {
@@ -160,21 +160,21 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::disconnect', (assert) => {
-    var discoCallback = (err, metrics) => {
+    let discoCallback = (err, metrics) => {
       if (err) {
         Logger.error(err)
       }
       assert.equal(typeof metrics.connectionOpened, 'number')
       assert.end()
     }
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       c.disconnect(discoCallback)
     })
   })
 
   consumerTests.test('Test Consumer::disconnect - no callback', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       c.disconnect()
       assert.ok(true)
@@ -183,7 +183,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::subscribe', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       c.subscribe(topicsList)
       assert.ok(true)
@@ -192,7 +192,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::subscribe - no params', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       c.subscribe()
       assert.ok(true)
@@ -201,10 +201,10 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::getWatermarkOffsets', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
-      var waterMarkOffset = c.getWatermarkOffsets(topicsList, 0)
+      let waterMarkOffset = c.getWatermarkOffsets(topicsList, 0)
       assert.ok(waterMarkOffset, 'waterMarkOffset result exists')
       assert.ok(Sinon.match(waterMarkOffset, KafkaStubs.watermarkOffsetSampleStub), 'waterMarkOffset results match')
       assert.end()
@@ -212,7 +212,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::getMetadata', (assert) => {
-    var metaDatacCb = (error, metadata) => {
+    let metaDatacCb = (error, metadata) => {
       if (error) {
         Logger.error(error)
       }
@@ -220,7 +220,7 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(Sinon.match(metadata, KafkaStubs.metadataSampleStub), 'metadata objects match')
       assert.end()
     }
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.getMetadata(null, metaDatacCb)
@@ -228,7 +228,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::getMetadata - no callback function', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.getMetadata(null)
@@ -238,7 +238,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::commit', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.commit(topicsList)
@@ -248,7 +248,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::commit - no params', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.commit()
@@ -258,7 +258,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::commitSync', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.commitSync(topicsList)
@@ -268,7 +268,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::commitSync - no params', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.commitSync()
@@ -278,7 +278,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::commitMessage', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.commitMessage(KafkaStubs.messageSampleStub)
@@ -288,7 +288,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::commitMessageSync', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.commitMessageSync(KafkaStubs.messageSampleStub)
@@ -298,7 +298,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::consumeOnce - Not Implemented - default params', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       try {
@@ -312,7 +312,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::consumeOnce - Not Implemented - batchSize=10', (assert) => {
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       try {
@@ -334,9 +334,9 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::consume - defaults', (assert) => {
-    var messageReceived = false
+    let messageReceived = false
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     c.on('message', message => {
       Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
@@ -375,7 +375,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -440,7 +440,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -510,7 +510,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -575,7 +575,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -639,15 +639,15 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var consumeCount = 0
-    var errorMessageThrown = 'this is an error thrown'
-    var errorMessageRejected = 'this is an error rejected'
+    let consumeCount = 0
+    let errorMessageThrown = 'this is an error thrown'
+    let errorMessageRejected = 'this is an error rejected'
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
-    var errorHandledThrown = false
-    var errorHandledRejected = false
-    var processedNextMessage = false
+    let errorHandledThrown = false
+    let errorHandledRejected = false
+    let processedNextMessage = false
     c.on('error', error => {
       Logger.debug(`OMG - ${error}`)
       if (error instanceof Error) {
@@ -742,15 +742,15 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var consumeCount = 0
-    var errorMessageThrown = 'this is an error thrown'
-    var errorMessageRejected = 'this is an error rejected'
+    let consumeCount = 0
+    let errorMessageThrown = 'this is an error thrown'
+    let errorMessageRejected = 'this is an error rejected'
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
-    var errorHandledThrown = false
-    var errorHandledRejected = false
-    var processedNextMessage = false
+    let errorHandledThrown = false
+    let errorHandledRejected = false
+    let processedNextMessage = false
     c.on('error', error => {
       Logger.debug(`OMG - ${error}`)
       if (error instanceof Error) {
@@ -845,7 +845,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -864,7 +864,7 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
 
-    var pollCount = 0
+    let pollCount = 0
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
@@ -874,6 +874,7 @@ Test('Consumer test', (consumerTests) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
             c.disconnect()
+            // c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the poller consumer')
             assert.end()
           } else {
@@ -900,6 +901,7 @@ Test('Consumer test', (consumerTests) => {
             } else {
               resolve(false)
               c.disconnect()
+              // c.removeAllListeners(['batch', 'message', 'ready'])
               assert.fail('message not processed')
             }
           }
@@ -928,7 +930,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -947,7 +949,7 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
 
-    var pollCount = 0
+    let pollCount = 0
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
@@ -957,6 +959,7 @@ Test('Consumer test', (consumerTests) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
             c.disconnect()
+            // c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the poller consumer')
             assert.end()
           } else {
@@ -983,6 +986,7 @@ Test('Consumer test', (consumerTests) => {
             } else {
               resolve(false)
               c.disconnect()
+              // c.removeAllListeners(['batch', 'message', 'ready'])
               assert.fail('message not processed')
             }
           }
@@ -1011,7 +1015,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1030,7 +1034,7 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
 
-    var pollCount = 0
+    let pollCount = 0
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
@@ -1040,6 +1044,7 @@ Test('Consumer test', (consumerTests) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
             c.disconnect()
+            // c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the poller consumer')
             assert.end()
           } else {
@@ -1066,6 +1071,7 @@ Test('Consumer test', (consumerTests) => {
             } else {
               resolve(false)
               c.disconnect()
+              // c.removeAllListeners(['batch', 'message', 'ready'])
               assert.fail('message not processed')
             }
           }
@@ -1094,7 +1100,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1113,7 +1119,7 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
 
-    var pollCount = 0
+    let pollCount = 0
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
@@ -1123,6 +1129,7 @@ Test('Consumer test', (consumerTests) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
             c.disconnect()
+            // c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the poller consumer')
             assert.end()
           } else {
@@ -1149,6 +1156,7 @@ Test('Consumer test', (consumerTests) => {
             } else {
               resolve(false)
               c.disconnect()
+              // c.removeAllListeners(['batch', 'message', 'ready'])
               assert.fail('message not processed')
             }
           }
@@ -1177,7 +1185,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1196,7 +1204,7 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
 
-    var recursiveCount = 0
+    let recursiveCount = 0
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
@@ -1206,6 +1214,7 @@ Test('Consumer test', (consumerTests) => {
           recursiveCount = recursiveCount + 1
           if (recursiveCount > 1) {
             c.disconnect()
+            // c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the recursive consumer')
             assert.end()
           } else {
@@ -1260,7 +1269,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1279,7 +1288,7 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
 
-    var recursiveCount = 0
+    let recursiveCount = 0
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
@@ -1289,6 +1298,7 @@ Test('Consumer test', (consumerTests) => {
           recursiveCount = recursiveCount + 1
           if (recursiveCount > 1) {
             c.disconnect()
+            // c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the recursive consumer')
             assert.end()
           } else {
@@ -1343,7 +1353,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1362,7 +1372,7 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
 
-    var recursiveCount = 0
+    let recursiveCount = 0
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
@@ -1372,6 +1382,7 @@ Test('Consumer test', (consumerTests) => {
           recursiveCount = recursiveCount + 1
           if (recursiveCount > 1) {
             c.disconnect()
+            // c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the recursive consumer')
             assert.end()
           } else {
@@ -1427,7 +1438,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1446,7 +1457,7 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
 
-    var recursiveCount = 0
+    let recursiveCount = 0
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
@@ -1456,6 +1467,7 @@ Test('Consumer test', (consumerTests) => {
           recursiveCount = recursiveCount + 1
           if (recursiveCount > 1) {
             c.disconnect()
+            // c.removeAllListeners(['batch', 'message', 'ready'])
             assert.ok(true, 'Message processed once by the recursive consumer')
             assert.end()
           } else {
@@ -1509,10 +1521,10 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var errorMessageThrown = 'this is an error thrown'
-    var errorMessageRejected = 'this is an error rejected'
+    let errorMessageThrown = 'this is an error thrown'
+    let errorMessageRejected = 'this is an error rejected'
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1520,15 +1532,15 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(Sinon.match(arg, true), 'on Ready event received')
     })
     // consume 'message' event
-    var recursiveCount = 0
+    let recursiveCount = 0
     c.on('message', message => {
       Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
-    var errorHandledThrown = false
-    var errorHandledRejected = false
-    var processedNextMessage = false
+    let errorHandledThrown = false
+    let errorHandledRejected = false
+    let processedNextMessage = false
     c.on('error', error => {
       Logger.debug(`OMG - ${error}`)
       if (error instanceof Error) {
@@ -1561,6 +1573,7 @@ Test('Consumer test', (consumerTests) => {
           Logger.info(`consume::callback[recursiveCount=${recursiveCount}] ${error}, ${JSON.stringify(message)}`)
           if (recursiveCount > 3) {
             c.disconnect()
+            // c.removeAllListeners(['batch', 'error', 'message', 'ready'])
             assert.ok(true, 'Message processed by the recursive consumer')
             processedNextMessage = true
             if (errorHandledThrown && errorHandledRejected) {
@@ -1599,10 +1612,10 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var errorMessageThrown = 'this is an error thrown'
-    var errorMessageRejected = 'this is an error rejected'
+    let errorMessageThrown = 'this is an error thrown'
+    let errorMessageRejected = 'this is an error rejected'
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1610,15 +1623,15 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(Sinon.match(arg, true), 'on Ready event received')
     })
     // consume 'message' event
-    var recursiveCount = 0
+    let recursiveCount = 0
     c.on('message', message => {
       Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
-    var errorHandledThrown = false
-    var errorHandledRejected = false
-    var processedNextMessage = false
+    let errorHandledThrown = false
+    let errorHandledRejected = false
+    let processedNextMessage = false
     c.on('error', error => {
       Logger.debug(`OMG - ${error}`)
       if (error instanceof Error) {
@@ -1653,6 +1666,7 @@ Test('Consumer test', (consumerTests) => {
             assert.ok(true, 'Message processed by the recursive consumer')
             resolve(true)
             c.disconnect()
+            // c.removeAllListeners(['batch', 'error', 'ready'])
             processedNextMessage = true
             if (errorHandledThrown && errorHandledRejected) {
               assert.pass('All errors handled')
@@ -1691,7 +1705,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
@@ -1726,15 +1740,15 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var errorMessageThrown = 'this is an error thrown'
-    var errorMessageRejected = 'this is an error rejected'
+    let errorMessageThrown = 'this is an error thrown'
+    let errorMessageRejected = 'this is an error rejected'
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
-    var pollCount = 0
-    var errorHandledThrown = false
-    var errorHandledRejected = false
-    var processedNextMessage = false
+    let pollCount = 0
+    let errorHandledThrown = false
+    let errorHandledRejected = false
+    let processedNextMessage = false
     c.on('error', error => {
       Logger.debug(`OMG - ${error}`)
       if (error instanceof Error) {
@@ -1763,6 +1777,7 @@ Test('Consumer test', (consumerTests) => {
             assert.ok(true, 'Message processed by the recursive consumer')
             resolve(true)
             c.disconnect()
+            // c.removeAllListeners(['error'])
             processedNextMessage = true
             if (errorHandledThrown && errorHandledRejected) {
               assert.pass('All errors handled')
@@ -1801,15 +1816,15 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var errorMessageThrown = 'this is an error thrown'
-    var errorMessageRejected = 'this is an error rejected'
+    let errorMessageThrown = 'this is an error thrown'
+    let errorMessageRejected = 'this is an error rejected'
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
-    var pollCount = 0
-    var errorHandledThrown = false
-    var errorHandledRejected = false
-    var processedNextMessage = false
+    let pollCount = 0
+    let errorHandledThrown = false
+    let errorHandledRejected = false
+    let processedNextMessage = false
     c.on('error', error => {
       Logger.debug(`OMG - ${error}`)
       if (error instanceof Error) {
@@ -1838,6 +1853,7 @@ Test('Consumer test', (consumerTests) => {
             assert.ok(true, 'Message processed by the recursive consumer')
             resolve(true)
             c.disconnect()
+            // c.removeAllListeners(['error'])
             processedNextMessage = true
             if (errorHandledThrown && errorHandledRejected) {
               assert.pass('All errors handled')
@@ -1876,7 +1892,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
@@ -1912,7 +1928,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1956,6 +1972,7 @@ Test('Consumer test', (consumerTests) => {
     })
   })
 
+  /*
   consumerTests.test('Test Consumer::consume poller sync=false, messageAsJson=true - consumer callback with error', (assert) => {
     config = {
       options: {
@@ -1976,8 +1993,8 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    var calledConsume = false
-    var c = new Consumer(topicsList, config)
+    let calledConsume = false
+    let c = new Consumer(topicsList, config)
 
     sandbox.stub(KafkaStubs.KafkaConsumer.prototype, 'consume').callsFake(
       (number, info) => {
@@ -1991,7 +2008,7 @@ Test('Consumer test', (consumerTests) => {
       }
     )
 
-    var pollCount = 0
+    let pollCount = 0
 
     c.on('error', error => {
       Logger.debug(`OMG - ${error}`)
@@ -2005,6 +2022,7 @@ Test('Consumer test', (consumerTests) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
             c.disconnect()
+            // c.removeAllListeners(['error'])
             assert.ok(true, 'Message processed once by the poller consumer')
           } else {
             if (error) {
@@ -2030,6 +2048,7 @@ Test('Consumer test', (consumerTests) => {
             } else {
               resolve(false)
               c.disconnect()
+              // c.removeAllListeners(['error'])
               assert.fail('message not processed')
             }
           }
@@ -2037,6 +2056,7 @@ Test('Consumer test', (consumerTests) => {
       })
     })
   })
+  */
 
   consumerTests.end()
 })
@@ -2049,7 +2069,7 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
 
   // lets setup the tests
   consumerTests.beforeEach((test) => {
-    sandbox = Sinon.sandbox.create()
+    sandbox = Sinon.createSandbox()
 
     config = {
       options: {
@@ -2074,7 +2094,7 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
 
     sandbox.stub(Kafka, 'KafkaConsumer').callsFake(
       () => {
-        var k = new KafkaStubs.KafkaConsumerForEventTests()
+        let k = new KafkaStubs.KafkaConsumerForEventTests()
         return k
       }
     )
@@ -2090,7 +2110,7 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
 
   consumerTests.test('Test Consumer::connect - test KafkaConsumer events: event.log, event.error, error', (assert) => {
     assert.plan(4)
-    var c = new Consumer(topicsList, config)
+    let c = new Consumer(topicsList, config)
 
     // consume 'message' event
     c.on('error', error => {

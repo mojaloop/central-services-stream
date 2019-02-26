@@ -161,7 +161,7 @@ exports.ENUMS = ENUMS
  * you want to read from.
  *
  * @example
- * var consumer = new Consumer(['test1'], {
+ * let consumer = new Consumer(['test1'], {
  *   rdkafka: {
  *     'group.id': 'kafka',
  *     'metadata.broker.list': 'localhost:9092',
@@ -304,16 +304,16 @@ class Consumer extends EventEmitter {
       logger.silly('Registering data event..')
       this._consumer.on('data', message => {
         logger.silly(`Consumer::onData() - message: ${JSON.stringify(message)}`)
-        var returnMessage = { ...message }
-        // var returnMessage = {}
+        let returnMessage = { ...message }
+        // let returnMessage = {}
         // Object.assign(returnMessage, message)
         // if (message instanceof Array) {
         //   returnMessage.map(msg => {
-        //     var parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+        //     let parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
         //     msg.value = parsedValue
         //   })
         // } else {
-        var parsedValue = Protocol.parseValue(returnMessage.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+        let parsedValue = Protocol.parseValue(returnMessage.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
         returnMessage.value = parsedValue
         // }
         super.emit('message', returnMessage)
@@ -476,7 +476,7 @@ class Consumer extends EventEmitter {
         } else {
           // lets transform the messages into the desired format
           messages.map(msg => {
-            var parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+            let parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
             msg.value = parsedValue
           })
           if (this._config.options.messageAsJSON) {
@@ -485,7 +485,7 @@ class Consumer extends EventEmitter {
             logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${messages}}`)
           }
           if (this._config.options.sync) {
-            this._syncQueue.push({error, messages}, function (err, result) {
+            this._syncQueue.push({ error, messages }, function (err, result) {
               if (err) {
                 logger.error(`Consumer::_consumePoller()::syncQueue.push - error: ${error}`)
               }
@@ -521,7 +521,6 @@ class Consumer extends EventEmitter {
    * @fires Consumer#batch
    * @fires Consumer#recursive
    *
-   * @param {number} pollFrequency - The polling frequency in milliseconds. Only applicable when mode = CONSUMER_MODES.poll. Defaults: 10
    * @param {number} recursiveTimeout - The timeout in milliseconds for the recursive processing method should timeout. Only applicable when mode = CONSUMER_MODES.recursive. Defaults: 100
    * @param {number} batchSize - The batch size to be requested by the Kafka consumer. Defaults: 1
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
@@ -544,7 +543,7 @@ class Consumer extends EventEmitter {
       } else {
         // lets transform the messages into the desired format
         messages.map(msg => {
-          var parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+          let parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
           msg.value = parsedValue
         })
         if (this._config.options.messageAsJSON) {
@@ -554,7 +553,7 @@ class Consumer extends EventEmitter {
         }
 
         if (this._config.options.sync) {
-          this._syncQueue.push({error, messages}, (error, result) => {
+          this._syncQueue.push({ error, messages }, (error, result) => {
             if (error) {
               logger.error(`Consumer::_consumerRecursive()::syncQueue.push - error: ${error}`)
             }
@@ -594,7 +593,7 @@ class Consumer extends EventEmitter {
           super.emit('error', error)
         }
       } else {
-        var parsedValue = Protocol.parseValue(message.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+        let parsedValue = Protocol.parseValue(message.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
         message.value = parsedValue
         if (this._config.options.messageAsJSON) {
           logger.debug(`Consumer::_consumerFlow() - message: ${JSON.stringify(message)}`)
@@ -602,7 +601,7 @@ class Consumer extends EventEmitter {
           logger.debug(`Consumer::_consumerFlow() - message: ${message}`)
         }
         if (this._config.options.sync) {
-          this._syncQueue.push({error, message}, function (err, result) {
+          this._syncQueue.push({ error, message }, function (err, result) {
             if (err) { logger.error(err) }
           })
         } else {

@@ -70,7 +70,7 @@ const METHOD = {
  * @typedef {object} ENUMS~STATUS
  * @property {string} success - successful validation passed
  * @property {string} failed - failed validation
- * @property {string} pending - pending proccessing
+ * @property {string} pending - pending processing
  */
 const STATUS = {
   success: 'success',
@@ -108,7 +108,7 @@ const
  * configuration and default topic configuration.
  *
  * @example
- * var producer = new Producer({
+ * let producer = new Producer({
  *  options: {
  *   {
  *     pollIntervalMs: 100,
@@ -178,7 +178,7 @@ class Producer extends EventEmitter {
     if (!config.logger) {
       config.logger = Logger
     }
-    let {logger} = config
+    let { logger } = config
     logger.silly('Producer::constructor() - start')
     this._config = config
     this._status = {}
@@ -197,7 +197,7 @@ class Producer extends EventEmitter {
    * @returns {Promise} - Returns a promise: resolved if successful, or rejection if connection failed
    */
   async connect () {
-    let {logger} = this._config
+    let { logger } = this._config
     logger.silly('Producer::connect() - start')
     return new Promise((resolve, reject) => {
       this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
@@ -245,7 +245,7 @@ class Producer extends EventEmitter {
   }
 
   _createBuffer (str, encoding) {
-    var bufferResponse = Buffer.from(JSON.stringify(str), encoding)
+    let bufferResponse = Buffer.from(JSON.stringify(str), encoding)
     return bufferResponse
   }
 
@@ -281,7 +281,7 @@ class Producer extends EventEmitter {
       if (this._producer._isConnecting) {
         this._config.logger.debug('still connecting')
       }
-      var parsedMessage = Protocol.parseMessage(messageProtocol)
+      let parsedMessage = Protocol.parseMessage(messageProtocol)
       const parsedMessageBuffer = this._createBuffer(parsedMessage, this._config.options.messageCharset)
       if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
         throw new Error('message must be a string or an instance of Buffer.')
@@ -325,7 +325,7 @@ class Producer extends EventEmitter {
   //     if (this._producer._isConnecting) {
   //       this._config.logger.debug('still connecting')
   //     }
-  //     var parsedNotification = Protocol.parseNotify(from, to, key, message, metadata, event, reason, type, pp)
+  //     let parsedNotification = Protocol.parseNotify(from, to, key, message, metadata, event, reason, type, pp)
   //     // parsedNotification = Buffer.isBuffer(parsedNotification) ? parsedNotification : Buffer.from(JSON.stringify(parsedNotification))
   //     parsedNotification = this._createBuffer(parsedNotification, this._config.options.messageCharset)
   //     if (!parsedNotification || !(typeof parsedNotification === 'string' || Buffer.isBuffer(parsedNotification))) {
@@ -374,7 +374,7 @@ class Producer extends EventEmitter {
   //     if (this._producer._isConnecting) {
   //       this._config.logger.debug('still connecting')
   //     }
-  //     var parsedCommand = Protocol.parseCommand(from, to, key, message, reason, method, metadata, status, type, pp)
+  //     let parsedCommand = Protocol.parseCommand(from, to, key, message, reason, method, metadata, status, type, pp)
   //     // parsedCommand = Buffer.isBuffer(parsedCommand) ? parsedCommand : Buffer.from(JSON.stringify(parsedCommand))
   //     parsedCommand = this._createBuffer(parsedCommand, this._config.options.messageCharset)
   //     if (!parsedCommand || !(typeof parsedCommand === 'string' || Buffer.isBuffer(parsedCommand))) {

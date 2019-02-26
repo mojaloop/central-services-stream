@@ -40,10 +40,10 @@
 const Producer = require('../').Producer
 const Logger = require('@mojaloop/central-services-shared').Logger
 
-var testProducer = async () => {
+let testProducer = async () => {
   Logger.info('testProducer::start')
 
-  const confg = {
+  const config = {
     options:
     {
       pollIntervalMs: 100,
@@ -68,14 +68,14 @@ var testProducer = async () => {
     }
   }
 
-  var p = new Producer(confg)
+  let p = new Producer(config)
   Logger.info('testProducer::connect::start')
-  var connectionResult = await p.connect()
+  let connectionResult = await p.connect()
   Logger.info('testProducer::connect::end')
 
   Logger.info(`Connected result=${connectionResult}`)
 
-  var messageProtocol = {
+  let messageProtocol = {
     content: {
       test: 'test'
     },
@@ -87,7 +87,7 @@ var testProducer = async () => {
     }
   }
 
-  var topicConf = {
+  let topicConf = {
     topicName: 'test'
   }
 

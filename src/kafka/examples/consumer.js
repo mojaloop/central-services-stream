@@ -37,7 +37,7 @@ const Logger = require('@mojaloop/central-services-shared').Logger
 
 const testConsumer = async () => {
   console.log('Instantiate consumer')
-  var c = new Consumer(['test'], {
+  let c = new Consumer(['test'], {
     options: {
       mode: ConsumerEnums.CONSUMER_MODES.recursive,
       batchSize: 1,
@@ -57,7 +57,7 @@ const testConsumer = async () => {
   })
 
   console.log('Connect consumer')
-  var connectionResult = await c.connect()
+  let connectionResult = await c.connect()
 
   console.log(`Connected result=${connectionResult}`)
 
@@ -70,7 +70,7 @@ const testConsumer = async () => {
         // resolve(false)
         reject(error)
       }
-      if (message) { // check if there is a valid message comming back
+      if (message) { // check if there is a valid message coming back
         console.log(`Message Received by callback function - ${JSON.stringify(message)}`)
         // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
         if (Array.isArray(message) && message.length != null && message.length > 0) {
