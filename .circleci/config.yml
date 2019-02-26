@@ -46,6 +46,17 @@ defaults_npm_publish_release: &defaults_npm_publish_release
     echo "Publishing tag $RELEASE_TAG"
     npm publish --tag $RELEASE_TAG --access public
 
+defaults_slack_announcement: &defaults_slack_announcement
+  name: Slack announcement for tag releases
+  command: |
+    curl -X POST \
+      $SLACK_WEBHOOK_ANNOUNCEMENT \
+      -H 'Content-type: application/json' \
+      -H 'cache-control: no-cache' \
+      -d "{
+      \"text\": \"*${CIRCLE_PROJECT_REPONAME}* - Release \`${CIRCLE_TAG}\`: https://github.com/mojaloop/${CIRCLE_PROJECT_REPONAME}/releases/tag/${CIRCLE_TAG}\"
+    }"
+
 jobs:
   setup:
     <<: *defaults_working_directory
@@ -136,6 +147,8 @@ jobs:
           <<: *defaults_npm_auth
       - run:
           <<: *defaults_npm_publish_release
+      - run:
+          <<: *defaults_slack_announcement
 
   build:
     <<: *defaults_working_directory
@@ -153,6 +166,8 @@ jobs:
           <<: *defaults_npm_auth
       - run:
           <<: *defaults_npm_publish_release
+      - run:
+          <<: *defaults_slack_announcement
 
 workflows:
   version: 2
