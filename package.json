@@ -33,7 +33,7 @@
     "bluebird": "3.5.3",
     "debug": "4.1.1",
     "events": "3.0.0",
-    "node-rdkafka": "2.5.1"
+    "node-rdkafka": "2.6.1"
   },
   "devDependencies": {
     "faucet": "0.0.1",
