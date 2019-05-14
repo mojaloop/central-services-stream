@@ -30,6 +30,7 @@
   "dependencies": {
     "@mojaloop/central-services-shared": "5.2.0",
     "async": "2.6.2",
+    "base64url": "^3.0.1",
     "bluebird": "3.5.3",
     "debug": "4.1.1",
     "events": "3.0.0",
