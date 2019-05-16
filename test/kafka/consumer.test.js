@@ -118,9 +118,15 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::constructor - no params', (assert) => {
-    // let c = new Consumer()
-    assert.ok(true)
-    assert.end()
+    try {
+      let c = new Consumer()
+      assert.ok(c, true)
+      assert.end()
+    } catch (e) {
+      console.log('ERRRRRRRR', e)
+      assert.fail()
+      assert.end()
+    }
   })
 
   consumerTests.test('Test Consumer::connect', (assert) => {

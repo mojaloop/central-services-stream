@@ -34,12 +34,15 @@
     "bluebird": "3.5.3",
     "debug": "4.1.1",
     "events": "3.0.0",
-    "node-rdkafka": "2.5.1"
+    "node-rdkafka": "2.5.1",
+    "parse-data-uri": "^0.2.0",
+    "raw-body": "^2.4.0"
   },
   "devDependencies": {
     "faucet": "0.0.1",
     "istanbul": "1.1.0-alpha.1",
     "pre-commit": "1.2.2",
+    "proxyquire": "^2.1.0",
     "sinon": "7.2.4",
     "standard": "12.0.1",
     "tap-xunit": "2.3.0",

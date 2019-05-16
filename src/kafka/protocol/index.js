@@ -40,3 +40,6 @@ exports.parseValue = require('./util').parseValue
 exports.parseMessage = require('./messages').parseMessage
 exports.parseCommand = require('./messages').parseCommand
 exports.parseNotify = require('./messages').parseNotify
+exports.encodePayload = require('./messages').encodePayload
+exports.decodePayload = require('./messages').decodePayload
+exports.decodeMessages = require('./messages').decodeMessages
