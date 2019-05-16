@@ -38,6 +38,7 @@
 'use strict'
 const base64url = require('base64url')
 const parseDataUri = require('parse-data-uri')
+const clone = require('clone')
 const allowedMimeTypes = ['text/plain', 'application/json', 'application/vnd.interoperability.transfers+json;version=1']
 
 // const Logger = require('@mojaloop/central-services-shared').Logger
@@ -285,7 +286,7 @@ const decodePayload = (input, { asParsed = true } = {}) => {
 
 const decodeMessages = (messages) => {
   const decodeMessage = (message) => {
-    let decodedMessage = JSON.parse(JSON.stringify(message))
+    let decodedMessage = clone(message)
     let payload = decodePayload(decodedMessage.value.content.payload)
     decodedMessage.value.content.payload = payload
     return decodedMessage

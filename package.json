@@ -32,6 +32,7 @@
     "async": "2.6.2",
     "base64url": "^3.0.1",
     "bluebird": "3.5.3",
+    "clone": "^2.1.2",
     "debug": "4.1.1",
     "events": "3.0.0",
     "node-rdkafka": "2.5.1",
