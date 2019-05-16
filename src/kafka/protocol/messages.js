@@ -108,24 +108,6 @@ const allowedMimeTypes = ['text/plain', 'application/json', 'application/vnd.int
  */
 
 /**
- * Command Protocol Object
- *
- * @typedef {object} Protocol~Command
- * @property {string} from - String with pattern "^(?:([^\"&'/:<>@@]{1,1023})@@)?([^/@@]{1,1023})(?:/(.{1,1023}))?$"
- * @property {string} to - String with pattern "^(?:([^\"&'/:<>@@]{1,1023})@@)?([^/@@]{1,1023})(?:/(.{1,1023}))?$"
- * @property {string} pp - String with pattern "^(?:([^\"&'/:<>@@]{1,1023})@@)?([^/@@]{1,1023})(?:/(.{1,1023}))?$"
- * @property {string} id - Required. UUID
- * @property {object} metadata - Key-value object to store metadata object
- * @property {string} method - Required. Enum: ["get","set","merge","delete","subscribe","unsubscribe","observe"]
- * @property {Protocol~Uri} uri - UUID
- * @property {string} type - String with pattern "^[-\w]+/((json)|([-\w.]+(\+json)))$"
- * @property {object} resource - Payload of message
- * @property {Protocol~Status} status - Required. Enum: ["success","failure"]
- * @property {Protocol~Reason} reason @see Protocol~Reason
- *
- */
-
-/**
  * Decoded parsed data URI object
  *
  * @typedef {object} Protocol~DecodedURI
@@ -248,7 +230,7 @@ const parseCommand = (messageProtocol) => {
  * @return {string} - Returns base64 encoded data  URI string
  */
 
-exports.encodePayload = (input, mimeType) => {
+const encodePayload = (input, mimeType) => {
   if (allowedMimeTypes.includes(mimeType)) {
     return (input instanceof Buffer)
       ? `data:${mimeType};base64,${base64url(input, 'utf8')}`
@@ -261,7 +243,7 @@ exports.encodePayload = (input, mimeType) => {
 /**
  * Decode Payload to base64 encoded data URI
  *
- * @param {string} input - JSON as Data URI or plain string
+ * @param {string} input - Data URI or plain string
  * @param {object} [options = {asParsed: true}] - Parising object
  *
  * @return {(object\|Protocol~DecodedURI)} based on the options, returns parsed JSON or decodedURI object
@@ -301,19 +283,20 @@ const decodePayload = (input, { asParsed = true } = {}) => {
  * @returns {(Protocol~Message\|Protocol~Message[])} - messages with decoded payload
  */
 
-exports.decodeMessages = (messages) => {
+const decodeMessages = (messages) => {
   const decodeMessage = (message) => {
-    let payload = decodePayload(message.value.content.payload)
-    message.value.content.payload = payload
-    return message
+    let decodedMessage = JSON.parse(JSON.stringify(message))
+    let payload = decodePayload(decodedMessage.value.content.payload)
+    decodedMessage.value.content.payload = payload
+    return decodedMessage
   }
 
   if (Array.isArray(messages)) {
     let result = []
     for (let message of messages) {
       console.log(message.value.content)
-      message = decodeMessage(message)
-      result.push(message)
+      let decodedMessage = decodeMessage(message)
+      result.push(decodedMessage)
     }
     return result
   } else {
@@ -325,3 +308,5 @@ exports.parseMessage = parseMessage
 exports.parseCommand = parseCommand
 exports.parseNotify = parseNotify
 exports.decodePayload = decodePayload
+exports.encodePayload = encodePayload
+exports.decodeMessages = decodeMessages
