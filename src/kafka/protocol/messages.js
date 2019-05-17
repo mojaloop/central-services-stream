@@ -295,7 +295,6 @@ const decodeMessages = (messages) => {
   if (Array.isArray(messages)) {
     let result = []
     for (let message of messages) {
-      console.log(message.value.content)
       let decodedMessage = decodeMessage(message)
       result.push(decodedMessage)
     }
