@@ -25,6 +25,7 @@
  * Lazola Lucas <lazola.lucas@modusbox.com>
  * Rajiv Mothilal <rajiv.mothilal@modusbox.com>
  * Miguel de Barros <miguel.debarros@modusbox.com>
+ * Valentin Genev <valentin.genev@modusbox.com>
 
  --------------
  ******/
@@ -35,6 +36,10 @@
  */
 
 'use strict'
+const base64url = require('base64url')
+const parseDataUri = require('parse-data-uri')
+const clone = require('clone')
+const allowedMimeTypes = ['text/plain', 'application/json', 'application/vnd.interoperability.transfers+json;version=1']
 
 // const Logger = require('@mojaloop/central-services-shared').Logger
 
@@ -104,6 +109,20 @@
  */
 
 /**
+ * Decoded parsed data URI object
+ *
+ * @typedef {object} Protocol~DecodedURI
+ * @property {string} mimeType - mime type of the data
+ * @property {buffer} data - Buffer of the decoded message
+ *
+ */
+
+/**
+ * Allowed mime types
+ * @typedef {('text/plain'|'application/json'|'application/vnd.interoperability.transfers+json;version=1')} MimeTypes
+ */
+
+/**
  * Parse Protocol Messages
  *
  * Validates and enhances Protocol Message with MetaData
@@ -113,6 +132,7 @@
  * @param {Protocol~Message} messageProtocol - Message to validate
  * @return {Protocol~Message} - Returns validated Protocol result
  */
+
 const parseMessage = (messageProtocol) => {
   if (messageProtocol) {
     if (!messageProtocol.metadata) {
@@ -202,6 +222,91 @@ const parseCommand = (messageProtocol) => {
   }
 }
 
+/**
+ * Encodes Payload to base64 encoded data URI
+ *
+ * @param {buffer\|string} input - Buffer or String
+ * @param {MimeTypes} mimeType - mime type of the input
+ *
+ * @return {string} - Returns base64 encoded data  URI string
+ */
+
+const encodePayload = (input, mimeType) => {
+  if (allowedMimeTypes.includes(mimeType)) {
+    return (input instanceof Buffer)
+      ? `data:${mimeType};base64,${base64url(input, 'utf8')}`
+      : `data:${mimeType};base64,${base64url(Buffer.from(input), 'utf8')}`
+  } else {
+    throw new Error(`mime type should be one of the following:${allowedMimeTypes.map(e => ` ${e}`)}`)
+  }
+}
+
+/**
+ * Decode Payload to base64 encoded data URI
+ *
+ * @param {string} input - Data URI or plain string
+ * @param {object} [options = {asParsed: true}] - Parising object
+ *
+ * @return {(object\|Protocol~DecodedURI)} based on the options, returns parsed JSON or decodedURI object
+ */
+
+const decodePayload = (input, { asParsed = true } = {}) => {
+  const dataUriRegEx = /^\s*data:'?(?:([\w-]+)\/([\w+.-]+))'??(?:;charset=([\w-]+))?(?:;(base64))?,(.*)/
+
+  const parseDecodedDataToJson = (decodedData) => {
+    if (['application/json', 'application/vnd.interoperability.transfers+json;version=1'].includes(decodedData.mimeType)) return JSON.parse(decodedData.data.toString())
+    else if (decodedData.mimeType === 'text/plain') return decodedData.data.toString()
+    else throw new Error('invalid mime type')
+  }
+
+  try {
+    if (RegExp(dataUriRegEx).test(input)) {
+      let decoded = parseDataUri(input)
+      return asParsed
+        ? parseDecodedDataToJson(decoded)
+        : decoded
+    } else if (typeof input === 'string') {
+      return asParsed ? JSON.parse(input) : { mimeType: 'text/plain', data: input }
+    } else {
+      throw new Error('input should be Buffer or String')
+    }
+  } catch (e) {
+    throw e
+  }
+}
+
+/**
+ * Decode message or messages
+ *
+ * @param {(Protocol~Message\|Protocol~Message[])} messages - single message or array of messages with payload encoded as base64 dataURI
+ * @param {object} [options = {asParsed: true}] - options to parse the payload or not
+ *
+ * @returns {(Protocol~Message\|Protocol~Message[])} - messages with decoded payload
+ */
+
+const decodeMessages = (messages) => {
+  const decodeMessage = (message) => {
+    let decodedMessage = clone(message)
+    let payload = decodePayload(decodedMessage.value.content.payload)
+    decodedMessage.value.content.payload = payload
+    return decodedMessage
+  }
+
+  if (Array.isArray(messages)) {
+    let result = []
+    for (let message of messages) {
+      let decodedMessage = decodeMessage(message)
+      result.push(decodedMessage)
+    }
+    return result
+  } else {
+    return decodeMessage(messages)
+  }
+}
+
 exports.parseMessage = parseMessage
 exports.parseCommand = parseCommand
 exports.parseNotify = parseNotify
+exports.decodePayload = decodePayload
+exports.encodePayload = encodePayload
+exports.decodeMessages = decodeMessages
