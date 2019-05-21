@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "6.2.0",
+  "version": "6.2.1",
   "description": "Streaming library code for central services.",
   "main": "src/index.js",
   "scripts": {
@@ -30,14 +30,14 @@
   "dependencies": {
     "@mojaloop/central-services-shared": "5.2.0",
     "async": "2.6.2",
-    "base64url": "^3.0.1",
+    "base64url": "3.0.1",
     "bluebird": "3.5.3",
-    "clone": "^2.1.2",
+    "clone": "2.1.2",
     "debug": "4.1.1",
     "events": "3.0.0",
     "node-rdkafka": "2.5.1",
-    "parse-data-uri": "^0.2.0",
-    "raw-body": "^2.4.0"
+    "parse-data-uri": "0.2.0",
+    "raw-body": "2.4.0"
   },
   "devDependencies": {
     "faucet": "0.0.1",
