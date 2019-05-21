@@ -251,10 +251,10 @@ const encodePayload = (input, mimeType) => {
  */
 
 const decodePayload = (input, { asParsed = true } = {}) => {
-  const dataUriRegEx = /^\s*data:'?(?:([\w-]+)\/([\w+.-]+))'??(?:;charset=([\w-]+))?(?:;(base64))?,(.*)/
+  const dataUriRegEx = /^\s*data:'?(?:([\w-]+)\/([\w+.-;=]+))'??(?:;charset=([\w-]+))?(?:;(base64))?,(.*)/
 
   const parseDecodedDataToJson = (decodedData) => {
-    if (['application/json', 'application/vnd.interoperability.transfers+json;version=1'].includes(decodedData.mimeType)) return JSON.parse(decodedData.data.toString())
+    if (['application/json', 'application/vnd.interoperability.transfers+json'].includes(decodedData.mimeType)) return JSON.parse(decodedData.data.toString())
     else if (decodedData.mimeType === 'text/plain') return decodedData.data.toString()
     else throw new Error('invalid mime type')
   }
@@ -267,6 +267,8 @@ const decodePayload = (input, { asParsed = true } = {}) => {
         : decoded
     } else if (typeof input === 'string') {
       return asParsed ? JSON.parse(input) : { mimeType: 'text/plain', data: input }
+    } else if (typeof input === 'object') {
+      return input
     } else {
       throw new Error('input should be Buffer or String')
     }
