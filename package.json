@@ -1,7 +1,28 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "6.2.1",
+  "version": "6.2.2",
   "description": "Streaming library code for central services.",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/mojaloop/central-services-stream/issues"
+  },
+  "homepage": "https://github.com/mojaloop/central-services-stream#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mojaloop/central-services-stream.git"
+  },
+  "author": "ModusBox",
+  "contributors": [
+    "Miguel de Barros <miguel.debarros@modusbox.com>",
+    "Rajiv Mothilal <rajiv.mothilal@modusbox.com>",
+    "Georgi Georgiev <georgi.georgiev@modusbox.com>",
+    "Valentin Genev <valentin.genev@modusbox.com>"
+  ],
+  "keywords": [
+    "shared",
+    "central",
+    "services"
+  ],
   "main": "src/index.js",
   "scripts": {
     "test": "npm run test:unit | faucet",
@@ -12,31 +33,16 @@
     "test:coveragekafka": "istanbul cover tapes -- 'test/kafka/**/*.test.js'",
     "test:coverage-check": "npm run test:coverage && istanbul check-coverage"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mojaloop/central-services-stream.git"
-  },
-  "keywords": [
-    "shared",
-    "central",
-    "services"
-  ],
-  "author": "ModusBox",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/mojaloop/central-services-stream/issues"
-  },
-  "homepage": "https://github.com/mojaloop/central-services-stream#readme",
   "dependencies": {
     "@mojaloop/central-services-shared": "5.2.0",
     "async": "2.6.2",
     "base64url": "3.0.1",
     "bluebird": "3.5.3",
     "clone": "2.1.2",
+    "data-urls": "^1.1.0",
     "debug": "4.1.1",
     "events": "3.0.0",
-    "node-rdkafka": "2.5.1",
-    "parse-data-uri": "0.2.0",
+    "node-rdkafka": "2.6.1",
     "raw-body": "2.4.0"
   },
   "devDependencies": {
