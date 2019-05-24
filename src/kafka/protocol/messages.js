@@ -37,9 +37,9 @@
 
 'use strict'
 const base64url = require('base64url')
-const parseDataUri = require('parse-data-uri')
+const parseDataURL = require('data-urls')
 const clone = require('clone')
-const allowedMimeTypes = ['text/plain', 'application/json', 'application/vnd.interoperability.transfers+json;version=1']
+const allowedRegexForMimeTypes = /(text\/plain)|(application\/json)|(application\/vnd.interoperability[.])/
 
 // const Logger = require('@mojaloop/central-services-shared').Logger
 
@@ -232,12 +232,12 @@ const parseCommand = (messageProtocol) => {
  */
 
 const encodePayload = (input, mimeType) => {
-  if (allowedMimeTypes.includes(mimeType)) {
+  if (allowedRegexForMimeTypes.test(mimeType)) {
     return (input instanceof Buffer)
       ? `data:${mimeType};base64,${base64url(input, 'utf8')}`
       : `data:${mimeType};base64,${base64url(Buffer.from(input), 'utf8')}`
   } else {
-    throw new Error(`mime type should be one of the following:${allowedMimeTypes.map(e => ` ${e}`)}`)
+    throw new Error(`mime type should match the following regex:${allowedRegexForMimeTypes.toString()}`)
   }
 }
 
@@ -254,21 +254,22 @@ const decodePayload = (input, { asParsed = true } = {}) => {
   const dataUriRegEx = /^\s*data:'?(?:([\w-]+)\/([\w+.-;=]+))'??(?:;charset=([\w-]+))?(?:;(base64))?,(.*)/
 
   const parseDecodedDataToJson = (decodedData) => {
-    if (['application/json', 'application/vnd.interoperability.transfers+json'].includes(decodedData.mimeType)) return JSON.parse(decodedData.data.toString())
-    else if (decodedData.mimeType === 'text/plain') return decodedData.data.toString()
+    const isAllowedMimeTypes = allowedRegexForMimeTypes.test(decodedData.mimeType.toString())
+    if (isAllowedMimeTypes && decodedData.mimeType.toString() !== 'text/plain') return JSON.parse(decodedData.body.toString())
+    else if (isAllowedMimeTypes && decodedData.mimeType.toString() === 'text/plain') return decodedData.body.toString()
     else throw new Error('invalid mime type')
   }
 
   try {
-    if (RegExp(dataUriRegEx).test(input)) {
-      let decoded = parseDataUri(input)
+    if (dataUriRegEx.test(input)) {
+      let parsedDataUrl = parseDataURL(input)
       return asParsed
-        ? parseDecodedDataToJson(decoded)
-        : decoded
+        ? parseDecodedDataToJson(parsedDataUrl)
+        : parsedDataUrl
     } else if (typeof input === 'string') {
-      return asParsed ? JSON.parse(input) : { mimeType: 'text/plain', data: input }
+      return asParsed ? JSON.parse(input) : { mimeType: 'text/plain', body: input }
     } else if (typeof input === 'object') {
-      return input
+      return asParsed ? input : { mimeType: 'application/json', body: JSON.stringify(input) }
     } else {
       throw new Error('input should be Buffer or String')
     }

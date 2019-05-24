@@ -299,7 +299,9 @@ Test('Protocol::decodePayload should decode the payload from base64 encoded JSON
 
 Test('Protocol::decodePayload should decode the payload from base64 encoded JSON to object with pure data and mimeType properties', function (assert) {
   let test = Protocol.decodePayload(encodedMessage.value.content.payload, { asParsed: false })
-  assert.deepEqual(JSON.stringify(test), JSON.stringify({ mimeType: 'application/json', data: Buffer.from(purePayload) }))
+  let expectedResults = { mimeType: 'application/json', body: Buffer.from(purePayload) }
+  assert.equal(test.mimeType.toString(), expectedResults.mimeType.toString())
+  assert.equal(test.body.toString(), expectedResults.body.toString())
   assert.end()
 })
 
@@ -339,7 +341,7 @@ Test('Protocol::decodePayload should throw if input is not dataURI nor string', 
 
 Test('Protocol::decodePayload should decode the payload from normal string to object with mimeType and the string itself ', function (assert) {
   let test = Protocol.decodePayload(purePayload, { asParsed: false })
-  assert.deepEqual(JSON.stringify(test), JSON.stringify({ mimeType: 'text/plain', data: purePayload }))
+  assert.deepEqual(JSON.stringify(test), JSON.stringify({ mimeType: 'text/plain', body: purePayload }))
   assert.end()
 })
 
