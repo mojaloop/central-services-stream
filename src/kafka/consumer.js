@@ -735,7 +735,7 @@ class Consumer extends EventEmitter {
    * @param {string} metadataOptions.topic - Topic string for which to fetch
    * metadata
    * @param {number} metadataOptions.timeout - Max time, in ms, to try to fetch
-   * metadata before timing out. Defaults to 3000.
+   * metadata before timing out. Defaults to 30,000 (30 seconds).
    * @param {Client~metadataCallback} metaDatacCb - Callback to fire with the metadata.
    */
   getMetadata (metadataOptions, metaDatacCb) {
