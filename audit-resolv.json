@@ -43,5 +43,20 @@
   },
   "1065|tap-xunit>xmlbuilder>lodash": {
     "fix": 1
+  },
+  "1065|@mojaloop/central-services-shared>winston>async>lodash": {
+    "fix": 1
+  },
+  "1065|async>lodash": {
+    "fix": 1
+  },
+  "1065|istanbul>istanbul-api>async>lodash": {
+    "fix": 1
+  },
+  "1065|standard>eslint>inquirer>lodash": {
+    "fix": 1
+  },
+  "1065|standard>eslint>table>lodash": {
+    "fix": 1
   }
 }
