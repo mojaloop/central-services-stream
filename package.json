@@ -31,10 +31,12 @@
     "test:xunit": "npm run test:unit | tap-xunit",
     "test:coverage": "istanbul cover tapes -- 'test/**/*.test.js'",
     "test:coveragekafka": "istanbul cover tapes -- 'test/kafka/**/*.test.js'",
-    "test:coverage-check": "npm run test:coverage && istanbul check-coverage"
+    "test:coverage-check": "npm run test:coverage && istanbul check-coverage",
+    "audit:resolve": "SHELL=sh resolve-audit",
+    "audit:check": "SHELL=sh check-audit"
   },
   "dependencies": {
-    "@mojaloop/central-services-shared": "5.2.0",
+    "@mojaloop/central-services-shared": "6.4.1",
     "async": "2.6.2",
     "base64url": "3.0.1",
     "bluebird": "3.5.3",
@@ -48,6 +50,7 @@
   "devDependencies": {
     "faucet": "0.0.1",
     "istanbul": "1.1.0-alpha.1",
+    "npm-audit-resolver": "1.5.0",
     "pre-commit": "1.2.2",
     "sinon": "7.2.4",
     "standard": "12.0.1",

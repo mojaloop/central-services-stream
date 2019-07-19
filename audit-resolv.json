@@ -1,0 +1,62 @@
+{
+  "1065|istanbul>istanbul-api>istanbul-lib-instrument>babel-generator>babel-types>lodash": {
+    "fix": 1
+  },
+  "1065|istanbul>istanbul-api>istanbul-lib-instrument>babel-generator>lodash": {
+    "fix": 1
+  },
+  "1065|istanbul>istanbul-api>istanbul-lib-instrument>babel-template>babel-traverse>babel-types>lodash": {
+    "fix": 1
+  },
+  "1065|istanbul>istanbul-api>istanbul-lib-instrument>babel-template>babel-traverse>lodash": {
+    "fix": 1
+  },
+  "1065|istanbul>istanbul-api>istanbul-lib-instrument>babel-template>babel-types>lodash": {
+    "fix": 1
+  },
+  "1065|istanbul>istanbul-api>istanbul-lib-instrument>babel-template>lodash": {
+    "fix": 1
+  },
+  "1065|istanbul>istanbul-api>istanbul-lib-instrument>babel-traverse>babel-types>lodash": {
+    "fix": 1
+  },
+  "1065|istanbul>istanbul-api>istanbul-lib-instrument>babel-traverse>lodash": {
+    "fix": 1
+  },
+  "1065|istanbul>istanbul-api>istanbul-lib-instrument>babel-types>lodash": {
+    "fix": 1
+  },
+  "1065|sinon>@sinonjs/formatio>@sinonjs/samsam>lodash": {
+    "fix": 1
+  },
+  "1065|sinon>@sinonjs/samsam>lodash": {
+    "fix": 1
+  },
+  "1065|sinon>nise>@sinonjs/formatio>@sinonjs/samsam>lodash": {
+    "fix": 1
+  },
+  "1065|standard>eslint>lodash": {
+    "fix": 1
+  },
+  "1065|standard>eslint-plugin-import>lodash": {
+    "fix": 1
+  },
+  "1065|tap-xunit>xmlbuilder>lodash": {
+    "fix": 1
+  },
+  "1065|@mojaloop/central-services-shared>winston>async>lodash": {
+    "fix": 1
+  },
+  "1065|async>lodash": {
+    "fix": 1
+  },
+  "1065|istanbul>istanbul-api>async>lodash": {
+    "fix": 1
+  },
+  "1065|standard>eslint>inquirer>lodash": {
+    "fix": 1
+  },
+  "1065|standard>eslint>table>lodash": {
+    "fix": 1
+  }
+}
