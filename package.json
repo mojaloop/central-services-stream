@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "7.1.1",
+  "version": "7.1.0",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -31,9 +31,7 @@
     "test:xunit": "npm run test:unit | tap-xunit",
     "test:coverage": "istanbul cover tapes -- 'test/**/*.test.js'",
     "test:coveragekafka": "istanbul cover tapes -- 'test/kafka/**/*.test.js'",
-    "test:coverage-check": "npm run test:coverage && istanbul check-coverage",
-    "audit:resolve": "SHELL=sh resolve-audit",
-    "audit:check": "SHELL=sh check-audit"
+    "test:coverage-check": "npm run test:coverage && istanbul check-coverage"
   },
   "dependencies": {
     "@mojaloop/central-services-shared": "5.2.0",
@@ -50,12 +48,11 @@
   "devDependencies": {
     "faucet": "0.0.1",
     "istanbul": "1.1.0-alpha.1",
-    "npm-audit-resolver": "1.5.0",
     "pre-commit": "1.2.2",
-    "sinon": "7.3.2",
-    "standard": "13.0.1",
-    "tap-xunit": "2.4.1",
-    "tape": "4.11.0",
+    "sinon": "7.2.4",
+    "standard": "12.0.1",
+    "tap-xunit": "2.3.0",
+    "tape": "4.10.1",
     "tapes": "4.1.0"
   },
   "publishConfig": {
