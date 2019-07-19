@@ -34,7 +34,7 @@
     "test:coverage-check": "npm run test:coverage && istanbul check-coverage"
   },
   "dependencies": {
-    "@mojaloop/central-services-shared": "5.2.0",
+    "@mojaloop/central-services-shared": "6.4.1",
     "async": "2.6.2",
     "base64url": "3.0.1",
     "bluebird": "3.5.3",
