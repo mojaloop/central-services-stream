@@ -36,7 +36,6 @@ const ConsumerEnums = require('../').Consumer.ENUMS
 const Logger = require('@mojaloop/central-services-shared').Logger
 
 const testConsumer = async () => {
-  console.log('Instantiate consumer')
   let c = new Consumer(['test'], {
     options: {
       mode: ConsumerEnums.CONSUMER_MODES.recursive,
@@ -55,13 +54,7 @@ const testConsumer = async () => {
     topicConf: {},
     logger: Logger
   })
-
-  console.log('Connect consumer')
-  let connectionResult = await c.connect()
-
-  console.log(`Connected result=${connectionResult}`)
-
-  console.log('Consume messages')
+  await c.connect()
 
   c.consume((error, message) => {
     return new Promise((resolve, reject) => {
@@ -71,7 +64,6 @@ const testConsumer = async () => {
         reject(error)
       }
       if (message) { // check if there is a valid message coming back
-        console.log(`Message Received by callback function - ${JSON.stringify(message)}`)
         // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
         if (Array.isArray(message) && message.length != null && message.length > 0) {
           message.forEach(msg => {
@@ -88,14 +80,13 @@ const testConsumer = async () => {
     })
   })
 
+  // TODO: Pero Sonar remove console.log as it is consider a vulnerability
   // consume 'ready' event
   c.on('ready', arg => console.log(`onReady: ${JSON.stringify(arg)}`))
   // consume 'message' event
   c.on('message', message => console.log(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`))
   // consume 'batch' event
   c.on('batch', message => console.log(`onBatch: ${JSON.stringify(message)}`))
-
-  console.log('testConsumer::end')
 }
 
 testConsumer()

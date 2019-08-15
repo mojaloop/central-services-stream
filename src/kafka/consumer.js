@@ -391,6 +391,7 @@ class Consumer extends EventEmitter {
         } else {
           payload = message.messages
         }
+        // TODO: Modify as per Sonar workDoneCb takes no parameter, but is receiving 2 parameters here
         Promise.resolve(workDoneCb(message.error, payload)).then((response) => {
           callbackDone() // this marks the completion of the processing by the worker
           if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
@@ -412,6 +413,10 @@ class Consumer extends EventEmitter {
       }
     }
 
+    // TODO: Verify if case is needed as its busines logic is executed by default and Sonar is detecting it as a bug
+    // case CONSUMER_MODES.flow:
+    //   this._consumeFlow(workDoneCb)
+    //   break
     switch (this._config.options.mode) {
       case CONSUMER_MODES.poll:
         if (this._config.options.batchSize && typeof this._config.options.batchSize === 'number') {
@@ -436,9 +441,6 @@ class Consumer extends EventEmitter {
           // throw error
           throw new Error('batchSize option is not valid - Select an integer greater then 0')
         }
-        break
-      case CONSUMER_MODES.flow:
-        this._consumeFlow(workDoneCb)
         break
       default:
         this._consumeFlow(workDoneCb)
@@ -491,6 +493,7 @@ class Consumer extends EventEmitter {
               }
             })
           } else {
+            // TODO: Modify as per Sonar workDoneCb takes no parameter, but is receiving 2 parameters here
             Promise.resolve(workDoneCb(error, messages)).then((response) => {
               Logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
             }).catch((err) => {
@@ -559,6 +562,7 @@ class Consumer extends EventEmitter {
             }
           })
         } else {
+          // TODO: Modify as per Sonar workDoneCb takes no parameter, but is receiving 2 parameters here
           Promise.resolve(workDoneCb(error, messages)).then((response) => {
             Logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
           }).catch((err) => {
@@ -605,6 +609,7 @@ class Consumer extends EventEmitter {
             if (err) { logger.error(err) }
           })
         } else {
+          // TODO: Modify as per Sonar workDoneCb takes no parameter, but is receiving 2 parameters here
           Promise.resolve(workDoneCb(error, message)).then((response) => {
             Logger.debug(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${response}`)
           }).catch((err) => {
