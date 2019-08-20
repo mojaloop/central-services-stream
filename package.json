@@ -36,7 +36,7 @@
     "audit:check": "SHELL=sh check-audit"
   },
   "dependencies": {
-    "@mojaloop/central-services-shared": "6.4.1",
+    "@mojaloop/central-services-shared": "7.3.1",
     "async": "2.6.2",
     "base64url": "3.0.1",
     "bluebird": "3.5.3",
