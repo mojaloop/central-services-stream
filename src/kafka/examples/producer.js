@@ -40,7 +40,7 @@
 const Producer = require('../').Producer
 const Logger = require('@mojaloop/central-services-shared').Logger
 
-let testProducer = async () => {
+const testProducer = async () => {
   Logger.info('testProducer::start')
 
   const config = {
@@ -52,7 +52,7 @@ let testProducer = async () => {
     rdkafkaConf: {
       'metadata.broker.list': 'localhost:9092',
       'client.id': 'default-client',
-      'event_cb': true,
+      event_cb: true,
       'compression.codec': 'none',
       'retry.backoff.ms': 100,
       'message.send.max.retries': 2,
@@ -61,21 +61,21 @@ let testProducer = async () => {
       'queue.buffering.max.ms': 50,
       'batch.num.messages': 10000,
       'api.version.request': true,
-      'dr_cb': true
+      dr_cb: true
     },
     topicConf: {
       'request.required.acks': 1
     }
   }
 
-  let p = new Producer(config)
+  const p = new Producer(config)
   Logger.info('testProducer::connect::start')
-  let connectionResult = await p.connect()
+  const connectionResult = await p.connect()
   Logger.info('testProducer::connect::end')
 
   Logger.info(`Connected result=${connectionResult}`)
 
-  let messageProtocol = {
+  const messageProtocol = {
     content: {
       test: 'test'
     },
@@ -87,7 +87,7 @@ let testProducer = async () => {
     }
   }
 
-  let topicConf = {
+  const topicConf = {
     topicName: 'test'
   }
 

@@ -158,7 +158,7 @@ class Producer extends EventEmitter {
       config.rdkafkaConf = {
         'metadata.broker.list': 'localhost:9092',
         'client.id': 'default-client',
-        'event_cb': true,
+        event_cb: true,
         'compression.codec': 'none',
         'retry.backoff.ms': 100,
         'message.send.max.retries': 2,
@@ -167,7 +167,7 @@ class Producer extends EventEmitter {
         'queue.buffering.max.ms': 50,
         'batch.num.messages': 100,
         'api.version.request': true,
-        'dr_cb': true
+        dr_cb: true
       }
     }
     if (!config.topicConf) {
@@ -178,7 +178,7 @@ class Producer extends EventEmitter {
     if (!config.logger) {
       config.logger = Logger
     }
-    let { logger } = config
+    const { logger } = config
     logger.silly('Producer::constructor() - start')
     this._config = config
     this._status = {}
@@ -197,7 +197,7 @@ class Producer extends EventEmitter {
    * @returns {Promise} - Returns a promise: resolved if successful, or rejection if connection failed
    */
   async connect () {
-    let { logger } = this._config
+    const { logger } = this._config
     logger.silly('Producer::connect() - start')
     return new Promise((resolve, reject) => {
       this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
@@ -245,7 +245,7 @@ class Producer extends EventEmitter {
   }
 
   _createBuffer (str, encoding) {
-    let bufferResponse = Buffer.from(JSON.stringify(str), encoding)
+    const bufferResponse = Buffer.from(JSON.stringify(str), encoding)
     return bufferResponse
   }
 
@@ -281,7 +281,7 @@ class Producer extends EventEmitter {
       if (this._producer._isConnecting) {
         this._config.logger.debug('still connecting')
       }
-      let parsedMessage = Protocol.parseMessage(messageProtocol)
+      const parsedMessage = Protocol.parseMessage(messageProtocol)
       const parsedMessageBuffer = this._createBuffer(parsedMessage, this._config.options.messageCharset)
       if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
         throw new Error('message must be a string or an instance of Buffer.')

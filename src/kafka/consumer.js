@@ -223,7 +223,7 @@ class Consumer extends EventEmitter {
       config.logger = Logger
     }
 
-    let { logger } = config
+    const { logger } = config
     logger.silly('Consumer::constructor() - start')
     this._topics = topics
     this._config = config
@@ -254,7 +254,7 @@ class Consumer extends EventEmitter {
    * @return {Promise} - Returns a promise: resolved if successful, or rejection if connection failed
    */
   connect () {
-    let { logger } = this._config
+    const { logger } = this._config
     logger.silly('Consumer::connect() - start')
     return new Promise((resolve, reject) => {
       this._consumer = new Kafka.KafkaConsumer(this._config.rdkafkaConf, this._config.topicConf)
@@ -304,7 +304,7 @@ class Consumer extends EventEmitter {
       logger.silly('Registering data event..')
       this._consumer.on('data', message => {
         logger.silly(`Consumer::onData() - message: ${JSON.stringify(message)}`)
-        let returnMessage = { ...message }
+        const returnMessage = { ...message }
         // let returnMessage = {}
         // Object.assign(returnMessage, message)
         // if (message instanceof Array) {
@@ -313,7 +313,7 @@ class Consumer extends EventEmitter {
         //     msg.value = parsedValue
         //   })
         // } else {
-        let parsedValue = Protocol.parseValue(returnMessage.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+        const parsedValue = Protocol.parseValue(returnMessage.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
         returnMessage.value = parsedValue
         // }
         super.emit('message', returnMessage)
@@ -327,7 +327,7 @@ class Consumer extends EventEmitter {
    * Disconnects consumer from the Kafka brocker
    */
   disconnect (cb = () => {}) {
-    let { logger } = this._config
+    const { logger } = this._config
     logger.silly('Consumer::disconnect() - start')
     if (this._pollInterval) {
       clearInterval(this._pollInterval)
@@ -344,7 +344,7 @@ class Consumer extends EventEmitter {
    * @param {object} topics - List of topics. Defaults: null
    */
   subscribe (topics = null) {
-    let { logger } = this._config
+    const { logger } = this._config
     logger.silly('Consumer::subscribe() - start')
     if (topics) {
       this._topics = topics
@@ -374,7 +374,7 @@ class Consumer extends EventEmitter {
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
    */
   consume (workDoneCb) {
-    let { logger } = this._config
+    const { logger } = this._config
     logger.silly('Consumer::consume() - start')
 
     if (!workDoneCb || typeof workDoneCb !== 'function') {
@@ -462,7 +462,7 @@ class Consumer extends EventEmitter {
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
    */
   _consumePoller (pollFrequency = 10, batchSize, workDoneCb) {
-    let { logger } = this._config
+    const { logger } = this._config
     this._pollInterval = setInterval(() => {
       // if (this._status.running) {
       this._consumer.consume(batchSize, (error, messages) => {
@@ -476,7 +476,7 @@ class Consumer extends EventEmitter {
         } else {
           // lets transform the messages into the desired format
           messages.map(msg => {
-            let parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+            const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
             msg.value = parsedValue
           })
           if (this._config.options.messageAsJSON) {
@@ -527,7 +527,7 @@ class Consumer extends EventEmitter {
    * @returns {boolean} - true when successful
    */
   _consumeRecursive (recursiveTimeout = 100, batchSize, workDoneCb) {
-    let { logger } = this._config
+    const { logger } = this._config
     this._consumer.consume(batchSize, (error, messages) => {
       if (error || !messages.length) {
         if (error) {
@@ -543,7 +543,7 @@ class Consumer extends EventEmitter {
       } else {
         // lets transform the messages into the desired format
         messages.map(msg => {
-          let parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+          const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
           msg.value = parsedValue
         })
         if (this._config.options.messageAsJSON) {
@@ -586,14 +586,14 @@ class Consumer extends EventEmitter {
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
    */
   _consumeFlow (workDoneCb) {
-    let { logger } = this._config
+    const { logger } = this._config
     this._consumer.consume((error, message) => {
       if (error || !message) {
         if (error) {
           super.emit('error', error)
         }
       } else {
-        let parsedValue = Protocol.parseValue(message.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+        const parsedValue = Protocol.parseValue(message.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
         message.value = parsedValue
         if (this._config.options.messageAsJSON) {
           logger.debug(`Consumer::_consumerFlow() - message: ${JSON.stringify(message)}`)
@@ -650,7 +650,7 @@ class Consumer extends EventEmitter {
    * @param {object} topicPartitions - List of topics that must be commited. If null, it will default to the topics list provided in the constructor. Defaults = null
    */
   commit (topicPartitions = null) {
-    let { logger } = this._config
+    const { logger } = this._config
     logger.silly('Consumer::commit() - start')
     this._consumer.commit(topicPartitions)
     logger.silly('Consumer::commit() - end')
@@ -662,7 +662,7 @@ class Consumer extends EventEmitter {
    * @param {KafkaConsumer~Message} msg - Kafka message to be commited
    */
   commitMessage (msg) {
-    let { logger } = this._config
+    const { logger } = this._config
     logger.silly('Consumer::commitMessage() - start')
     this._consumer.commitMessage(msg)
     logger.silly('Consumer::commitMessage() - end')
@@ -674,7 +674,7 @@ class Consumer extends EventEmitter {
    * @param {object} topicPartitions - List of topics that must be commited. If null, it will default to the topics list provided in the constructor. Defaults = null
    */
   commitSync (topicPartitions = null) {
-    let { logger } = this._config
+    const { logger } = this._config
     logger.silly('Consumer::commitSync() - start')
     this._consumer.commitSync(topicPartitions)
     logger.silly('Consumer::commitSync() - end')
@@ -686,7 +686,7 @@ class Consumer extends EventEmitter {
    * @param {KafkaConsumer~Message} msg - Kafka message to be commited
    */
   commitMessageSync (msg) {
-    let { logger } = this._config
+    const { logger } = this._config
     logger.silly('Consumer::commitMessageSync() - start')
     this._consumer.commitMessageSync(msg)
     logger.silly('Consumer::commitMessageSync() - end')
@@ -710,7 +710,7 @@ class Consumer extends EventEmitter {
    * the high and low offsets for the topic partition
    */
   getWatermarkOffsets (topic, partition) {
-    let { logger } = this._config
+    const { logger } = this._config
     logger.silly('Consumer::getWatermarkOffsets() - start')
     logger.silly('Consumer::getWatermarkOffsets() - end')
     return this._consumer.getWatermarkOffsets(topic, partition)
@@ -742,7 +742,7 @@ class Consumer extends EventEmitter {
     if (!metaDatacCb || typeof metaDatacCb !== 'function') {
       metaDatacCb = () => {}
     }
-    let { logger } = this._config
+    const { logger } = this._config
     logger.silly('Consumer::getMetadata() - start')
     this._consumer.getMetadata(metadataOptions, metaDatacCb)
     logger.silly('Consumer::getMetadata() - end')
