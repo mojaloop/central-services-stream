@@ -167,6 +167,9 @@ const messages = [encodedMessage]
 
 Test('Protocol::parseCommand', function (assert) {
   const test = Protocol.parseCommand(parseC)
+  test.id = 'key'
+  console.log("test is", test)
+  console.log('parseC is', parseC)
   // Logger.debug(test)
   assert.ok(Sinon.match(test, parseC))
   assert.end()

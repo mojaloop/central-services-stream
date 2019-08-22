@@ -36,12 +36,12 @@
     "audit:check": "SHELL=sh check-audit"
   },
   "dependencies": {
-    "@mojaloop/central-services-shared": "7.4.0",
+    "@mojaloop/central-services-shared": "7.4.1",
     "async": "2.6.2",
     "base64url": "3.0.1",
     "bluebird": "3.5.3",
     "clone": "2.1.2",
-    "data-urls": "^1.1.0",
+    "data-urls": "1.1.0",
     "debug": "4.1.1",
     "events": "3.0.0",
     "node-rdkafka": "2.7.1",
