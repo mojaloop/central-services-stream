@@ -260,21 +260,17 @@ const decodePayload = (input, { asParsed = true } = {}) => {
     else throw new Error('invalid mime type')
   }
 
-  try {
-    if (dataUriRegEx.test(input)) {
-      let parsedDataUrl = parseDataURL(input)
-      return asParsed
-        ? parseDecodedDataToJson(parsedDataUrl)
-        : parsedDataUrl
-    } else if (typeof input === 'string') {
-      return asParsed ? JSON.parse(input) : { mimeType: 'text/plain', body: input }
-    } else if (typeof input === 'object') {
-      return asParsed ? input : { mimeType: 'application/json', body: JSON.stringify(input) }
-    } else {
-      throw new Error('input should be Buffer or String')
-    }
-  } catch (e) {
-    throw e
+  if (dataUriRegEx.test(input)) {
+    const parsedDataUrl = parseDataURL(input)
+    return asParsed
+      ? parseDecodedDataToJson(parsedDataUrl)
+      : parsedDataUrl
+  } else if (typeof input === 'string') {
+    return asParsed ? JSON.parse(input) : { mimeType: 'text/plain', body: input }
+  } else if (typeof input === 'object') {
+    return asParsed ? input : { mimeType: 'application/json', body: JSON.stringify(input) }
+  } else {
+    throw new Error('input should be Buffer or String')
   }
 }
 
@@ -289,16 +285,16 @@ const decodePayload = (input, { asParsed = true } = {}) => {
 
 const decodeMessages = (messages) => {
   const decodeMessage = (message) => {
-    let decodedMessage = clone(message)
-    let payload = decodePayload(decodedMessage.value.content.payload)
+    const decodedMessage = clone(message)
+    const payload = decodePayload(decodedMessage.value.content.payload)
     decodedMessage.value.content.payload = payload
     return decodedMessage
   }
 
   if (Array.isArray(messages)) {
-    let result = []
-    for (let message of messages) {
-      let decodedMessage = decodeMessage(message)
+    const result = []
+    for (const message of messages) {
+      const decodedMessage = decodeMessage(message)
       result.push(decodedMessage)
     }
     return result

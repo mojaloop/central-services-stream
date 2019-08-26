@@ -58,5 +58,14 @@
   },
   "1065|standard>eslint>table>lodash": {
     "fix": 1
+  },
+  "1118|standard>eslint>eslint-utils": {
+    "fix": 1
+  },
+  "1118|standard>eslint-plugin-node>eslint-plugin-es>eslint-utils": {
+    "fix": 1
+  },
+  "1118|standard>eslint-plugin-node>eslint-utils": {
+    "fix": 1
   }
 }
