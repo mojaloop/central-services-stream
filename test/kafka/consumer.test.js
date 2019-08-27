@@ -82,7 +82,7 @@ Test('Consumer test', (consumerTests) => {
 
     sandbox.stub(Kafka, 'KafkaConsumer').callsFake(
       () => {
-        let k = new KafkaStubs.KafkaConsumer()
+        const k = new KafkaStubs.KafkaConsumer()
         return k
       }
     )
@@ -98,7 +98,7 @@ Test('Consumer test', (consumerTests) => {
 
   consumerTests.test('Test Consumer::constructor', (assert) => {
     const ConsumerSpy = Sinon.spy(Consumer.prototype, 'constructor')
-    let c = new ConsumerSpy(topicsList, config)
+    const c = new ConsumerSpy(topicsList, config)
     assert.ok(c, 'Consumer instance created')
     assert.ok(ConsumerSpy.calledOnce, 'Consumer constructor called once')
     ConsumerSpy.restore()
@@ -107,7 +107,7 @@ Test('Consumer test', (consumerTests) => {
 
   consumerTests.test('Test Consumer::constructor - no config', (assert) => {
     try {
-      let c = new Consumer(topicsList, {})
+      const c = new Consumer(topicsList, {})
       assert.ok(c, 'Consumer instance created')
       assert.end()
     } catch (error) {
@@ -119,7 +119,7 @@ Test('Consumer test', (consumerTests) => {
 
   consumerTests.test('Test Consumer::constructor - no params', (assert) => {
     try {
-      let c = new Consumer()
+      const c = new Consumer()
       assert.ok(c, true)
       assert.end()
     } catch (e) {
@@ -131,7 +131,7 @@ Test('Consumer test', (consumerTests) => {
 
   consumerTests.test('Test Consumer::connect', (assert) => {
     assert.plan(2)
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(Sinon.match(arg, true), 'on Ready event received')
@@ -151,7 +151,7 @@ Test('Consumer test', (consumerTests) => {
     )
 
     assert.plan(2)
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'message' event
     c.on('error', error => {
@@ -166,21 +166,21 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::disconnect', (assert) => {
-    let discoCallback = (err, metrics) => {
+    const discoCallback = (err, metrics) => {
       if (err) {
         Logger.error(err)
       }
       assert.equal(typeof metrics.connectionOpened, 'number')
       assert.end()
     }
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       c.disconnect(discoCallback)
     })
   })
 
   consumerTests.test('Test Consumer::disconnect - no callback', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       c.disconnect()
       assert.ok(true)
@@ -189,7 +189,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::subscribe', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       c.subscribe(topicsList)
       assert.ok(true)
@@ -198,7 +198,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::subscribe - no params', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       c.subscribe()
       assert.ok(true)
@@ -207,10 +207,10 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::getWatermarkOffsets', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
-      let waterMarkOffset = c.getWatermarkOffsets(topicsList, 0)
+      const waterMarkOffset = c.getWatermarkOffsets(topicsList, 0)
       assert.ok(waterMarkOffset, 'waterMarkOffset result exists')
       assert.ok(Sinon.match(waterMarkOffset, KafkaStubs.watermarkOffsetSampleStub), 'waterMarkOffset results match')
       assert.end()
@@ -218,7 +218,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::getMetadata', (assert) => {
-    let metaDatacCb = (error, metadata) => {
+    const metaDatacCb = (error, metadata) => {
       if (error) {
         Logger.error(error)
       }
@@ -226,7 +226,7 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(Sinon.match(metadata, KafkaStubs.metadataSampleStub), 'metadata objects match')
       assert.end()
     }
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.getMetadata(null, metaDatacCb)
@@ -234,7 +234,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::getMetadata - no callback function', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.getMetadata(null)
@@ -244,7 +244,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::commit', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.commit(topicsList)
@@ -254,7 +254,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::commit - no params', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.commit()
@@ -264,7 +264,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::commitSync', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.commitSync(topicsList)
@@ -274,7 +274,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::commitSync - no params', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.commitSync()
@@ -284,7 +284,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::commitMessage', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.commitMessage(KafkaStubs.messageSampleStub)
@@ -294,7 +294,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::commitMessageSync', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       c.commitMessageSync(KafkaStubs.messageSampleStub)
@@ -304,7 +304,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::consumeOnce - Not Implemented - default params', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       try {
@@ -318,7 +318,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::consumeOnce - Not Implemented - batchSize=10', (assert) => {
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
       try {
@@ -342,7 +342,7 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::consume - defaults', (assert) => {
     let messageReceived = false
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     c.on('message', message => {
       Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
@@ -381,7 +381,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -446,7 +446,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -516,7 +516,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -581,7 +581,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -646,10 +646,10 @@ Test('Consumer test', (consumerTests) => {
     }
 
     let consumeCount = 0
-    let errorMessageThrown = 'this is an error thrown'
-    let errorMessageRejected = 'this is an error rejected'
+    const errorMessageThrown = 'this is an error thrown'
+    const errorMessageRejected = 'this is an error rejected'
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     let errorHandledThrown = false
     let errorHandledRejected = false
@@ -749,10 +749,10 @@ Test('Consumer test', (consumerTests) => {
     }
 
     let consumeCount = 0
-    let errorMessageThrown = 'this is an error thrown'
-    let errorMessageRejected = 'this is an error rejected'
+    const errorMessageThrown = 'this is an error thrown'
+    const errorMessageRejected = 'this is an error rejected'
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     let errorHandledThrown = false
     let errorHandledRejected = false
@@ -851,7 +851,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -936,7 +936,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1021,7 +1021,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1106,7 +1106,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1191,7 +1191,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1275,7 +1275,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1359,7 +1359,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1444,7 +1444,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1527,10 +1527,10 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let errorMessageThrown = 'this is an error thrown'
-    let errorMessageRejected = 'this is an error rejected'
+    const errorMessageThrown = 'this is an error thrown'
+    const errorMessageRejected = 'this is an error rejected'
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1618,10 +1618,10 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let errorMessageThrown = 'this is an error thrown'
-    let errorMessageRejected = 'this is an error rejected'
+    const errorMessageThrown = 'this is an error thrown'
+    const errorMessageRejected = 'this is an error rejected'
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -1711,7 +1711,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
@@ -1746,10 +1746,10 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let errorMessageThrown = 'this is an error thrown'
-    let errorMessageRejected = 'this is an error rejected'
+    const errorMessageThrown = 'this is an error thrown'
+    const errorMessageRejected = 'this is an error rejected'
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     let pollCount = 0
     let errorHandledThrown = false
@@ -1822,10 +1822,10 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let errorMessageThrown = 'this is an error thrown'
-    let errorMessageRejected = 'this is an error rejected'
+    const errorMessageThrown = 'this is an error thrown'
+    const errorMessageRejected = 'this is an error rejected'
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     let pollCount = 0
     let errorHandledThrown = false
@@ -1898,7 +1898,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     c.connect().then(result => {
       assert.ok(Sinon.match(result, true))
@@ -1934,7 +1934,7 @@ Test('Consumer test', (consumerTests) => {
       logger: Logger
     }
 
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
@@ -2100,7 +2100,7 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
 
     sandbox.stub(Kafka, 'KafkaConsumer').callsFake(
       () => {
-        let k = new KafkaStubs.KafkaConsumerForEventTests()
+        const k = new KafkaStubs.KafkaConsumerForEventTests()
         return k
       }
     )
@@ -2116,7 +2116,7 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
 
   consumerTests.test('Test Consumer::connect - test KafkaConsumer events: event.log, event.error, error', (assert) => {
     assert.plan(4)
-    let c = new Consumer(topicsList, config)
+    const c = new Consumer(topicsList, config)
 
     // consume 'message' event
     c.on('error', error => {

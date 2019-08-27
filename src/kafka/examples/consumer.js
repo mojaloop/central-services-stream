@@ -37,7 +37,7 @@ const Logger = require('@mojaloop/central-services-shared').Logger
 
 const testConsumer = async () => {
   console.log('Instantiate consumer')
-  let c = new Consumer(['test'], {
+  const c = new Consumer(['test'], {
     options: {
       mode: ConsumerEnums.CONSUMER_MODES.recursive,
       batchSize: 1,
@@ -57,7 +57,7 @@ const testConsumer = async () => {
   })
 
   console.log('Connect consumer')
-  let connectionResult = await c.connect()
+  const connectionResult = await c.connect()
 
   console.log(`Connected result=${connectionResult}`)
 
