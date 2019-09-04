@@ -1,0 +1,11 @@
+{
+  "reject": [
+    "async",
+    "sinon",
+    "events",
+    "node-rdkafka",
+    "raw-body",
+    "tap-xunit",
+    "tape"
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "7.4.3",
+  "version": "7.4.0",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -24,6 +24,11 @@
     "services"
   ],
   "main": "src/index.js",
+  "pre-commit": [
+    "standard",
+    "dep:check",
+    "test"
+  ],
   "scripts": {
     "test": "npm run test:unit | faucet",
     "pretest": "standard",
@@ -33,15 +38,16 @@
     "test:coveragekafka": "istanbul cover tapes -- 'test/kafka/**/*.test.js'",
     "test:coverage-check": "npm run test:coverage && istanbul check-coverage",
     "audit:resolve": "SHELL=sh resolve-audit",
-    "audit:check": "SHELL=sh check-audit"
+    "audit:check": "SHELL=sh check-audit",
+    "dep:check": "npx ncu -e 2",
+    "dep:update": "npx ncu -u"
   },
   "dependencies": {
     "@mojaloop/central-services-shared": "7.4.8",
     "async": "2.6.2",
     "base64url": "3.0.1",
-    "bluebird": "3.5.3",
     "clone": "2.1.2",
-    "data-urls": "^1.1.0",
+    "data-urls": "1.1.0",
     "debug": "4.1.1",
     "events": "3.0.0",
     "node-rdkafka": "2.6.1",
@@ -51,6 +57,7 @@
     "faucet": "0.0.1",
     "istanbul": "1.1.0-alpha.1",
     "npm-audit-resolver": "1.5.0",
+    "npm-check-updates": "3.1.21",
     "pre-commit": "1.2.2",
     "sinon": "7.2.4",
     "standard": "14.1.0",

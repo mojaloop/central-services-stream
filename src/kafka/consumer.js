@@ -37,7 +37,6 @@
 
 'use strict'
 
-const Promise = require('bluebird')
 const EventEmitter = require('events')
 const async = require('async')
 const Logger = require('@mojaloop/central-services-shared').Logger
