@@ -242,6 +242,16 @@ const encodePayload = (input, mimeType) => {
 }
 
 /**
+ *
+ * @param {string} input - Data URI or plain string
+ * @returns {boolean} - Whether or not the input is a data uri per regex
+ */
+const isDataUri = (input) => {
+  const dataUriRegEx = /^\s*data:'?(?:([\w-]+)\/([\w+.-;=]+))'??(?:;charset=([\w-]+))?(?:;(base64))?,(.*)/
+  return dataUriRegEx.test(input)
+}
+
+/**
  * Decode Payload to base64 encoded data URI
  *
  * @param {string} input - Data URI or plain string
@@ -251,17 +261,13 @@ const encodePayload = (input, mimeType) => {
  */
 
 const decodePayload = (input, { asParsed = true } = {}) => {
-  const dataUriRegEx = /^\s*data:'?(?:([\w-]+)\/([\w+.-;=]+))'??(?:;charset=([\w-]+))?(?:;(base64))?,(.*)/
-
   const parseDecodedDataToJson = (decodedData) => {
     const isAllowedMimeTypes = allowedRegexForMimeTypes.test(decodedData.mimeType.toString())
     if (isAllowedMimeTypes && decodedData.mimeType.toString() !== 'text/plain') return JSON.parse(decodedData.body.toString())
     else if (isAllowedMimeTypes && decodedData.mimeType.toString() === 'text/plain') return decodedData.body.toString()
     else throw new Error('invalid mime type')
   }
-
-  
-  if (dataUriRegEx.test(input)) {
+  if (isDataUri(input)) {
     const parsedDataUrl = parseDataURL(input)
     return asParsed
       ? parseDecodedDataToJson(parsedDataUrl)
