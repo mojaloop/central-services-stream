@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "7.4.0",
+  "version": "7.4.3",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -36,7 +36,7 @@
     "audit:check": "SHELL=sh check-audit"
   },
   "dependencies": {
-    "@mojaloop/central-services-shared": "6.4.1",
+    "@mojaloop/central-services-shared": "7.4.8",
     "async": "2.6.2",
     "base64url": "3.0.1",
     "bluebird": "3.5.3",
@@ -53,7 +53,7 @@
     "npm-audit-resolver": "1.5.0",
     "pre-commit": "1.2.2",
     "sinon": "7.2.4",
-    "standard": "14.0.2",
+    "standard": "14.1.0",
     "tap-xunit": "2.3.0",
     "tape": "4.10.1",
     "tapes": "4.1.0"
