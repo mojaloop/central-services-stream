@@ -24,6 +24,11 @@
     "services"
   ],
   "main": "src/index.js",
+  "pre-commit": [
+    "standard",
+    "dep:check",
+    "test"
+  ],
   "scripts": {
     "test": "npm run test:unit | faucet",
     "pretest": "standard",
@@ -33,29 +38,32 @@
     "test:coveragekafka": "istanbul cover tapes -- 'test/kafka/**/*.test.js'",
     "test:coverage-check": "npm run test:coverage && istanbul check-coverage",
     "audit:resolve": "SHELL=sh resolve-audit",
-    "audit:check": "SHELL=sh check-audit"
+    "audit:check": "SHELL=sh check-audit",
+    "dep:check": "npx ncu -e 2",
+    "dep:update": "npx ncu -u"
   },
   "dependencies": {
     "@mojaloop/central-services-shared": "7.4.8",
-    "async": "2.6.2",
+    "async": "3.1.0",
     "base64url": "3.0.1",
-    "bluebird": "3.5.3",
+    "bluebird": "3.5.5",
     "clone": "2.1.2",
     "data-urls": "^1.1.0",
     "debug": "4.1.1",
     "events": "3.0.0",
-    "node-rdkafka": "2.6.1",
-    "raw-body": "2.4.0"
+    "node-rdkafka": "2.7.1",
+    "raw-body": "2.4.1"
   },
   "devDependencies": {
     "faucet": "0.0.1",
     "istanbul": "1.1.0-alpha.1",
     "npm-audit-resolver": "1.5.0",
+    "npm-check-updates": "3.1.21",
     "pre-commit": "1.2.2",
-    "sinon": "7.2.4",
+    "sinon": "7.4.2",
     "standard": "14.1.0",
-    "tap-xunit": "2.3.0",
-    "tape": "4.10.1",
+    "tap-xunit": "2.4.1",
+    "tape": "4.11.0",
     "tapes": "4.1.0"
   },
   "publishConfig": {
