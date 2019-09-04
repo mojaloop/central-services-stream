@@ -39,7 +39,7 @@
     "@mojaloop/central-services-shared": "7.4.8",
     "async": "2.6.2",
     "base64url": "3.0.1",
-    "bluebird": "3.5.3",
+    "bluebird": "3.5.5",
     "clone": "2.1.2",
     "data-urls": "^1.1.0",
     "debug": "4.1.1",
