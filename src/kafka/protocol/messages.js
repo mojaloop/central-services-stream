@@ -310,6 +310,7 @@ const decodeMessages = (messages) => {
   }
 }
 
+exports.isDataUri = isDataUri
 exports.parseMessage = parseMessage
 exports.parseCommand = parseCommand
 exports.parseNotify = parseNotify
