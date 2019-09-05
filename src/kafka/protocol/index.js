@@ -37,6 +37,7 @@
 'use strict'
 
 exports.parseValue = require('./util').parseValue
+exports.isDataUri = require('./messages').isDataUri
 exports.parseMessage = require('./messages').parseMessage
 exports.parseCommand = require('./messages').parseCommand
 exports.parseNotify = require('./messages').parseNotify
