@@ -61,7 +61,7 @@
     "pre-commit": "1.2.2",
     "sinon": "7.2.4",
     "standard": "14.1.0",
-    "tap-xunit": "2.3.0",
+    "tap-xunit": "2.4.1",
     "tape": "4.10.1",
     "tapes": "4.1.0"
   },
