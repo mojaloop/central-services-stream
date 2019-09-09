@@ -43,7 +43,7 @@
     "dep:update": "npx ncu -u"
   },
   "dependencies": {
-    "@mojaloop/central-services-shared": "7.4.8",
+    "@mojaloop/central-services-shared": "7.5.0",
     "async": "2.6.2",
     "base64url": "3.0.1",
     "clone": "2.1.2",
