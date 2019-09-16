@@ -38,8 +38,8 @@
 'use strict'
 
 const Test = require('tapes')(require('tape'))
-const Consumer = require('../../src/kafka').Consumer
-const ConsumerEnums = require('../../src/kafka').Consumer.ENUMS
+const Consumer = require('../../../src/kafka').Consumer
+const ConsumerEnums = require('../../../src/kafka').Consumer.ENUMS
 const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Sinon = require('sinon')
