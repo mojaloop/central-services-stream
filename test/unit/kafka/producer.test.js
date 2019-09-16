@@ -35,9 +35,9 @@
  */
 
 const Test = require('tapes')(require('tape'))
-const Producer = require('../../src/kafka').Producer
+const Producer = require('../../../src/kafka').Producer
 // const ProducerEnums = require('../../src/kafka').Producer.ENUMS
-const Logger = require('@mojaloop/central-services-shared').Logger
+const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Sinon = require('sinon')
 const KafkaStubs = require('./KafkaStub')
@@ -120,7 +120,7 @@ Test('Producer test', (producerTests) => {
 
   producerTests.test('Test Producer::connect - with error on callBack', (assert) => {
     sandbox.stub(KafkaStubs.KafkaProducer.prototype, 'connect').callsFake(
-      (err, info) => {
+      function (err, info) {
         if (err) {
         }
         info('error test test', null)
@@ -137,20 +137,22 @@ Test('Producer test', (producerTests) => {
     })
 
     producer.connect().then(result => {
+      Logger.info(`connection result = ${result}`)
     }).catch((error) => {
       assert.ok(Sinon.match(error, 'Unhandled "error" event. (error test test)'))
     })
   })
 
-  producerTests.test('Test Producer::connect', (assert) => {
+  producerTests.test('Test Producer::connect', async (assert) => {
     assert.plan(2)
+
     const producer = new Producer(config)
-    producer.on('ready', arg => {
-      console.log(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+    producer.on('ready', function (args) {
+      Logger.info(`onReady: ${JSON.stringify(args)}`)
+      assert.ok(args, 'on Ready event received')
     })
     producer.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       assert.end()
       producer.disconnect()
     })
@@ -194,12 +196,12 @@ Test('Producer test', (producerTests) => {
     }
     // produce 'ready' event
     producer.on('ready', arg => {
-      console.log(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      Logger.info(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
     })
 
     producer.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'test', key: '1234' }).then(results => {
         producer.disconnect(discoCallback)
@@ -297,23 +299,23 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
     const producer = new Producer(config)
     const discoCallback = (err) => {
       if (err) {
-        Logger.error(err)
+        Logger.error(`Error received: ${err}`)
       }
       assert.end()
     }
     // consume 'message' event
     producer.on('error', error => {
-      Logger.error(error)
+      Logger.info(`onError: ${error}`)
       assert.ok(Sinon.match(error, 'event.error') || Sinon.match(error, 'event'), 'on Error event received')
     })
 
     producer.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      Logger.info(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
     })
 
     producer.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       producer.disconnect(discoCallback())
     })
   })

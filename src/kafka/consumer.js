@@ -39,7 +39,7 @@
 
 const EventEmitter = require('events')
 const async = require('async')
-const Logger = require('@mojaloop/central-services-shared').Logger
+const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 
 const Protocol = require('./protocol')
@@ -406,9 +406,9 @@ class Consumer extends EventEmitter {
       }, 1)
 
       // a callback function, invoked when queue is empty.
-      this._syncQueue.drain = () => {
+      this._syncQueue.drain(() => {
         this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
-      }
+      })
     }
 
     switch (this._config.options.mode) {

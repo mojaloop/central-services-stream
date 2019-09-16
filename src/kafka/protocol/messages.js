@@ -41,7 +41,7 @@ const parseDataURL = require('data-urls')
 const clone = require('clone')
 const allowedRegexForMimeTypes = /(text\/plain)|(application\/json)|(application\/vnd.interoperability[.])/
 
-// const Logger = require('@mojaloop/central-services-shared').Logger
+// const Logger = require('@mojaloop/central-services-logger')
 
 /**
  * Notification Protocol Object
@@ -159,68 +159,70 @@ const parseMessage = (messageProtocol) => {
  *
  * Validates and enhances Protocol Notification with MetaData
  *
+ * @todo: Need to remove this in future once we clarify if command messages will ever be used as part of streaming capability
  * @todo Validations for Protocol
  *
  * @param {Protocol~Notification} messageProtocol - Notification to validate
  * @return {Protocol~Notification} - Returns validated Protocol result
  */
-const parseNotify = (messageProtocol) => {
-  if (messageProtocol) {
-    if (!messageProtocol.metadata) {
-      messageProtocol.metadata = {}
-    }
-    messageProtocol.metadata['protocol.createdAt'] = Date.now()
-  } else {
-    throw Error('Invalid input params')
-  }
-
-  return {
-    from: messageProtocol.from,
-    to: messageProtocol.to,
-    id: messageProtocol.id,
-    type: messageProtocol.type,
-    metadata: messageProtocol.metadata,
-    pp: messageProtocol.pp,
-    event: messageProtocol.event,
-    message: messageProtocol.message,
-    reason: messageProtocol.reason
-  }
-}
+// const parseNotify = (messageProtocol) => {
+//   if (messageProtocol) {
+//     if (!messageProtocol.metadata) {
+//       messageProtocol.metadata = {}
+//     }
+//     messageProtocol.metadata['protocol.createdAt'] = Date.now()
+//   } else {
+//     throw Error('Invalid input params')
+//   }
+//
+//   return {
+//     from: messageProtocol.from,
+//     to: messageProtocol.to,
+//     id: messageProtocol.id,
+//     type: messageProtocol.type,
+//     metadata: messageProtocol.metadata,
+//     pp: messageProtocol.pp,
+//     event: messageProtocol.event,
+//     message: messageProtocol.message,
+//     reason: messageProtocol.reason
+//   }
+// }
 
 /**
  * Parse Protocol Commands
  *
  * Validates and enhances Protocol Command with MetaData
  *
+ * @todo: Need to remove this in future once we clarify if command messages will ever be used as part of streaming capability
  * @todo Validations for Protocol
  *
  * @param {Protocol~Command} messageProtocol - Command to validate
  * @return {Protocol~Command} - Returns validated Protocol result
  */
-const parseCommand = (messageProtocol) => {
-  if (messageProtocol) {
-    if (!messageProtocol.metadata) {
-      messageProtocol.metadata = {}
-    }
-    messageProtocol.metadata['protocol.createdAt'] = Date.now()
-  } else {
-    throw Error('Invalid input params')
-  }
-
-  return {
-    from: messageProtocol.from,
-    to: messageProtocol.to,
-    id: messageProtocol.key,
-    resource: messageProtocol.resource,
-    type: messageProtocol.type,
-    metadata: messageProtocol.metadata,
-    pp: messageProtocol.pp,
-    method: messageProtocol.method,
-    uri: messageProtocol.uri,
-    status: messageProtocol.status,
-    reason: messageProtocol.reason
-  }
-}
+// const parseCommand = (messageProtocol) => {
+//   if (messageProtocol) {
+//     if (!messageProtocol.metadata) {
+//       messageProtocol.metadata = {}
+//     }
+//     messageProtocol.metadata['protocol.createdAt'] = Date.now()
+//   } else {
+//     throw Error('Invalid input params')
+//   }
+//
+//   return {
+//     from: messageProtocol.from,
+//     to: messageProtocol.to,
+//     id: messageProtocol.key,
+//     resource: messageProtocol.resource,
+//     type: messageProtocol.type,
+//     metadata: messageProtocol.metadata,
+//     pp: messageProtocol.pp,
+//     method: messageProtocol.method,
+//     uri: messageProtocol.uri,
+//     status: messageProtocol.status,
+//     reason: messageProtocol.reason
+//   }
+// }
 
 /**
  * Encodes Payload to base64 encoded data URI
@@ -312,8 +314,8 @@ const decodeMessages = (messages) => {
 
 exports.isDataUri = isDataUri
 exports.parseMessage = parseMessage
-exports.parseCommand = parseCommand
-exports.parseNotify = parseNotify
+// exports.parseCommand = parseCommand
+// exports.parseNotify = parseNotify
 exports.decodePayload = decodePayload
 exports.encodePayload = encodePayload
 exports.decodeMessages = decodeMessages
