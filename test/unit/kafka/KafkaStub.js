@@ -32,7 +32,7 @@
 'use strict'
 
 const EventEmitter = require('events')
-const Logger = require('@mojaloop/central-services-shared').Logger
+const Logger = require('@mojaloop/central-services-logger')
 
 const metadataSampleStub = {
   orig_broker_id: 1,
@@ -80,15 +80,22 @@ class KafkaClient extends EventEmitter {
   _dummyFunction () {
   }
 
+  constructor (config) {
+    super()
+    this._dummyFunction()
+  }
+
   connect (err, info) {
     if (err) {
       Logger.error(err)
     }
-    this.emit('ready', 'true')
+    this.emit('ready', true)
     this.metrics = {}
     this.metrics.connectionOpened = Date.now()
     this.name = 'KafkaStub'
-    info(null, this.metrics)
+    if (info) {
+      info(null, this.metrics)
+    }
     this._dummyFunction()
   }
 

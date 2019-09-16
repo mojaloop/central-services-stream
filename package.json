@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "7.4.2",
+  "version": "8.1.0",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -31,19 +31,19 @@
   ],
   "scripts": {
     "test": "npm run test:unit | faucet",
+    "standard": "standard",
     "pretest": "standard",
-    "test:unit": "tapes 'test/**/*.test.js'",
+    "test:unit": "tapes 'test/unit/**/**.test.js'",
     "test:xunit": "npm run test:unit | tap-xunit",
-    "test:coverage": "istanbul cover tapes -- 'test/**/*.test.js'",
-    "test:coveragekafka": "istanbul cover tapes -- 'test/kafka/**/*.test.js'",
-    "test:coverage-check": "npm run test:coverage && istanbul check-coverage",
+    "test:coverage": "nyc --reporter=lcov --reporter=text-summary tapes -- 'test/unit/**/**.test.js'",
+    "test:coverage-check": "npm run test:coverage && nyc check-coverage",
     "audit:resolve": "SHELL=sh resolve-audit",
     "audit:check": "SHELL=sh check-audit",
     "dep:check": "npx ncu -e 2",
     "dep:update": "npx ncu -u"
   },
   "dependencies": {
-    "@mojaloop/central-services-shared": "7.4.8",
+    "@mojaloop/central-services-logger": "8.1.1",
     "async": "2.6.2",
     "base64url": "3.0.1",
     "clone": "2.1.2",
@@ -55,12 +55,12 @@
   },
   "devDependencies": {
     "faucet": "0.0.1",
-    "istanbul": "1.1.0-alpha.1",
+    "nyc": "14.1.1",
     "npm-audit-resolver": "1.5.0",
-    "npm-check-updates": "3.1.21",
+    "npm-check-updates": "3.1.23",
     "pre-commit": "1.2.2",
     "sinon": "7.2.4",
-    "standard": "14.1.0",
+    "standard": "14.3.0",
     "tap-xunit": "2.3.0",
     "tape": "4.10.1",
     "tapes": "4.1.0"

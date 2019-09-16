@@ -37,7 +37,7 @@
 'use strict'
 
 const EventEmitter = require('events')
-const Logger = require('@mojaloop/central-services-shared').Logger
+const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Protocol = require('./protocol')
 
@@ -222,10 +222,10 @@ class Producer extends EventEmitter {
         logger.warn('Disconnected.')
       })
 
-      this._producer.on('ready', () => {
+      this._producer.on('ready', (args) => {
         logger.silly(`Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
         this._producer.poll()
-        super.emit('ready')
+        super.emit('ready', args)
         resolve(true)
       })
 

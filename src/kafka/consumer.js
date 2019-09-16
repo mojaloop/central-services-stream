@@ -39,7 +39,7 @@
 
 const EventEmitter = require('events')
 const async = require('async')
-const Logger = require('@mojaloop/central-services-shared').Logger
+const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 
 const Protocol = require('./protocol')
