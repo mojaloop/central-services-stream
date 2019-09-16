@@ -44,14 +44,14 @@
   },
   "dependencies": {
     "@mojaloop/central-services-logger": "8.1.1",
-    "async": "2.6.2",
+    "async": "3.1.0",
     "base64url": "3.0.1",
     "clone": "2.1.2",
     "data-urls": "1.1.0",
     "debug": "4.1.1",
     "events": "3.0.0",
-    "node-rdkafka": "2.6.1",
-    "raw-body": "2.4.0"
+    "node-rdkafka": "2.7.1",
+    "raw-body": "2.4.1"
   },
   "devDependencies": {
     "faucet": "0.0.1",
@@ -59,10 +59,10 @@
     "npm-audit-resolver": "1.5.0",
     "npm-check-updates": "3.1.23",
     "pre-commit": "1.2.2",
-    "sinon": "7.2.4",
+    "sinon": "7.4.2",
     "standard": "14.3.0",
-    "tap-xunit": "2.3.0",
-    "tape": "4.10.1",
+    "tap-xunit": "2.4.1",
+    "tape": "4.11.0",
     "tapes": "4.1.0"
   },
   "publishConfig": {
