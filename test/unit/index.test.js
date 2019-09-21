@@ -10,5 +10,10 @@ Test('Index', indexTest => {
     test.end()
   })
 
+  indexTest.test('Exports kafka util', test => {
+    test.equal(Index.Util, require('../../src/util'))
+    test.end()
+  })
+
   indexTest.end()
 })

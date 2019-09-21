@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "8.1.0",
+  "version": "8.1.1",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -43,11 +43,9 @@
     "dep:update": "npx ncu -u"
   },
   "dependencies": {
+    "@mojaloop/central-services-error-handling": "7.5.0",
     "@mojaloop/central-services-logger": "8.1.1",
     "async": "3.1.0",
-    "base64url": "3.0.1",
-    "clone": "2.1.2",
-    "data-urls": "1.1.0",
     "debug": "4.1.1",
     "events": "3.0.0",
     "node-rdkafka": "2.7.1",
@@ -55,15 +53,17 @@
   },
   "devDependencies": {
     "faucet": "0.0.1",
-    "nyc": "14.1.1",
     "npm-audit-resolver": "1.5.0",
     "npm-check-updates": "3.1.23",
+    "nyc": "14.1.1",
     "pre-commit": "1.2.2",
+    "rewire": "4.0.1",
     "sinon": "7.4.2",
-    "standard": "14.3.0",
+    "standard": "14.3.1",
     "tap-xunit": "2.4.1",
     "tape": "4.11.0",
-    "tapes": "4.1.0"
+    "tapes": "4.1.0",
+    "uuid4": "^1.1.4"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
