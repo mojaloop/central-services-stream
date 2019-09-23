@@ -44,7 +44,6 @@ Test('Consumer', ConsumerTest => {
     sandbox.stub(KafkaConsumer.prototype, 'connect').resolves()
     sandbox.stub(KafkaConsumer.prototype, 'consume').resolves()
     sandbox.stub(KafkaConsumer.prototype, 'commitMessageSync').resolves()
-
     test.end()
   })
 

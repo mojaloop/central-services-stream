@@ -93,6 +93,7 @@ Test('Producer test', (producerTests) => {
     const producer = new ProducerSpy(config)
     assert.ok(producer, 'Producer instance created')
     assert.ok(ProducerSpy.calledOnce, 'Producer constructor called once')
+    ProducerSpy.restore()
     assert.end()
   })
 
@@ -284,7 +285,6 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
         return k
       }
     )
-
     test.end()
   })
 
