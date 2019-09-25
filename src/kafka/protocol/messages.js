@@ -36,11 +36,6 @@
  */
 
 'use strict'
-const base64url = require('base64url')
-const parseDataURL = require('data-urls')
-const clone = require('clone')
-const allowedRegexForMimeTypes = /(text\/plain)|(application\/json)|(application\/vnd.interoperability[.])/
-
 // const Logger = require('@mojaloop/central-services-logger')
 
 /**
@@ -224,98 +219,6 @@ const parseMessage = (messageProtocol) => {
 //   }
 // }
 
-/**
- * Encodes Payload to base64 encoded data URI
- *
- * @param {buffer\|string} input - Buffer or String
- * @param {MimeTypes} mimeType - mime type of the input
- *
- * @return {string} - Returns base64 encoded data  URI string
- */
-
-const encodePayload = (input, mimeType) => {
-  if (allowedRegexForMimeTypes.test(mimeType)) {
-    return (input instanceof Buffer)
-      ? `data:${mimeType};base64,${base64url(input, 'utf8')}`
-      : `data:${mimeType};base64,${base64url(Buffer.from(input), 'utf8')}`
-  } else {
-    throw new Error(`mime type should match the following regex:${allowedRegexForMimeTypes.toString()}`)
-  }
-}
-
-/**
- *
- * @param {string} input - Data URI or plain string
- * @returns {boolean} - Whether or not the input is a data uri per regex
- */
-const isDataUri = (input) => {
-  const dataUriRegEx = /^\s*data:'?(?:([\w-]+)\/([\w+.-;=]+))'??(?:;charset=([\w-]+))?(?:;(base64))?,(.*)/
-  return dataUriRegEx.test(input)
-}
-
-/**
- * Decode Payload to base64 encoded data URI
- *
- * @param {string} input - Data URI or plain string
- * @param {object} [options = {asParsed: true}] - Parising object
- *
- * @return {(object\|Protocol~DecodedURI)} based on the options, returns parsed JSON or decodedURI object
- */
-
-const decodePayload = (input, { asParsed = true } = {}) => {
-  const parseDecodedDataToJson = (decodedData) => {
-    const isAllowedMimeTypes = allowedRegexForMimeTypes.test(decodedData.mimeType.toString())
-    if (isAllowedMimeTypes && decodedData.mimeType.toString() !== 'text/plain') return JSON.parse(decodedData.body.toString())
-    else if (isAllowedMimeTypes && decodedData.mimeType.toString() === 'text/plain') return decodedData.body.toString()
-    else throw new Error('invalid mime type')
-  }
-  if (isDataUri(input)) {
-    const parsedDataUrl = parseDataURL(input)
-    return asParsed
-      ? parseDecodedDataToJson(parsedDataUrl)
-      : parsedDataUrl
-  } else if (typeof input === 'string') {
-    return asParsed ? JSON.parse(input) : { mimeType: 'text/plain', body: input }
-  } else if (typeof input === 'object') {
-    return asParsed ? input : { mimeType: 'application/json', body: JSON.stringify(input) }
-  } else {
-    throw new Error('input should be Buffer or String')
-  }
-}
-
-/**
- * Decode message or messages
- *
- * @param {(Protocol~Message\|Protocol~Message[])} messages - single message or array of messages with payload encoded as base64 dataURI
- * @param {object} [options = {asParsed: true}] - options to parse the payload or not
- *
- * @returns {(Protocol~Message\|Protocol~Message[])} - messages with decoded payload
- */
-
-const decodeMessages = (messages) => {
-  const decodeMessage = (message) => {
-    const decodedMessage = clone(message)
-    const payload = decodePayload(decodedMessage.value.content.payload)
-    decodedMessage.value.content.payload = payload
-    return decodedMessage
-  }
-
-  if (Array.isArray(messages)) {
-    const result = []
-    for (const message of messages) {
-      const decodedMessage = decodeMessage(message)
-      result.push(decodedMessage)
-    }
-    return result
-  } else {
-    return decodeMessage(messages)
-  }
-}
-
-exports.isDataUri = isDataUri
 exports.parseMessage = parseMessage
 // exports.parseCommand = parseCommand
 // exports.parseNotify = parseNotify
-exports.decodePayload = decodePayload
-exports.encodePayload = encodePayload
-exports.decodeMessages = decodeMessages

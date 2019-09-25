@@ -1,0 +1,46 @@
+{
+  "1065|sinon>@sinonjs/formatio>@sinonjs/samsam>lodash": {
+    "decision": "fix",
+    "madeAt": 1569387065534
+  },
+  "1065|sinon>@sinonjs/samsam>lodash": {
+    "decision": "fix",
+    "madeAt": 1569387065534
+  },
+  "1065|sinon>nise>@sinonjs/formatio>@sinonjs/samsam>lodash": {
+    "decision": "fix",
+    "madeAt": 1569387065534
+  },
+  "1065|standard>eslint>lodash": {
+    "decision": "fix",
+    "madeAt": 1569387065534
+  },
+  "1065|standard>eslint-plugin-import>lodash": {
+    "decision": "fix",
+    "madeAt": 1569387065534
+  },
+  "1065|tap-xunit>xmlbuilder>lodash": {
+    "decision": "fix",
+    "madeAt": 1569387065534
+  },
+  "1065|@mojaloop/central-services-shared>winston>async>lodash": {
+    "decision": "fix",
+    "madeAt": 1569387065534
+  },
+  "1065|async>lodash": {
+    "decision": "fix",
+    "madeAt": 1569387065534
+  },
+  "1065|standard>eslint>inquirer>lodash": {
+    "decision": "fix",
+    "madeAt": 1569387065534
+  },
+  "1065|standard>eslint>table>lodash": {
+    "decision": "fix",
+    "madeAt": 1569387065534
+  },
+  "1164|nyc>istanbul-reports>handlebars": {
+    "decision": "fix",
+    "madeAt": 1569387065534
+  }
+}
