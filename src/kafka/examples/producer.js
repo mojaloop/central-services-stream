@@ -38,7 +38,7 @@
 'use strict'
 
 const Producer = require('../').Producer
-const Logger = require('@mojaloop/central-services-shared').Logger
+const Logger = require('@mojaloop/central-services-logger')
 
 const testProducer = async () => {
   Logger.info('testProducer::start')

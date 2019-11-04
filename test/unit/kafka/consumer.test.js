@@ -38,9 +38,9 @@
 'use strict'
 
 const Test = require('tapes')(require('tape'))
-const Consumer = require('../../src/kafka').Consumer
-const ConsumerEnums = require('../../src/kafka').Consumer.ENUMS
-const Logger = require('@mojaloop/central-services-shared').Logger
+const Consumer = require('../../../src/kafka').Consumer
+const ConsumerEnums = require('../../../src/kafka').Consumer.ENUMS
+const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Sinon = require('sinon')
 const KafkaStubs = require('./KafkaStub')
@@ -134,10 +134,10 @@ Test('Consumer test', (consumerTests) => {
     const c = new Consumer(topicsList, config)
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
     })
   })
 
@@ -183,7 +183,6 @@ Test('Consumer test', (consumerTests) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       c.disconnect()
-      assert.ok(true)
       assert.end()
     })
   })
@@ -192,7 +191,6 @@ Test('Consumer test', (consumerTests) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       c.subscribe(topicsList)
-      assert.ok(true)
       assert.end()
     })
   })
@@ -201,7 +199,6 @@ Test('Consumer test', (consumerTests) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
       c.subscribe()
-      assert.ok(true)
       assert.end()
     })
   })
@@ -209,10 +206,10 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::getWatermarkOffsets', (assert) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       const waterMarkOffset = c.getWatermarkOffsets(topicsList, 0)
       assert.ok(waterMarkOffset, 'waterMarkOffset result exists')
-      assert.ok(Sinon.match(waterMarkOffset, KafkaStubs.watermarkOffsetSampleStub), 'waterMarkOffset results match')
+      assert.deepEqual(waterMarkOffset, KafkaStubs.watermarkOffsetSampleStub, 'waterMarkOffset results match')
       assert.end()
     })
   })
@@ -223,12 +220,12 @@ Test('Consumer test', (consumerTests) => {
         Logger.error(error)
       }
       assert.ok(metadata, 'metadata object exists')
-      assert.ok(Sinon.match(metadata, KafkaStubs.metadataSampleStub), 'metadata objects match')
+      assert.deepEqual(metadata, KafkaStubs.metadataSampleStub, 'metadata objects match')
       assert.end()
     }
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       c.getMetadata(null, metaDatacCb)
     })
   })
@@ -236,9 +233,8 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::getMetadata - no callback function', (assert) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       c.getMetadata(null)
-      assert.ok(true)
       assert.end()
     })
   })
@@ -246,9 +242,9 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::commit', (assert) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       c.commit(topicsList)
-      assert.ok(true, 'commit passed')
+      assert.pass('commit passed')
       assert.end()
     })
   })
@@ -256,9 +252,9 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::commit - no params', (assert) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       c.commit()
-      assert.ok(true, 'commit passed')
+      assert.pass('commit passed')
       assert.end()
     })
   })
@@ -266,9 +262,9 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::commitSync', (assert) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       c.commitSync(topicsList)
-      assert.ok(true, 'commit passed')
+      assert.pass('commit passed')
       assert.end()
     })
   })
@@ -276,9 +272,9 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::commitSync - no params', (assert) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       c.commitSync()
-      assert.ok(true, 'commit passed')
+      assert.pass('commit passed')
       assert.end()
     })
   })
@@ -286,9 +282,9 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::commitMessage', (assert) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       c.commitMessage(KafkaStubs.messageSampleStub)
-      assert.ok(true, 'commit passed')
+      assert.pass('commit passed')
       assert.end()
     })
   })
@@ -296,9 +292,9 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::commitMessageSync', (assert) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       c.commitMessageSync(KafkaStubs.messageSampleStub)
-      assert.ok(true, 'commit passed')
+      assert.pass('commit passed')
       assert.end()
     })
   })
@@ -306,7 +302,7 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::consumeOnce - Not Implemented - default params', (assert) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       try {
         c.consumeOnce()
       } catch (error) {
@@ -320,12 +316,12 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::consumeOnce - Not Implemented - batchSize=10', (assert) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       try {
         c.consumeOnce(1, (error, message) => {
           return new Promise((resolve, reject) => {
             if (error) {
-              Logger.info(`WTDSDSD!!! error ${error}`)
+              Logger.error(error)
               reject(error)
             }
             resolve(true)
@@ -355,7 +351,7 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       c.consume()
     })
   })
@@ -386,7 +382,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -395,12 +391,12 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           if (error) {
-            Logger.info(`WTDSDSD!!! error ${error}`)
+            Logger.error(error)
             reject(error)
           }
           if (message) { // check if there is a valid message comming back
@@ -451,7 +447,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
 
     c.on('error', error => {
@@ -465,12 +461,12 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           if (error) {
-            Logger.info(`WTDSDSD!!! error ${error}`)
+            Logger.error(error)
             reject(error)
           }
           if (message) { // check if there is a valid message comming back
@@ -521,7 +517,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -530,12 +526,12 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           if (error) {
-            Logger.info(`WTDSDSD!!! error ${error}`)
+            Logger.error(error)
             reject(error)
           }
           if (message) { // check if there is a valid message comming back
@@ -586,7 +582,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -595,12 +591,12 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           if (error) {
-            Logger.info(`WTDSDSD!!! error ${error}`)
+            Logger.error(error)
             reject(error)
           }
           if (message) { // check if there is a valid message comming back
@@ -674,7 +670,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -683,7 +679,7 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -758,7 +754,7 @@ Test('Consumer test', (consumerTests) => {
     let errorHandledRejected = false
     let processedNextMessage = false
     c.on('error', error => {
-      Logger.debug(`OMG - ${error}`)
+      Logger.debug(`onError: ${error}`)
       if (error instanceof Error) {
         assert.equal(error.message, errorMessageThrown)
         assert.ok(true, 'Error handled by throw')
@@ -777,7 +773,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -786,7 +782,7 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -856,7 +852,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -873,7 +869,7 @@ Test('Consumer test', (consumerTests) => {
     let pollCount = 0
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -885,7 +881,7 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.info(`WTDSDSD!!! error ${error}`)
+              Logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
@@ -941,7 +937,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -958,7 +954,7 @@ Test('Consumer test', (consumerTests) => {
     let pollCount = 0
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -970,7 +966,7 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.info(`WTDSDSD!!! error ${error}`)
+              Logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
@@ -1026,7 +1022,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -1043,7 +1039,7 @@ Test('Consumer test', (consumerTests) => {
     let pollCount = 0
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -1055,7 +1051,7 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.info(`WTDSDSD!!! error ${error}`)
+              Logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
@@ -1111,7 +1107,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -1128,7 +1124,7 @@ Test('Consumer test', (consumerTests) => {
     let pollCount = 0
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -1140,7 +1136,7 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.info(`WTDSDSD!!! error ${error}`)
+              Logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
@@ -1196,7 +1192,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -1213,7 +1209,7 @@ Test('Consumer test', (consumerTests) => {
     let recursiveCount = 0
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -1225,7 +1221,7 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.info(`WTDSDSD!!! error ${error}`)
+              Logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
@@ -1280,7 +1276,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -1297,7 +1293,7 @@ Test('Consumer test', (consumerTests) => {
     let recursiveCount = 0
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -1309,7 +1305,7 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.info(`WTDSDSD!!! error ${error}`)
+              Logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
@@ -1364,7 +1360,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -1381,7 +1377,7 @@ Test('Consumer test', (consumerTests) => {
     let recursiveCount = 0
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -1393,7 +1389,7 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.info(`WTDSDSD!!! error ${error}`)
+              Logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
@@ -1449,7 +1445,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -1466,7 +1462,7 @@ Test('Consumer test', (consumerTests) => {
     let recursiveCount = 0
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -1478,7 +1474,7 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.info(`WTDSDSD!!! error ${error}`)
+              Logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
@@ -1535,7 +1531,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     let recursiveCount = 0
@@ -1571,7 +1567,7 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -1626,7 +1622,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     let recursiveCount = 0
@@ -1662,7 +1658,7 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -1714,7 +1710,7 @@ Test('Consumer test', (consumerTests) => {
     const c = new Consumer(topicsList, config)
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       try {
         c.consume()
       } catch (error) {
@@ -1773,7 +1769,7 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -1849,7 +1845,7 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -1901,7 +1897,7 @@ Test('Consumer test', (consumerTests) => {
     const c = new Consumer(topicsList, config)
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
       try {
         c.consume()
       } catch (error) {
@@ -1939,7 +1935,7 @@ Test('Consumer test', (consumerTests) => {
     // consume 'ready' event
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
@@ -1948,12 +1944,12 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           if (error) {
-            Logger.info(`WTDSDSD!!! error ${error}`)
+            Logger.error(error)
             reject(error)
           }
           if (message) { // check if there is a valid message comming back
@@ -2021,7 +2017,7 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
 
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
@@ -2032,7 +2028,7 @@ Test('Consumer test', (consumerTests) => {
             assert.ok(true, 'Message processed once by the poller consumer')
           } else {
             if (error) {
-              Logger.info(`WTDSDSD!!! error ${error}`)
+              Logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
@@ -2126,10 +2122,10 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
 
     c.on('ready', arg => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
-      assert.ok(Sinon.match(arg, true), 'on Ready event received')
+      assert.ok(arg, 'on Ready event received')
     })
     c.connect().then(result => {
-      assert.ok(Sinon.match(result, true))
+      assert.ok(result, 'connection result received')
     })
   })
 
