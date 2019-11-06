@@ -242,6 +242,31 @@ Test('Producer test', (producerTests) => {
     })
   })
 
+  producerTests.test('Test Producer::getMetadata', (assert) => {
+    const metaDatacCb = (error, metadata) => {
+      if (error) {
+        Logger.error(error)
+      }
+      assert.ok(metadata, 'metadata object exists')
+      assert.deepEqual(metadata, KafkaStubs.metadataSampleStub, 'metadata objects match')
+      assert.end()
+    }
+    const p = new Producer(config)
+    p.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      p.getMetadata(null, metaDatacCb)
+    })
+  })
+
+  producerTests.test('Test Producer::getMetadata - no callback function', (assert) => {
+    const p = new Producer(config)
+    p.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      p.getMetadata(null)
+      assert.end()
+    })
+  })
+
   producerTests.end()
 })
 
