@@ -419,6 +419,38 @@ class Producer extends EventEmitter {
       this._producer.disconnect(cb)
     }
   }
+
+  /**
+   * Get client metadata.
+   *
+   * RDKAFKA:
+   *
+   * Note: using a <code>metadataOptions.topic</code> parameter has a potential side-effect.
+   * A Topic object will be created, if it did not exist yet, with default options
+   * and it will be cached by librdkafka.
+   *
+   * A subsequent call to create the topic object with specific options (e.g. <code>acks</code>) will return
+   * the previous instance and the specific options will be silently ignored.
+   *
+   * To avoid this side effect, the topic object can be created with the expected options before requesting metadata,
+   * or the metadata request can be performed for all topics (by omitting <code>metadataOptions.topic</code>).
+   *
+   * @param {object} metadataOptions - Metadata options to pass to the client.
+   * @param {string} metadataOptions.topic - Topic string for which to fetch
+   * metadata
+   * @param {number} metadataOptions.timeout - Max time, in ms, to try to fetch
+   * metadata before timing out. Defaults to 30,000 (30 seconds).
+   * @param {Client~metadataCallback} metaDataCb - Callback to fire with the metadata.
+   */
+  getMetadata (metadataOptions, metaDataCb) {
+    if (!metaDataCb || typeof metaDataCb !== 'function') {
+      metaDataCb = () => {}
+    }
+    const { logger } = this._config
+    logger.silly('Producer::getMetadata() - start')
+    this._producer.getMetadata(metadataOptions, metaDataCb)
+    logger.silly('Producer::getMetadata() - end')
+  }
 }
 
 module.exports = Producer
