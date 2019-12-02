@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "@mojaloop/central-services-error-handling": "8.3.0",
-    "@mojaloop/central-services-logger": "8.1.2",
+    "@mojaloop/central-services-logger": "8.5.2",
     "async": "3.1.0",
     "debug": "4.1.1",
     "events": "3.0.0",
