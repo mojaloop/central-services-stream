@@ -390,7 +390,7 @@ class Consumer extends EventEmitter {
         } else {
           payload = message.messages
         }
-        Promise.resolve(workDoneCb(message.error, payload)).then((response) => {
+        Promise.resolve(workDoneCb(message.error, payload)).then(() => {
           callbackDone() // this marks the completion of the processing by the worker
           if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
             super.emit('recursive', message.error, payload)
@@ -422,7 +422,7 @@ class Consumer extends EventEmitter {
         break
       case CONSUMER_MODES.recursive:
         if (this._config.options.batchSize && typeof this._config.options.batchSize === 'number') {
-          super.on('recursive', (error, messages) => {
+          super.on('recursive', (error) => {
             if (error) {
               logger.error(`Consumer::consume() - error ${error}`)
             }
@@ -484,7 +484,7 @@ class Consumer extends EventEmitter {
             logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${messages}}`)
           }
           if (this._config.options.sync) {
-            this._syncQueue.push({ error, messages }, function (err, result) {
+            this._syncQueue.push({ error, messages }, function (err) {
               if (err) {
                 logger.error(`Consumer::_consumePoller()::syncQueue.push - error: ${error}`)
               }
@@ -552,7 +552,7 @@ class Consumer extends EventEmitter {
         }
 
         if (this._config.options.sync) {
-          this._syncQueue.push({ error, messages }, (error, result) => {
+          this._syncQueue.push({ error, messages }, (error) => {
             if (error) {
               logger.error(`Consumer::_consumerRecursive()::syncQueue.push - error: ${error}`)
             }
@@ -600,7 +600,7 @@ class Consumer extends EventEmitter {
           logger.debug(`Consumer::_consumerFlow() - message: ${message}`)
         }
         if (this._config.options.sync) {
-          this._syncQueue.push({ error, message }, function (err, result) {
+          this._syncQueue.push({ error, message }, function (err) {
             if (err) { logger.error(err) }
           })
         } else {
@@ -636,7 +636,7 @@ class Consumer extends EventEmitter {
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
    * @returns {object} - single message that was consumed
    */
-  consumeOnce (batchSize = 1, workDoneCb) {
+  consumeOnce (workDoneCb) {
     if (!workDoneCb || typeof workDoneCb !== 'function') {
       workDoneCb = () => {}
     }
