@@ -111,7 +111,7 @@ const
  * let producer = new Producer({
  *  options: {
  *   {
- *     pollIntervalMs: 100,
+ *     pollIntervalMs: 50,
  *     messageCharset: 'utf8'
  *   },
  *   rdkafkaConf: {
@@ -140,6 +140,7 @@ const
  * rdkafkaConf - specific rdkafka configurations [Refer to configuration doc]{@link https://github.com/edenhill/librdkafka/blob/0.11.1.x/CONFIGURATION.md}
  * topicConf - topic configuration
  * logger - logger object that supports debug(), info(), verbose(), error() & silly()
+ * pollIntervalMs - is the number that will be passed to setPollInterval() when connected. Default is 50
  * @extends EventEmitter
  * @constructor
  */
