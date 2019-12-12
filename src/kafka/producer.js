@@ -154,6 +154,9 @@ class Producer extends EventEmitter {
         messageCharset: 'utf8'
       }
     }
+    if (!config.options.pollIntervalMs) {
+      config.options.pollIntervalMs = 50
+    }
     if (!config.rdkafkaConf) {
       config.rdkafkaConf = {
         'metadata.broker.list': 'localhost:9092',
@@ -224,7 +227,11 @@ class Producer extends EventEmitter {
 
       this._producer.on('ready', (args) => {
         logger.silly(`Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
-        this._producer.poll()
+        // Passing non-integer (including "undefined") to setPollInterval() may cause unexpected behaviour, which is hard to trace.
+        if (!Number.isInteger(this._config.options.pollIntervalMs)) {
+          return reject(new Error('pollIntervalMs should be integer'))
+        }
+        this._producer.setPollInterval(this._config.options.pollIntervalMs)
         super.emit('ready', args)
         resolve(true)
       })
