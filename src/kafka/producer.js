@@ -137,7 +137,7 @@ const
  *
  * @param {object} options - Key value pairs for mapping to the configuration
  * @param {object} config - Key value pairs for the configuration of the Producer with the following:
- * rdkafkaConf - specific rdkafka configurations [Refer to configuration doc]{@link https://github.com/edenhill/librdkafka/blob/0.11.1.x/CONFIGURATION.md}
+ * rdkafkaConf - specific rdkafka configurations [Refer to configuration doc]{@link https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md}
  * topicConf - topic configuration
  * logger - logger object that supports debug(), info(), verbose(), error() & silly()
  * pollIntervalMs - is the number that will be passed to setPollInterval() when connected. Default is 50
@@ -227,7 +227,7 @@ class Producer extends EventEmitter {
       })
 
       this._producer.on('ready', (args) => {
-        logger.silly(`Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
+        logger.debug(`Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
         // Passing non-integer (including "undefined") to setPollInterval() may cause unexpected behaviour, which is hard to trace.
         if (!Number.isInteger(this._config.options.pollIntervalMs)) {
           return reject(new Error('pollIntervalMs should be integer'))
