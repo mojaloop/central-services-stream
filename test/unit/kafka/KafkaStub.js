@@ -255,7 +255,7 @@ class KafkaConsumerForEventTests extends KafkaConsumer {
 
 // KafkaConsumer Stub
 class KafkaProducer extends KafkaClient {
-  poll () {
+  setPollInterval () {
   }
 
   flush () {
