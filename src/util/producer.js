@@ -183,8 +183,7 @@ const getMetadataPromise = async (producer, topic) => {
       }
       return resolve(metadata)
     }
-    const value = producer.getMetadata({ topic, timeout: 6000 }, cb)
-    Logger.info(value)
+    producer.getMetadata({ topic, timeout: 6000 }, cb)
   })
 }
 

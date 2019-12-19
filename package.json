@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "8.7.0",
+  "version": "8.7.1",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -59,7 +59,7 @@
     "sinon": "7.5.0",
     "standard": "14.3.1",
     "tap-xunit": "2.4.1",
-    "tape": "4.11.0",
+    "tape": "4.12.0",
     "tapes": "4.1.0",
     "uuid4": "^1.1.4"
   },
