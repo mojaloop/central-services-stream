@@ -49,7 +49,7 @@ const listOfConsumers = {}
  * @throws {Error} -  if failure occurs
  */
 const createHandler = async (topicName, config, command) => {
-  Logger.info(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
+  Logger.debug(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
   let topicNameArray
   if (Array.isArray(topicName)) {
     topicNameArray = topicName
@@ -67,7 +67,7 @@ const createHandler = async (topicName, config, command) => {
   let connectedTimeStamp = 0
   try {
     await consumer.connect()
-    Logger.info(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
+    Logger.debug(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
     connectedTimeStamp = (new Date()).valueOf()
     await consumer.consume(command)
   } catch (e) {

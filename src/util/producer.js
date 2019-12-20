@@ -62,20 +62,20 @@ const produceMessage = async (messageProtocol, topicConf, config) => {
     if (listOfProducers[topicConf.topicName]) {
       producer = listOfProducers[topicConf.topicName]
     } else {
-      Logger.info('Producer::start::topic=' + topicConf.topicName)
+      Logger.debug('Producer::start::topic=' + topicConf.topicName)
       producer = new Producer(config)
-      Logger.info('Producer::connect::start')
+      Logger.debug('Producer::connect::start')
       await producer.connect()
-      Logger.info('Producer::connect::end')
+      Logger.debug('Producer::connect::end')
       listOfProducers[topicConf.topicName] = producer
     }
-    Logger.info(`Producer.sendMessage::messageProtocol:'${JSON.stringify(messageProtocol)}'`)
+    Logger.debug(`Producer.sendMessage::messageProtocol:'${JSON.stringify(messageProtocol)}'`)
     await producer.sendMessage(messageProtocol, topicConf)
-    Logger.info('Producer::end')
+    Logger.debug('Producer::end')
     return true
   } catch (err) {
     Logger.error(err)
-    Logger.info(`Producer error has occurred for ${topicConf.topicName}`)
+    Logger.debug(`Producer error has occurred for ${topicConf.topicName}`)
     throw ErrorHandler.Factory.reformatFSPIOPError(err)
   }
 }
@@ -94,16 +94,16 @@ const connectAll = async (configs) => {
     try {
       let producer
       if (!listOfProducers[config.topicConfig.topicName]) {
-        Logger.info('Producer::start::topic=' + config.topicConfig.topicName)
+        Logger.debug('Producer::start::topic=' + config.topicConfig.topicName)
         producer = new Producer(config.kafkaConfig)
-        Logger.info('Producer::connect::start')
+        Logger.debug('Producer::connect::start')
         await producer.connect()
-        Logger.info('Producer::connect::end')
+        Logger.debug('Producer::connect::end')
         listOfProducers[config.topicConfig.topicName] = producer
       }
     } catch (err) {
       Logger.error(err)
-      Logger.info(`Producer error has occurred for ${config.topicConf.topicName}`)
+      Logger.debug(`Producer error has occurred for ${config.topicConf.topicName}`)
     }
   }
 }
