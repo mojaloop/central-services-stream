@@ -41,7 +41,7 @@ const Producer = require('../').Producer
 const Logger = require('@mojaloop/central-services-logger')
 
 const testProducer = async () => {
-  Logger.info('testProducer::start')
+  Logger.debug('testProducer::start')
 
   const config = {
     options:
@@ -69,11 +69,11 @@ const testProducer = async () => {
   }
 
   const p = new Producer(config)
-  Logger.info('testProducer::connect::start')
+  Logger.debug('testProducer::connect::start')
   const connectionResult = await p.connect()
-  Logger.info('testProducer::connect::end')
+  Logger.debug('testProducer::connect::end')
 
-  Logger.info(`Connected result=${connectionResult}`)
+  Logger.debug(`Connected result=${connectionResult}`)
 
   const messageProtocol = {
     content: {
@@ -91,11 +91,11 @@ const testProducer = async () => {
     topicName: 'test'
   }
 
-  Logger.info('testProducer::sendMessage::start')
+  Logger.debug('testProducer::sendMessage::start')
   await p.sendMessage(messageProtocol, topicConf).then(results => {
-    Logger.info(`testProducer.sendMessage:: result:'${JSON.stringify(results)}'`)
+    Logger.debug(`testProducer.sendMessage:: result:'${JSON.stringify(results)}'`)
   })
-  Logger.info('testProducer::sendMessage::end')
+  Logger.debug('testProducer::sendMessage::end')
 }
 
 testProducer()
