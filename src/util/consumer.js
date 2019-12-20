@@ -49,7 +49,7 @@ const listOfConsumers = {}
  * @throws {Error} -  if failure occurs
  */
 const createHandler = async (topicName, config, command) => {
-  Logger.info(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
+  Logger.debug(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
   let topicNameArray
   if (Array.isArray(topicName)) {
     topicNameArray = topicName
@@ -67,7 +67,7 @@ const createHandler = async (topicName, config, command) => {
   let connectedTimeStamp = 0
   try {
     await consumer.connect()
-    Logger.info(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
+    Logger.debug(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
     connectedTimeStamp = (new Date()).valueOf()
     await consumer.consume(command)
   } catch (e) {
@@ -132,6 +132,18 @@ const getListOfTopics = () => {
   return Object.keys(listOfConsumers)
 }
 
+/**
+ * @function getMetadataPromise
+ *
+ * @param {object} consumer - the consumer class
+ * @param {string} topic - the topic name of the consumer to check
+ *
+ * @description Use this to determine whether or not we are connected to the broker. Internally, it calls `getMetadata` to determine
+ * if the broker client is connected.
+ *
+ * @returns object - resolve metadata object
+ * @throws {Error} - if consumer can't be found or the consumer is not connected
+ */
 const getMetadataPromise = (consumer, topic) => {
   return new Promise((resolve, reject) => {
     const cb = (err, metadata) => {

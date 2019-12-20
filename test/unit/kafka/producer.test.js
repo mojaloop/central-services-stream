@@ -36,7 +36,6 @@
 
 const Test = require('tapes')(require('tape'))
 const Producer = require('../../../src/kafka').Producer
-// const ProducerEnums = require('../../src/kafka').Producer.ENUMS
 const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Sinon = require('sinon')
@@ -121,9 +120,7 @@ Test('Producer test', (producerTests) => {
 
   producerTests.test('Test Producer::connect - with error on callBack', (assert) => {
     sandbox.stub(KafkaStubs.KafkaProducer.prototype, 'connect').callsFake(
-      function (err, info) {
-        if (err) {
-        }
+      function (_, info) {
         info('error test test', null)
       }
     )
@@ -204,7 +201,7 @@ Test('Producer test', (producerTests) => {
     producer.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'test', key: '1234' }).then(results => {
+      producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'test', key: '1234' }).then(() => {
         producer.disconnect(discoCallback)
       })
     })
@@ -220,7 +217,7 @@ Test('Producer test', (producerTests) => {
       pp: '',
       id: 'id',
       metadata: {}
-    }, { topicName: 'test', key: '1234' }).then(results => {}).catch((e) => {
+    }, { topicName: 'test', key: '1234' }).then(() => {}).catch((e) => {
       assert.ok(e.message, 'You must call and await .connect() before trying to produce messages.')
       assert.end()
     })
@@ -236,8 +233,33 @@ Test('Producer test', (producerTests) => {
       pp: '',
       id: 'id',
       metadata: {}
-    }, { topicName: 'test', key: '1234' }).then(results => {}).catch((e) => {
+    }, { topicName: 'test', key: '1234' }).then(() => {}).catch((e) => {
       assert.ok(e.message, 'You must call and await .connect() before trying to produce messages.')
+      assert.end()
+    })
+  })
+
+  producerTests.test('Test Producer::getMetadata', (assert) => {
+    const metaDatacCb = (error, metadata) => {
+      if (error) {
+        Logger.error(error)
+      }
+      assert.ok(metadata, 'metadata object exists')
+      assert.deepEqual(metadata, KafkaStubs.metadataSampleStub, 'metadata objects match')
+      assert.end()
+    }
+    const p = new Producer(config)
+    p.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      p.getMetadata(null, metaDatacCb)
+    })
+  })
+
+  producerTests.test('Test Producer::getMetadata - no callback function', (assert) => {
+    const p = new Producer(config)
+    p.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      p.getMetadata(null)
       assert.end()
     })
   })

@@ -80,7 +80,7 @@ class KafkaClient extends EventEmitter {
   _dummyFunction () {
   }
 
-  constructor (config) {
+  constructor () {
     super()
     this._dummyFunction()
   }
@@ -99,7 +99,7 @@ class KafkaClient extends EventEmitter {
     this._dummyFunction()
   }
 
-  disconnect (cb = (err, metrics) => {
+  disconnect (cb = (err) => {
     if (err) {
       Logger.error(err)
     }
@@ -109,7 +109,7 @@ class KafkaClient extends EventEmitter {
     this._dummyFunction()
   }
 
-  getMetadata (metadataOptions, cb = (err, metadata) => {
+  getMetadata (_metadataOptions, cb = (err) => {
     if (err) {
       Logger.error(err)
     }
@@ -136,7 +136,7 @@ class KafkaConsumer extends KafkaClient {
     this.emit(event, message)
   }
 
-  setDefaultConsumeTimeout (timeoutMs) {
+  setDefaultConsumeTimeout () {
     this._dummyFunction()
   }
 
@@ -224,17 +224,17 @@ class KafkaConsumer extends KafkaClient {
     return msg
   }
 
-  getWatermarkOffsets (topic, partition) {
+  getWatermarkOffsets () {
     const watermarkOffsetSample = { ...watermarkOffsetSampleStub }
     this._dummyFunction()
     return watermarkOffsetSample
   }
 
-  resume (topicPartitions) {
+  resume () {
     this._dummyFunction()
   }
 
-  pause (topicPartitions) {
+  pause () {
     this._dummyFunction()
   }
 }
@@ -255,7 +255,7 @@ class KafkaConsumerForEventTests extends KafkaConsumer {
 
 // KafkaConsumer Stub
 class KafkaProducer extends KafkaClient {
-  poll () {
+  setPollInterval () {
   }
 
   flush () {

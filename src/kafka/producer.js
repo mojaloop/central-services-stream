@@ -111,7 +111,7 @@ const
  * let producer = new Producer({
  *  options: {
  *   {
- *     pollIntervalMs: 100,
+ *     pollIntervalMs: 50,
  *     messageCharset: 'utf8'
  *   },
  *   rdkafkaConf: {
@@ -137,9 +137,10 @@ const
  *
  * @param {object} options - Key value pairs for mapping to the configuration
  * @param {object} config - Key value pairs for the configuration of the Producer with the following:
- * rdkafkaConf - specific rdkafka configurations [Refer to configuration doc]{@link https://github.com/edenhill/librdkafka/blob/0.11.1.x/CONFIGURATION.md}
+ * rdkafkaConf - specific rdkafka configurations [Refer to configuration doc]{@link https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md}
  * topicConf - topic configuration
  * logger - logger object that supports debug(), info(), verbose(), error() & silly()
+ * pollIntervalMs - is the number that will be passed to setPollInterval() when connected. Default is 50
  * @extends EventEmitter
  * @constructor
  */
@@ -153,6 +154,9 @@ class Producer extends EventEmitter {
       config.options = {
         messageCharset: 'utf8'
       }
+    }
+    if (!config.options.pollIntervalMs) {
+      config.options.pollIntervalMs = 50
     }
     if (!config.rdkafkaConf) {
       config.rdkafkaConf = {
@@ -223,8 +227,12 @@ class Producer extends EventEmitter {
       })
 
       this._producer.on('ready', (args) => {
-        logger.silly(`Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
-        this._producer.poll()
+        logger.debug(`Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
+        // Passing non-integer (including "undefined") to setPollInterval() may cause unexpected behaviour, which is hard to trace.
+        if (!Number.isInteger(this._config.options.pollIntervalMs)) {
+          return reject(new Error('pollIntervalMs should be integer'))
+        }
+        this._producer.setPollInterval(this._config.options.pollIntervalMs)
         super.emit('ready', args)
         resolve(true)
       })
@@ -418,6 +426,38 @@ class Producer extends EventEmitter {
       this._producer.flush()
       this._producer.disconnect(cb)
     }
+  }
+
+  /**
+   * Get client metadata.
+   *
+   * RDKAFKA:
+   *
+   * Note: using a <code>metadataOptions.topic</code> parameter has a potential side-effect.
+   * A Topic object will be created, if it did not exist yet, with default options
+   * and it will be cached by librdkafka.
+   *
+   * A subsequent call to create the topic object with specific options (e.g. <code>acks</code>) will return
+   * the previous instance and the specific options will be silently ignored.
+   *
+   * To avoid this side effect, the topic object can be created with the expected options before requesting metadata,
+   * or the metadata request can be performed for all topics (by omitting <code>metadataOptions.topic</code>).
+   *
+   * @param {object} metadataOptions - Metadata options to pass to the client.
+   * @param {string} metadataOptions.topic - Topic string for which to fetch
+   * metadata
+   * @param {number} metadataOptions.timeout - Max time, in ms, to try to fetch
+   * metadata before timing out. Defaults to 30,000 (30 seconds).
+   * @param {Client~metadataCallback} metaDataCb - Callback to fire with the metadata.
+   */
+  getMetadata (metadataOptions, metaDataCb) {
+    if (!metaDataCb || typeof metaDataCb !== 'function') {
+      metaDataCb = () => {}
+    }
+    const { logger } = this._config
+    logger.silly('Producer::getMetadata() - start')
+    this._producer.getMetadata(metadataOptions, metaDataCb)
+    logger.silly('Producer::getMetadata() - end')
   }
 }
 
