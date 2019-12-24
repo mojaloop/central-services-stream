@@ -33,6 +33,7 @@
 const Consumer = require('../../src').Kafka.Consumer
 const Logger = require('@mojaloop/central-services-logger')
 const ErrorHandler = require('@mojaloop/central-services-error-handling')
+const Metrics = require('@mojaloop/central-services-metrics')
 
 const listOfConsumers = {}
 
@@ -50,6 +51,11 @@ const listOfConsumers = {}
  */
 const createHandler = async (topicName, config, command) => {
   Logger.debug(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
+  const histTimerEnd = Metrics.getHistogram(
+    'transfers_prepare',
+    'Produce a transfer prepare message to transfer prepare kafka topic',
+    ['success']
+  ).startTimer()
   let topicNameArray
   if (Array.isArray(topicName)) {
     topicNameArray = topicName
@@ -69,10 +75,12 @@ const createHandler = async (topicName, config, command) => {
     await consumer.connect()
     Logger.debug(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
     connectedTimeStamp = (new Date()).valueOf()
+    histTimerEnd({ success: true })
     await consumer.consume(command)
   } catch (e) {
     // Don't throw the error, still keep track of the topic we tried to connect to
     Logger.warn(`CreateHandler::connect - error: ${e}`)
+    histTimerEnd({ success: false })
   }
 
   topicNameArray.forEach(topicName => {

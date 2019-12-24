@@ -40,6 +40,8 @@ const EventEmitter = require('events')
 const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Protocol = require('./protocol')
+const Setup = require('../../src/shared/setup')
+const Metrics = require('@mojaloop/central-services-metrics')
 
 /**
  * Producer ENUMs
@@ -182,12 +184,30 @@ class Producer extends EventEmitter {
     if (!config.logger) {
       config.logger = Logger
     }
+    if (!config.INSTRUMENTATION) {
+      config.INSTRUMENTATION = {
+        METRICS: {
+          DISABLED: false,
+          labels: {
+            fspId: '*'
+          },
+          config: {
+            timeout: 5000,
+            prefix: 'moja_css_',
+            defaultLabels: {
+              serviceName: 'central-services-stream'
+            }
+          }
+        }
+      }
+    }
     const { logger } = config
     logger.silly('Producer::constructor() - start')
     this._config = config
     this._status = {}
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
+    Setup.initializeInstrumentation()
     logger.silly('Producer::constructor() - end')
   }
 
@@ -282,8 +302,14 @@ class Producer extends EventEmitter {
    * @returns {boolean} or if failed {Error}
    */
   async sendMessage (messageProtocol, topicConf) {
+    const histTimerEnd = Metrics.getHistogram(
+      'transfers_prepare',
+      'Produce a transfer prepare message to transfer prepare kafka topic',
+      ['success']
+    ).startTimer()
     try {
       if (!this._producer) {
+        histTimerEnd({ success: false })
         throw new Error('You must call and await .connect() before trying to produce messages.')
       }
       if (this._producer._isConnecting) {
@@ -292,6 +318,7 @@ class Producer extends EventEmitter {
       const parsedMessage = Protocol.parseMessage(messageProtocol)
       const parsedMessageBuffer = this._createBuffer(parsedMessage, this._config.options.messageCharset)
       if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
+        histTimerEnd({ success: false })
         throw new Error('message must be a string or an instance of Buffer.')
       }
       this._config.logger.debug('Producer::send() - start %s', JSON.stringify({
@@ -301,9 +328,11 @@ class Producer extends EventEmitter {
       }))
       const producedAt = Date.now()
       await this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey)
+      histTimerEnd({ success: true })
       return true
     } catch (e) {
       this._config.logger.debug(e)
+      histTimerEnd({ success: false })
       throw e
     }
   }

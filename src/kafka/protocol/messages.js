@@ -37,6 +37,7 @@
 
 'use strict'
 // const Logger = require('@mojaloop/central-services-logger')
+const Metrics = require('@mojaloop/central-services-metrics')
 
 /**
  * Notification Protocol Object
@@ -129,15 +130,21 @@
  */
 
 const parseMessage = (messageProtocol) => {
+  const histTimerEnd = Metrics.getHistogram(
+    'transfers_prepare',
+    'Produce a transfer prepare message to transfer prepare kafka topic',
+    ['success']
+  ).startTimer()
   if (messageProtocol) {
     if (!messageProtocol.metadata) {
       messageProtocol.metadata = {}
     }
     messageProtocol.metadata['protocol.createdAt'] = Date.now()
   } else {
+    histTimerEnd({ success: false })
     throw Error('Invalid input params')
   }
-
+  histTimerEnd({ success: true })
   return {
     from: messageProtocol.from,
     to: messageProtocol.to,
