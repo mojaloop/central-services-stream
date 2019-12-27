@@ -131,8 +131,8 @@ const Metrics = require('@mojaloop/central-services-metrics')
 
 const parseMessage = (messageProtocol) => {
   const histTimerEnd = Metrics.getHistogram(
-    'transfers_prepare',
-    'Produce a transfer prepare message to transfer prepare kafka topic',
+    'cs_stream_kafka_protocol_parseMessage',
+    'Parse Kafka Protocol Messages',
     ['success']
   ).startTimer()
   if (messageProtocol) {

@@ -52,8 +52,8 @@ const listOfConsumers = {}
 const createHandler = async (topicName, config, command) => {
   Logger.debug(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
   const histTimerEnd = Metrics.getHistogram(
-    'transfers_prepare',
-    'Produce a transfer prepare message to transfer prepare kafka topic',
+    'cs_stream_consumer_createHandler',
+    'Consumer creates handler for the specified topic, configuration and command',
     ['success']
   ).startTimer()
   let topicNameArray

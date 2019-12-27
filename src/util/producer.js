@@ -59,8 +59,8 @@ const stateList = {
  */
 const produceMessage = async (messageProtocol, topicConf, config) => {
   const histTimerEnd = Metrics.getHistogram(
-    'transfers_prepare',
-    'Produce a transfer prepare message to transfer prepare kafka topic',
+    'cs_stream_producer_produceMessage',
+    'Creates a producer on kafka for the specified topic and configuration',
     ['success']
   ).startTimer()
   try {

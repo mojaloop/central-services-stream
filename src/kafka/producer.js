@@ -303,8 +303,8 @@ class Producer extends EventEmitter {
    */
   async sendMessage (messageProtocol, topicConf) {
     const histTimerEnd = Metrics.getHistogram(
-      'transfers_prepare',
-      'Produce a transfer prepare message to transfer prepare kafka topic',
+      'cs_stream_producer_kafka_sendMessage',
+      'Produces a kafka message to a certain topic',
       ['success']
     ).startTimer()
     try {
