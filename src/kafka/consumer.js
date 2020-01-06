@@ -43,7 +43,6 @@ const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 
 const Protocol = require('./protocol')
-const Setup = require('../../src/shared/setup')
 
 /**
  * Consumer ENUMs
@@ -222,23 +221,6 @@ class Consumer extends EventEmitter {
     if (!config.logger) {
       config.logger = Logger
     }
-    if (!config.INSTRUMENTATION) {
-      config.INSTRUMENTATION = {
-        METRICS: {
-          DISABLED: false,
-            labels: {
-            fspId: '*'
-          },
-          config: {
-            timeout: 5000,
-              prefix: 'moja_css_',
-              defaultLabels: {
-              serviceName: 'central-services-stream'
-            }
-          }
-        }
-      }
-    }
 
     const { logger } = config
     logger.silly('Consumer::constructor() - start')
@@ -258,8 +240,6 @@ class Consumer extends EventEmitter {
     super.on('error', error => {
       Logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
     })
-
-    Setup.initializeInstrumentation()
 
     logger.silly('Consumer::constructor() - end')
   }

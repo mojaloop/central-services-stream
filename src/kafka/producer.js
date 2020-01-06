@@ -40,7 +40,6 @@ const EventEmitter = require('events')
 const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Protocol = require('./protocol')
-const Setup = require('../../src/shared/setup')
 const Metrics = require('@mojaloop/central-services-metrics')
 
 /**
@@ -184,30 +183,12 @@ class Producer extends EventEmitter {
     if (!config.logger) {
       config.logger = Logger
     }
-    if (!config.INSTRUMENTATION) {
-      config.INSTRUMENTATION = {
-        METRICS: {
-          DISABLED: false,
-          labels: {
-            fspId: '*'
-          },
-          config: {
-            timeout: 5000,
-            prefix: 'moja_css_',
-            defaultLabels: {
-              serviceName: 'central-services-stream'
-            }
-          }
-        }
-      }
-    }
     const { logger } = config
     logger.silly('Producer::constructor() - start')
     this._config = config
     this._status = {}
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
-    Setup.initializeInstrumentation()
     logger.silly('Producer::constructor() - end')
   }
 
