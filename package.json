@@ -43,7 +43,7 @@
     "dep:update": "npx ncu -u"
   },
   "dependencies": {
-    "@mojaloop/central-services-error-handling": "8.6.2",
+    "@mojaloop/central-services-error-handling": "8.7.0",
     "@mojaloop/central-services-logger": "8.6.0",
     "async": "3.1.0",
     "events": "3.0.0",
