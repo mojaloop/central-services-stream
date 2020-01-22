@@ -190,24 +190,26 @@ class Producer extends EventEmitter {
     this._status = {}
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
-    if (!config.INSTRUMENTATION) {
-      config.INSTRUMENTATION = {
-        METRICS: {
-          DISABLED: false,
-          labels: {
-            fspId: '*'
-          },
-          config: {
-            timeout: 5000,
-            prefix: 'moja_css_',
-            defaultLabels: {
-              serviceName: 'central-services-stream'
+    if (!Metrics.getAlreadySetup()) {
+      if (!config.INSTRUMENTATION) {
+        config.INSTRUMENTATION = {
+          METRICS: {
+            DISABLED: false,
+            labels: {
+              fspId: '*'
+            },
+            config: {
+              timeout: 5000,
+              prefix: 'moja_css_',
+              defaultLabels: {
+                serviceName: 'central-services-stream'
+              }
             }
           }
         }
       }
+      Setup.initializeInstrumentation()
     }
-    Setup.initializeInstrumentation()
     logger.silly('Producer::constructor() - end')
   }
 

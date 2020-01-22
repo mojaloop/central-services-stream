@@ -44,6 +44,7 @@ const Kafka = require('node-rdkafka')
 
 const Protocol = require('./protocol')
 
+const Metrics = require('@mojaloop/central-services-metrics')
 const Setup = require('../../src/shared/setup')
 
 /**
@@ -243,24 +244,26 @@ class Consumer extends EventEmitter {
       Logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
     })
 
-    if (!config.INSTRUMENTATION) {
-      config.INSTRUMENTATION = {
-        METRICS: {
-          DISABLED: false,
-          labels: {
-            fspId: '*'
-          },
-          config: {
-            timeout: 5000,
-            prefix: 'moja_css_',
-            defaultLabels: {
-              serviceName: 'central-services-stream'
+    if (!Metrics.getAlreadySetup()) {
+      if (!config.INSTRUMENTATION) {
+        config.INSTRUMENTATION = {
+          METRICS: {
+            DISABLED: false,
+            labels: {
+              fspId: '*'
+            },
+            config: {
+              timeout: 5000,
+              prefix: 'moja_css_',
+              defaultLabels: {
+                serviceName: 'central-services-stream'
+              }
             }
           }
         }
       }
+      Setup.initializeInstrumentation()
     }
-    Setup.initializeInstrumentation()
 
     logger.silly('Consumer::constructor() - end')
   }
