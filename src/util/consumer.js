@@ -51,7 +51,6 @@ const listOfConsumers = {}
  */
 const createHandler = async (topicName, config, command) => {
   Logger.debug(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
-  Metrics.getAlreadySetup()
   const histTimerEnd = Metrics.getHistogram(
     'cs_stream_consumer_createHandler',
     'Consumer creates handler for the specified topic, configuration and command',

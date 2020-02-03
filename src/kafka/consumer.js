@@ -244,7 +244,7 @@ class Consumer extends EventEmitter {
       Logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
     })
 
-    if (!Metrics.getAlreadySetup()) {
+    if (!Metrics.isInitiated()) {
       if (!config.INSTRUMENTATION) {
         config.INSTRUMENTATION = {
           METRICS: {

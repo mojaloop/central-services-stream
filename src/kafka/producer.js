@@ -190,7 +190,7 @@ class Producer extends EventEmitter {
     this._status = {}
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
-    if (!Metrics.getAlreadySetup()) {
+    if (!Metrics.isInitiated()) {
       if (!config.INSTRUMENTATION) {
         config.INSTRUMENTATION = {
           METRICS: {
