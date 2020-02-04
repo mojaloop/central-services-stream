@@ -1,0 +1,27 @@
+{
+  "name": "central-services-stream-perf",
+  "version": "9.1.0",
+  "description": "Supporting utilities for executing performance characterization, tests and benchmarks",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mojaloop/central-services-stream.git"
+  },
+  "author": "ModusBox",
+  "contributors": [
+    "Miguel de Barros <miguel.debarros@modusbox.com>"
+  ],
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/mojaloop/central-services-stream/issues"
+  },
+  "homepage": "https://github.com/mojaloop/central-services-stream#readme",
+  "dependencies": {
+    "@mojaloop/central-services-stream": "file:../../",
+    "parse-strings-in-object": "^2.0.0",
+    "rc": "^1.2.8"
+  }
+}
