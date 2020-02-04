@@ -35,3 +35,71 @@
 // Also startup HTTP Server to expose /health and /metric end-points
 // Instantiate metrics lib
 
+const PJson = require('../package.json')
+const Logger = require('@mojaloop/central-services-logger')
+const { Command } = require('commander')
+const Program = new Command()
+
+Program
+  .version(PJson.version)
+  .description(PJson.description)
+
+Program.command('produce') // sub-command name, coffeeType = type, required
+  .alias('p') // alternative sub-command is 'o'
+  .description('Start Producer') // command description
+  .option('--maxMessages', 'Start the Prepare Handler')
+  .option('--messageSize', 'Start the Prepare Handler')
+  .option('--batchSize', 'Start the Prepare Handler')
+  .option('--enableApi', 'Start the Prepare Handler')
+
+  // function to execute when command is uses
+  .action(async (args) => {
+    if (args.maxMessages) {
+      Logger.debug('CLI: Param --maxMessages')
+    }
+    if (args.messageSize) {
+        Logger.debug('CLI: Param --messageSize')
+    }
+    if (args.batchSize) {
+        Logger.debug('CLI: Param --batchSize')
+    }
+
+    // module.exports = Setup.initialize({
+    //   service: 'handler',
+    //   port: Config.PORT,
+    //   modules: [Plugin, MetricPlugin],
+    //   runMigrations: false,
+    //   handlers: handlerList,
+    //   runHandlers: true
+    // })
+  })
+
+Program.command('consume') // sub-command name, coffeeType = type, required
+  .alias('p') // alternative sub-command is 'o'
+  .description('Start Consumer') // command description
+  .option('--batchSize', 'Start the Prepare Handler')
+  .option('--enableApi', 'Start the Prepare Handler')
+
+  // function to execute when command is uses
+  .action(async (args) => {
+    if (args.batchSize) {
+        Logger.debug('CLI: Param --batchSize')
+    }
+
+    // module.exports = Setup.initialize({
+    //   service: 'handler',
+    //   port: Config.PORT,
+    //   modules: [Plugin, MetricPlugin],
+    //   runMigrations: false,
+    //   handlers: handlerList,
+    //   runHandlers: true
+    // })
+  })
+
+if (Array.isArray(process.argv) && process.argv.length > 2) {
+  // parse command line vars
+  Program.parse(process.argv)
+} else {
+  // display default help
+  Program.help()
+}
