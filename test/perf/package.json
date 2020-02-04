@@ -21,7 +21,8 @@
   "homepage": "https://github.com/mojaloop/central-services-stream#readme",
   "dependencies": {
     "@mojaloop/central-services-stream": "file:../../",
-    "parse-strings-in-object": "^2.0.0",
-    "rc": "^1.2.8"
+    "@mojaloop/central-services-logger": "8.6.0",
+    "parse-strings-in-object": "2.0.0",
+    "rc": "1.2.8"
   }
 }
