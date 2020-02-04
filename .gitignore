@@ -65,3 +65,6 @@ typings/
 
 # VSCode directory
 .vscode
+
+# Perf scripts
+test/perf/package-lock.json
