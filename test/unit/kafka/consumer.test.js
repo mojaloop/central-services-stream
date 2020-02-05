@@ -44,11 +44,13 @@ const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Sinon = require('sinon')
 const KafkaStubs = require('./KafkaStub')
+const Config = require('../../../src/lib/config')
 
 Test('Consumer test', (consumerTests) => {
   let sandbox
   // let clock
   let config = {}
+  let configMetricsOff = {}
   let topicsList = []
 
   // lets setup the tests
@@ -60,6 +62,55 @@ Test('Consumer test', (consumerTests) => {
     // })
 
     config = {
+      INSTRUMENTATION: {
+        METRICS: {
+          DISABLED: false,
+          labels: {
+            fspId: '*'
+          },
+          config: {
+            timeout: 5000,
+            prefix: 'moja_css_',
+            defaultLabels: {
+              serviceName: 'central-services-stream'
+            }
+          }
+        }
+      },
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.recursive,
+        batchSize: 1,
+        recursiveTimeout: 100,
+        messageCharset: 'utf8',
+        messageAsJSON: true,
+        sync: true,
+        consumeTimeout: 1000
+      },
+      rdkafkaConf: {
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger: Logger
+    }
+
+    configMetricsOff = {
+      INSTRUMENTATION: {
+        METRICS: {
+          DISABLED: true,
+          labels: {
+            fspId: '*'
+          },
+          config: {
+            timeout: 5000,
+            prefix: 'moja_css_',
+            defaultLabels: {
+              serviceName: 'central-services-stream'
+            }
+          }
+        }
+      },
       options: {
         mode: ConsumerEnums.CONSUMER_MODES.recursive,
         batchSize: 1,
@@ -138,6 +189,21 @@ Test('Consumer test', (consumerTests) => {
     })
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
+    })
+  })
+
+  consumerTests.test('Test Consumer::connect with metrics disabled', (assert) => {
+    const ConfigStub = Config
+    ConfigStub.INSTRUMENTATION_METRICS_DISABLED = true
+    assert.plan(2)
+    sandbox.stub(Config, 'INSTRUMENTATION_METRICS_DISABLED').returns(true)
+    const c = new Consumer(topicsList, configMetricsOff)
+    c.on('ready', arg => {
+      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+    c.connect().then(result => {
+      assert.ok(result, 'connection result received with metrics disabled')
     })
   })
 
