@@ -81,7 +81,7 @@ for(var i = 0; i <  messageNum; i++){
 
     Logger.info(`[cid=${batchId}, messageNum=${messageNum}, messageSize=${messageSize}, topicName=${topicName}] ~ Producer::perf::runProducer - Producer for '${topicName}' Disconnecting`)
     producerClient.disconnect()
-    Logger.info(`[cid=${batchId}, messageNum=${messageNum}, messageSize=${messageSize}, topicName=${topicName}] ~ Producer::perf::runProducer - START`)
+    Logger.info(`[cid=${batchId}, messageNum=${messageNum}, messageSize=${messageSize}, topicName=${topicName}] ~ Producer::perf::runProducer - END`)
 }
 // Logger.debug(`process.argv=${process.argv}`)
 // if(process.argv.length == 3 && !isNaN(process.argv[2])){
