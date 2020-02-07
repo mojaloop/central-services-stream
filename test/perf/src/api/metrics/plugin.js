@@ -22,41 +22,31 @@
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
- * ModusBox
- Miguel de Barros <miguel.debarros@modusbox.com>
+ * Lazola Lucas <lazola.lucas@modusbox.com>
+ * Rajiv Mothilal <rajiv.mothilal@modusbox.com>
+ * Miguel de Barros <miguel.debarros@modusbox.com>
+ * Shashikant Hirugade <shashikant.hirugade@modusbox.com>
 
  --------------
- ******/
 
+ ******/
 'use strict'
 
-const Logger = require('@mojaloop/central-services-logger')
-const Hapi = require('@hapi/hapi')
-const MetricsPlugin = require('./metrics/plugin')
-const HealthPlugin = require('./health/plugin')
-const Config = require('@local/config')
+/**
+ * @module src/handlers/api/plugin
+ */
 
-const init = async () => {
-    Logger.info('Server starting...')
+/**
+ * @function Register Handler Routes HAPI
+ *
+ * @async
+ * @description Registers registers plugins on HAPI server. This retrieves all routes to be exposed from the routes.js file
+ * @returns {Promise} - Returns a promise: resolve if successful, or rejection if failed
+ */
 
-    const server = Hapi.server({
-        port: Config.PORT,
-        host: Config.HOSTNAME
-    })
-
-    await server.register([MetricsPlugin, HealthPlugin])
-
-    await server.start()
-
-    Logger.info(`Server running on ${server.info.uri}`,)
-}
-
-// Lets check to see if this is the main startup process
-if (!module.parent) {
-    init() // If it is, then initialise the API
-} else {
-    // If not, then we export the init function
-    module.exports = {
-        init
-    }
+exports.plugin = {
+  name: 'handler metrics routes',
+  register: function (server) {
+    server.route(require('./routes'))
+  }
 }

@@ -1,0 +1,15 @@
+{
+  "name": "@local/config",
+  "version": "1.0.0",
+  "description": "Local Config Library",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "parse-strings-in-object": "2.0.0",
+    "rc": "1.2.8"
+  }
+}
