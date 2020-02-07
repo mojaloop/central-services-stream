@@ -36,12 +36,12 @@ const MetricsPlugin = require('./metrics/plugin')
 const HealthPlugin = require('./health/plugin')
 const Config = require('@local/config')
 
-const init = async () => {
+const init = async (host, port) => {
     Logger.info('Server starting...')
 
     const server = Hapi.server({
-        port: Config.PORT,
-        host: Config.HOSTNAME
+        port: port || Config.PORT,
+        host: host || Config.HOSTNAME
     })
 
     await server.register([MetricsPlugin, HealthPlugin])
@@ -49,6 +49,7 @@ const init = async () => {
     await server.start()
 
     Logger.info(`Server running on ${server.info.uri}`,)
+    return server
 }
 
 // Lets check to see if this is the main startup process

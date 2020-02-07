@@ -38,6 +38,9 @@
 const PJson = require('../package.json')
 const Logger = require('@mojaloop/central-services-logger')
 const { Command } = require('commander')
+const KafkaProducer = require('./kafka/producer')
+const Setup = require('./shared/setup')
+
 const Program = new Command()
 
 Program
@@ -47,54 +50,56 @@ Program
 Program.command('produce') // sub-command name, coffeeType = type, required
   .alias('p') // alternative sub-command is 'o'
   .description('Start Producer') // command description
-  .option('--maxMessages', 'Start the Prepare Handler')
-  .option('--messageSize', 'Start the Prepare Handler')
-  .option('--batchSize', 'Start the Prepare Handler')
-  .option('--enableApi', 'Start the Prepare Handler')
+  .option('--topic <name>', 'Kafka topic')
+  .option('--maxMessages <num>', 'Max number of messages to be sent', 1)
+  .option('--messageSize <size>', 'Size of each message to be sent in bytes')
+  // .option('--batchSize', 'Start the Prepare Handler')
+  .option('--api', 'Enable API')
 
   // function to execute when command is uses
-  .action(async (args) => {
+  .action( async (args) => {
+    // Logger.info(`Program.command('produce').args=${Flatted.stringify(args)}`)
+    let topic
+    let maxMessages
+    let messageSize
+    if (args.topic) {
+      Logger.info(`Program.command('produce').args.topic=${args.topic}`)
+      topic = args.topic
+    }
     if (args.maxMessages) {
-      Logger.debug('CLI: Param --maxMessages')
+      Logger.info(`Program.command('produce').args.maxMessages=${args.maxMessages}`)
+      try {
+        maxMessages = parseInt(args.maxMessages)
+      } catch (err) {
+        Logger.error(err)
+      }
     }
     if (args.messageSize) {
-        Logger.debug('CLI: Param --messageSize')
+      Logger.info(`Program.command('produce').args.messageSize=${args.messageSize}`)
+      try {
+        messageSize = parseInt(args.messageSize)
+      } catch (err) {
+        Logger.error(err)
+      }
     }
-    if (args.batchSize) {
-        Logger.debug('CLI: Param --batchSize')
-    }
-
-    // module.exports = Setup.initialize({
-    //   service: 'handler',
-    //   port: Config.PORT,
-    //   modules: [Plugin, MetricPlugin],
-    //   runMigrations: false,
-    //   handlers: handlerList,
-    //   runHandlers: true
-    // })
+    await Setup(!args.api)
+    KafkaProducer.run(maxMessages, messageSize, topic)
   })
 
 Program.command('consume') // sub-command name, coffeeType = type, required
   .alias('p') // alternative sub-command is 'o'
   .description('Start Consumer') // command description
   .option('--batchSize', 'Start the Prepare Handler')
-  .option('--enableApi', 'Start the Prepare Handler')
+  .option('--api', 'Start the Prepare Handler')
 
   // function to execute when command is uses
   .action(async (args) => {
     if (args.batchSize) {
         Logger.debug('CLI: Param --batchSize')
     }
-
-    // module.exports = Setup.initialize({
-    //   service: 'handler',
-    //   port: Config.PORT,
-    //   modules: [Plugin, MetricPlugin],
-    //   runMigrations: false,
-    //   handlers: handlerList,
-    //   runHandlers: true
-    // })
   })
+
+// Logger.info(`${JSON.stringify(process.argv)}`)
 
 if (Array.isArray(process.argv) && process.argv.length > 2) {
   // parse command line vars

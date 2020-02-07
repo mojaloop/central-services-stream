@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "preinstall": "echo 'Installing local config lib...'; npm install ./src/lib/config/; echo 'Installing central-services-stream...'; npm install ../../",
+    "setupMacEnv": "export CPPFLAGS=-I/usr/local/opt/openssl/include; export LDFLAGS=-L/usr/local/opt/openssl/lib",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -26,6 +27,9 @@
     "@mojaloop/central-services-logger": "8.6.0",
     "@mojaloop/central-services-metrics": "^8.8.0",
     "@mojaloop/central-services-stream": "file:../..",
-    "commander": "^4.1.1"
+    "commander": "^4.1.1",
+    "faker": "^4.1.0",
+    "lodash": "^4.17.15",
+    "mustache": "^4.0.0"
   }
 }

@@ -1,4 +1,76 @@
 {
-    "hostname": "localhost",
-    "port": 6969
+    "HOSTNAME": "localhost",
+    "PORT": 6969,
+    "INSTRUMENTATION": {
+        "METRICS": {
+            "DISABLED": false,
+            "config": {
+                "timeout": 5000,
+                "prefix": "moja_",
+                "defaultLabels": {
+                    "serviceName": "central-services-stream"
+                }
+            }
+        }
+    },
+    "KAFKA": {
+        "topics": [
+            "test1"
+        ],
+        "consumers": [
+            {
+                "options": {
+                    "mode": 2,
+                    "batchSize": 1,
+                    "recursiveTimeout": 100,
+                    "pollFrequency": 0,
+                    "messageCharset": "utf8",
+                    "messageAsJSON": true,
+                    "sync": true,
+                    "consumeTimeout": 1000
+                },
+                "rdkafkaConf": {
+                    "client.id": "consumer1",
+                    "group.id": "group1",
+                    "metadata.broker.list": "localhost:9092",
+                    "queue.buffering.max.messages": 100,
+                    "queue.buffering.max.ms": 50,
+                    "enable.auto.commit": true
+                },
+                "topicConf": {
+                    "auto.offset.reset": "beginning"
+                }
+            }
+        ],
+        "producers": [
+            {
+                "options": {
+                    "pollIntervalMs": 100,
+                    "messageCharset": "utf8"
+                },
+                "rdkafkaConf": {
+                    "metadata.broker.list": "localhost:9092",
+                    "client.id": "default-client",
+                    "event_cb": true,
+                    "compression.codec": "none",
+                    "retry.backoff.ms": 100,
+                    "message.send.max.retries": 2,
+                    "socket.keepalive.enable": true,
+                    "queue.buffering.max.messages": 1000,
+                    "queue.buffering.max.ms": 50,
+                    "batch.num.messages": 100,
+                    "api.version.request": true,
+                    "dr_cb": true
+                },
+                "topicConf": {
+                    "request.required.acks": 1
+                }
+            }
+        ],
+        "templates": {
+            "messages": [
+                "{    \"content\": {        \"id\": \"{{id}}\",        \"payload\": \"{{payload}}\",        \"metrics\": {            \"start\": \"{{start}}\"        }    },    \"from\": \"http://test.local/test1\",    \"to\": \"http://test.local/test2\",    \"type\": \"application/json\"}"
+            ]
+        }
+    }
 }
