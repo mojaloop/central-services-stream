@@ -42,9 +42,9 @@ const initInstrumentation = async () => {
   }
 }
 
-const initAPI = async (apiDisabled) => {
+const initAPI = async (hostname, port, apiDisabled) => {
   if (!apiDisabled) {
-    return Api.init(Config.HOSTNAME, Config.PORT)    
+    return Api.init(hostname, port)    
   }
   return undefined
 }
@@ -55,9 +55,9 @@ const initAPI = async (apiDisabled) => {
  * @description Setup method for API, Admin and Handlers. Note that the Migration scripts are called before connecting to the database to ensure all new tables are loaded properly.
  * @property {boolean} apiDisabled True|False to indicate if the Handler should be registered
  */
-const init = async (apiDisabled = true) => {
+const init = async (hostname, port, apiDisabled = true) => {
   await initInstrumentation()
-  await initAPI(apiDisabled)
+  await initAPI(hostname, port, apiDisabled)
 }
 
 module.exports = init

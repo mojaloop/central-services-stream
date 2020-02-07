@@ -3,11 +3,11 @@ const RC = require('parse-strings-in-object')(require('rc')('CSS', require('../.
 // console.log(JSON.stringify(RC))
 // Set config object to be returned
 const config = {
-  HOSTNAME: RC.HOSTNAME.replace(/\/$/, ''),
-  PORT: RC.PORT,
+  PRODUCER: RC.PRODUCER,
+  CONSUMER: RC.CONSUMER,
   INSTRUMENTATION_METRICS_DISABLED: RC.INSTRUMENTATION.METRICS.DISABLED,
   INSTRUMENTATION_METRICS_CONFIG: RC.INSTRUMENTATION.METRICS.config,
-  KAFKA: RC.KAFKA
+  TEMPLATES: RC.TEMPLATES
 }
 
 module.exports = config

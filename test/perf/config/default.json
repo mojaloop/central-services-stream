@@ -1,49 +1,12 @@
 {
-    "HOSTNAME": "localhost",
-    "PORT": 6969,
-    "INSTRUMENTATION": {
-        "METRICS": {
-            "DISABLED": false,
-            "config": {
-                "timeout": 5000,
-                "prefix": "moja_",
-                "defaultLabels": {
-                    "serviceName": "central-services-stream"
-                }
-            }
-        }
-    },
-    "KAFKA": {
-        "topics": [
-            "test1"
-        ],
-        "consumers": [
-            {
-                "options": {
-                    "mode": 2,
-                    "batchSize": 1,
-                    "recursiveTimeout": 100,
-                    "pollFrequency": 0,
-                    "messageCharset": "utf8",
-                    "messageAsJSON": true,
-                    "sync": true,
-                    "consumeTimeout": 1000
-                },
-                "rdkafkaConf": {
-                    "client.id": "consumer1",
-                    "group.id": "group1",
-                    "metadata.broker.list": "localhost:9092",
-                    "queue.buffering.max.messages": 100,
-                    "queue.buffering.max.ms": 50,
-                    "enable.auto.commit": true
-                },
-                "topicConf": {
-                    "auto.offset.reset": "beginning"
-                }
-            }
-        ],
-        "producers": [
-            {
+    "PRODUCER": {
+        "HOSTNAME": "localhost",
+        "PORT": 6868,
+        "KAFKA": {
+            "topics": [
+                "test1"
+            ],
+            "configs": {
                 "options": {
                     "pollIntervalMs": 100,
                     "messageCharset": "utf8"
@@ -66,11 +29,55 @@
                     "request.required.acks": 1
                 }
             }
-        ],
-        "templates": {
-            "messages": [
-                "{    \"content\": {        \"id\": \"{{id}}\",        \"payload\": \"{{payload}}\",        \"metrics\": {            \"start\": \"{{start}}\"        }    },    \"from\": \"http://test.local/test1\",    \"to\": \"http://test.local/test2\",    \"type\": \"application/json\"}"
-            ]
         }
+    },
+    "CONSUMER": {
+        "HOSTNAME": "localhost",
+        "PORT": 6969,
+        "KAFKA": {
+            "topics": [
+                "test1"
+            ],
+            "configs": {
+                "options": {
+                    "mode": 2,
+                    "batchSize": 1,
+                    "recursiveTimeout": 100,
+                    "pollFrequency": 0,
+                    "messageCharset": "utf8",
+                    "messageAsJSON": true,
+                    "sync": true,
+                    "consumeTimeout": 1000
+                },
+                "rdkafkaConf": {
+                    "client.id": "consumer1",
+                    "group.id": "group1",
+                    "metadata.broker.list": "localhost:9092",
+                    "queue.buffering.max.messages": 100,
+                    "queue.buffering.max.ms": 50,
+                    "enable.auto.commit": true
+                },
+                "topicConf": {
+                    "auto.offset.reset": "beginning"
+                }
+            }
+        }
+    },
+    "INSTRUMENTATION": {
+        "METRICS": {
+            "DISABLED": false,
+            "config": {
+                "timeout": 5000,
+                "prefix": "moja_",
+                "defaultLabels": {
+                    "serviceName": "central-services-stream"
+                }
+            }
+        }
+    },
+    "TEMPLATES": {
+        "messages": [
+            "{    \"content\": { \"id\": \"{{id}}\",  \"batchId\": \"{{batchId}}\",  \"payload\": \"{{payload}}\",  \"metrics\": { \"start\": \"{{start}}\",  \"batchStart\": \"{{batchStart}}\" } },  \"type\": \"application/json\"}"
+        ]
     }
 }

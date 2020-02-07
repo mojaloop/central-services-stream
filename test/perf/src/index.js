@@ -40,6 +40,7 @@ const Logger = require('@mojaloop/central-services-logger')
 const { Command } = require('commander')
 const KafkaProducer = require('./kafka/producer')
 const Setup = require('./shared/setup')
+const Config = require('@local/config')
 
 const Program = new Command()
 
@@ -82,7 +83,7 @@ Program.command('produce') // sub-command name, coffeeType = type, required
         Logger.error(err)
       }
     }
-    await Setup(!args.api)
+    await Setup(Config.PRODUCER.HOSTNAME, Config.PRODUCER.PORT, !args.api)
     KafkaProducer.run(maxMessages, messageSize, topic)
   })
 

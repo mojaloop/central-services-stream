@@ -40,8 +40,8 @@ const init = async (host, port) => {
     Logger.info('Server starting...')
 
     const server = Hapi.server({
-        port: port || Config.PORT,
-        host: host || Config.HOSTNAME
+        port,
+        host
     })
 
     await server.register([MetricsPlugin, HealthPlugin])

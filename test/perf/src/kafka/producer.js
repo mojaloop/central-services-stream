@@ -39,44 +39,49 @@ const _ = require('lodash')
 const Faker = require('faker')
 
 const runProducer = async (messageNum = 1, messageSize = 10, topicName) => {
+const batchId = uuidv4()
+const batchStart = (new Date()).getTime()
+Logger.info(`[cid=${batchId}, messageNum=${messageNum}, messageSize=${messageSize}, topicName=${topicName}] ~ Producer::perf::runProducer - START`)
+const config = Config.PRODUCER.KAFKA.configs
 
-  const config1 = Config.KAFKA.producers[0]
+var topicConf = {
+    topicName: topicName || Config.PRODUCER.KAFKA.topics[0]
+}
 
-  var topicConf = {
-    topicName: topicName || Config.KAFKA.topics[0]
-  }
+var producerClient = await KafkaHelper.createProducer(config)
 
-  var p1 = await KafkaHelper.createProducer(config1)
+if(messageNum > 1){
+    Logger.info(`[cid=${batchId}, messageNum=${messageNum}, messageSize=${messageSize}, topicName=${topicName}] ~ Producer::perf::runProducer -  Sending ${messageNum} messages for batch '${batchId}'`)
+} else {
+    Logger.info(`[cid=${batchId}, messageNum=${messageNum}, messageSize=${messageSize}, topicName=${topicName}] ~ Producer::perf::runProducer - Sending a single messages`)
+}
 
-  if(messageNum > 1){
-    Logger.info(`Sending ${messageNum} messages`)
-  } else {
-    Logger.info(`Sending a single messages`)
-  }
+const randomPayload = Faker.random.alphaNumeric(messageSize)
 
-  const randomPayload = Faker.random.alphaNumeric(messageSize)
-
-  for(var i = 0; i <  messageNum; i++){
+for(var i = 0; i <  messageNum; i++){
     var messageValues = {
-      id: uuidv4(),
-      start: (new Date()).getTime(),
-      payload: randomPayload
+    id: uuidv4(),
+    batchId: batchId,
+    batchStart: batchStart,
+    start: (new Date()).getTime(),
+    payload: randomPayload
     }
     var message
     var result
     try {
-        message= JSON.parse(Mustache.render(Config.KAFKA.templates.messages[0], messageValues))
-        Logger.info(`Sending message ${i+1} - ${JSON.stringify(message)}`)
-         result = await p1.sendMessage(message, topicConf)
-        Logger.info(`Message[${i+1}] sent with result: ${result}`)
+        message= JSON.parse(Mustache.render(Config.TEMPLATES.messages[0], messageValues))
+        Logger.debug(`[cid=${batchId}, messageNum=${messageNum}, messageSize=${messageSize}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Sending payload [${i+1}] - ${JSON.stringify(message)}`)
+        result = await producerClient.sendMessage(message, topicConf)
+        Logger.info(`[cid=${batchId}, messageNum=${messageNum}, messageSize=${messageSize}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Message[${i+1}] sent with result: ${result}`)
     } catch (err) {
-        Logger.info(`Message[${i+1}] sent with error: ${result}`)
+        Logger.info(`[cid=${batchId}, messageNum=${messageNum}, messageSize=${messageSize}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Message[${i+1}] sent with error: ${result}`)
         Logger.error(err)
     }
-  }
+}
 
-  Logger.info(`Procucer for ${topicName} Disconnecting`)
-  p1.disconnect()
+    Logger.info(`[cid=${batchId}, messageNum=${messageNum}, messageSize=${messageSize}, topicName=${topicName}] ~ Producer::perf::runProducer - Producer for '${topicName}' Disconnecting`)
+    producerClient.disconnect()
+    Logger.info(`[cid=${batchId}, messageNum=${messageNum}, messageSize=${messageSize}, topicName=${topicName}] ~ Producer::perf::runProducer - START`)
 }
 // Logger.debug(`process.argv=${process.argv}`)
 // if(process.argv.length == 3 && !isNaN(process.argv[2])){
