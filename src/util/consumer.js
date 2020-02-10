@@ -56,7 +56,7 @@ const createHandler = async (topicName, config, command) => {
   const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
     'csstream_utilConsumer_createHandler',
     'Consumer creates handler for the specified topic, configuration and command',
-    ['success', 'topicName']
+    ['success', 'topics']
   ).startTimer()
   let topicNameArray
   if (Array.isArray(topicName)) {
@@ -77,19 +77,19 @@ const createHandler = async (topicName, config, command) => {
     await consumer.connect()
     Logger.debug(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
     connectedTimeStamp = (new Date()).valueOf()
-    !!Metrics.isInitiated() && histTimerEnd({ success: true, topicName })
+    !!Metrics.isInitiated() && histTimerEnd({ success: true, topics: topicName })
 
     const histTimerEndCommand = !!Metrics.isInitiated() && Metrics.getHistogram(
       'csstream_utilConsumer_consume_command',
       'Util Consumer consume command histogram',
-      ['success', 'topicName']
+      ['success', 'topics']
     ).startTimer()
     await consumer.consume(command)
-    histTimerEndCommand({ success: true, topicName })
+    histTimerEndCommand({ success: true, topics: topicName })
   } catch (e) {
     // Don't throw the error, still keep track of the topic we tried to connect to
     Logger.warn(`CreateHandler::connect - error: ${e}`)
-    !!Metrics.isInitiated() && histTimerEnd({ success: false, topicName })
+    !!Metrics.isInitiated() && histTimerEnd({ success: false, topics: topicName })
   }
 
   topicNameArray.forEach(topicName => {

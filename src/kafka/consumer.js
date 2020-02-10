@@ -233,7 +233,7 @@ class Consumer extends EventEmitter {
     this._status.runningInConsumeOnceMode = false
     this._status.runningInConsumeMode = false
     this._status.running = true
-
+    this._topicsStr = JSON.stringify(topics)
     // setup default onReady emit handler
     super.on('ready', arg => {
       Logger.debug(`Consumer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
@@ -396,11 +396,11 @@ class Consumer extends EventEmitter {
         const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
           'csstream_consumer_consume',
           'consumer consume histogram',
-          ['success']
+          ['success', 'topics']
         ).startTimer()
         Promise.resolve(workDoneCb(message.error, payload)).then(() => {
           callbackDone() // this marks the completion of the processing by the worker
-          !!Metrics.isInitiated() && histTimerEnd({ success: true })
+          !!Metrics.isInitiated() && histTimerEnd({ success: true, topics: this._topicsStr })
           if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
             super.emit('recursive', message.error, payload)
           }
@@ -408,7 +408,7 @@ class Consumer extends EventEmitter {
           logger.error(`Consumer::consume()::syncQueue.queue - error: ${err}`)
           super.emit('error', err)
           callbackDone()
-          !!Metrics.isInitiated() && histTimerEnd({ success: false })
+          !!Metrics.isInitiated() && histTimerEnd({ success: false, topics: this._topicsStr })
           if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
             super.emit('recursive', err, payload)
           }
@@ -555,23 +555,12 @@ class Consumer extends EventEmitter {
           const { topic } = msg
           const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
           msg.value = parsedValue
-          let type, action
-          if (typeof msg.value === 'string') {
-            const parsedString = JSON.parse(msg.value)
-            type = parsedString.metadata.event.type
-            action = parsedString.metadata.event.action
-          } else {
-          type = msg.value.metadata.event.type
-          action = msg.value.metadata.event.action
-        }
           const sizeSummary = !!Metrics.isInitiated() && Metrics.getSummary(
             'csstream_consumer_messageSize_bytes',
             'Consumed message size',
-            ['topicName', 'type', 'action'])
+            ['topics'])
           !!Metrics.isInitiated() && sizeSummary.observe({
-            topicName: topic,
-            type,
-            action
+            topics: topic
           }, msg.size)
         })
         if (this._config.options.messageAsJSON) {
@@ -587,19 +576,19 @@ class Consumer extends EventEmitter {
             }
           })
         } else {
-          const topicName = this._topics.join(',')
-          const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
-            'csstream_consumer_consume',
-            'Consumer consume histogram',
-            ['success', 'topicName']
-          ).startTimer()
+          const topicName = this._topicsStr
 
+          const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
+            'csstream_consumer_consume_sync',
+            'Consumer consume histogram',
+            ['success', 'topics']
+          ).startTimer()
           Promise.resolve(workDoneCb(error, messages)).then((response) => { // histogram
             Logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
-            !!Metrics.isInitiated() && histTimerEnd({ success: true, topicName })
+            !!Metrics.isInitiated() && histTimerEnd({ success: true, topics: topicName })
           }).catch((err) => {
             Logger.error(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${err}`)
-            !!Metrics.isInitiated() && histTimerEnd({ success: false, topicName })
+            !!Metrics.isInitiated() && histTimerEnd({ success: false, topics: topicName })
             super.emit('error', err)
           })
           super.emit('recursive', error, messages)
@@ -690,13 +679,13 @@ class Consumer extends EventEmitter {
     const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
       'csstream_consumer_commit',
       'Manually commits topics partition',
-      ['success']
+      ['success', 'topics']
     ).startTimer()
     const { logger } = this._config
     logger.silly('Consumer::commit() - start')
     this._consumer.commit(topicPartitions)
     logger.silly('Consumer::commit() - end')
-    !!Metrics.isInitiated() && histTimerEnd({ success: true })
+    !!Metrics.isInitiated() && histTimerEnd({ success: true, topics: this._topicsStr })
   }
 
   /**
@@ -708,13 +697,13 @@ class Consumer extends EventEmitter {
     const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
       'csstream_consumer_commitMessage',
       'Manually commits message',
-      ['success']
+      ['success', 'topics']
     ).startTimer()
     const { logger } = this._config
     logger.silly('Consumer::commitMessage() - start')
     this._consumer.commitMessage(msg)
     logger.silly('Consumer::commitMessage() - end')
-    !!Metrics.isInitiated() && histTimerEnd({ success: true })
+    !!Metrics.isInitiated() && histTimerEnd({ success: true, topics: this._topicsStr })
   }
 
   /**
@@ -726,7 +715,7 @@ class Consumer extends EventEmitter {
     const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
       'csstream_consumer_commitSync',
       'Manually commits topic partition in sync mode',
-      ['success']
+      ['success', 'topics']
     ).startTimer()
     const { logger } = this._config
     logger.silly('Consumer::commitSync() - start')
@@ -744,13 +733,13 @@ class Consumer extends EventEmitter {
     const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
       'csstream_consumer_commitMessageSync',
       'Manually commits message in sync mode',
-      ['success']
+      ['success', 'topics']
     ).startTimer()
     const { logger } = this._config
     logger.silly('Consumer::commitMessageSync() - start')
     this._consumer.commitMessageSync(msg)
     logger.silly('Consumer::commitMessageSync() - end')
-    !!Metrics.isInitiated() && histTimerEnd({ success: true })
+    !!Metrics.isInitiated() && histTimerEnd({ success: true, topics: this._topicsStr })
   }
 
   /**

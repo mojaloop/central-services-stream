@@ -94,7 +94,7 @@ const topicConf = {
 
 Test('Producer', producerTest => {
   let sandbox
-  const config = {}
+  const config = { options: { messageCharset: 'utf8' } }
 
   producerTest.test('produceMessage should', produceMessageTest => {
     produceMessageTest.beforeEach(async t => {
@@ -165,7 +165,7 @@ Test('Producer', producerTest => {
     })
 
     getProducerTest.test('fetch a specific Producers', async test => {
-      await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: 'test' }, {})
+      await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: 'test' }, { options: { messageCharset: 'utf8' } })
       test.ok(Producer.getProducer('test'))
       test.end()
     })
@@ -198,7 +198,7 @@ Test('Producer', producerTest => {
       t.end()
     })
     disconnectTest.test('disconnect from kafka', async test => {
-      await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: 'test' }, {})
+      await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: 'test' }, { options: { messageCharset: 'utf8' } })
       test.ok(Producer.disconnect('test'))
       test.end()
     })
@@ -206,7 +206,7 @@ Test('Producer', producerTest => {
     disconnectTest.test('disconnect specific topic correctly', async test => {
       try {
         const topicName = 'someTopic'
-        test.ok(await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicName }, {}))
+        test.ok(await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicName }, { options: { messageCharset: 'utf8' } }))
         await Producer.disconnect(topicName)
         test.pass('Disconnect specific topic successfully')
         test.end()
@@ -219,10 +219,10 @@ Test('Producer', producerTest => {
     disconnectTest.test('disconnect all topics correctly', async test => {
       try {
         let topicName = 'someTopic1'
-        test.ok(await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicName }, {}))
+        test.ok(await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicName }, { options: { messageCharset: 'utf8' } }))
         await Producer.disconnect(topicName)
         topicName = 'someTopic2'
-        test.ok(await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicName }, {}))
+        test.ok(await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicName }, { options: { messageCharset: 'utf8' } }))
         await Producer.disconnect()
         test.pass('Disconnected all topics successfully')
         test.end()
@@ -248,8 +248,8 @@ Test('Producer', producerTest => {
         // lets override the getProducer method within the import
         KafkaProducerProxy.__set__('getProducer', getProducerStub)
 
-        await KafkaProducerProxy.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicNameSuccess }, {})
-        await KafkaProducerProxy.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicNameFailure }, {})
+        await KafkaProducerProxy.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicNameSuccess }, { options: { messageCharset: 'utf8' } })
+        await KafkaProducerProxy.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicNameFailure }, { options: { messageCharset: 'utf8' } })
 
         await KafkaProducerProxy.disconnect()
 
@@ -266,7 +266,7 @@ Test('Producer', producerTest => {
     disconnectTest.test('throw error if failure to disconnect from kafka if topic does not exist', async test => {
       try {
         const topicName = 'someTopic'
-        await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicName }, {})
+        await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicName }, { options: { messageCharset: 'utf8' } })
         await Producer.disconnect('undefined')
       } catch (e) {
         test.ok(e instanceof Error)

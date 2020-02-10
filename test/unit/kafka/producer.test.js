@@ -215,7 +215,7 @@ Test('Producer test', (producerTests) => {
       pp: '',
       id: 'id',
       metadata: {}
-    }, { topicName: 'test', key: '1234' }, { options: { messageCharset: 'utf8' } }).then(() => {}).catch((e) => {
+    }, { topicName: 'test', key: '1234' }, { options: { messageCharset: 'utf8' } }).then(() => { }).catch((e) => {
       assert.ok(e.message, 'You must call and await .connect() before trying to produce messages.')
       assert.end()
     })
@@ -236,7 +236,7 @@ Test('Producer test', (producerTests) => {
           action: 'action'
         }
       }
-    }, { topicName: 'test', key: '1234' }, { options: { messageCharset: 'utf8' }).then(() => {}).catch((e) => {
+    }, { topicName: 'test', key: '1234' }, { options: { messageCharset: 'utf8' } }).then(() => { }).catch((e) => {
       assert.ok(e.message, 'You must call and await .connect() before trying to produce messages.')
       assert.end()
     })

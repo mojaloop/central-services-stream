@@ -46,8 +46,26 @@ const Sinon = require('sinon')
 const KafkaStubs = require('./KafkaStub')
 const Config = require('../../../src/lib/config')
 
+const Metrics = require('@mojaloop/central-services-metrics')
+
 Test('Consumer test', (consumerTests) => {
   let sandbox
+
+  Metrics.setup({
+    METRICS: {
+      DISABLED: false,
+      labels: {
+        fspId: '*'
+      },
+      config: {
+        timeout: 5000,
+        prefix: 'moja_css_',
+        defaultLabels: {
+          serviceName: 'central-services-stream'
+        }
+      }
+    }
+  })
   // let clock
   let config = {}
   let configMetricsOff = {}

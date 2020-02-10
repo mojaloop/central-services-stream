@@ -286,26 +286,23 @@ class Producer extends EventEmitter {
    * @returns {boolean} or if failed {Error}
    */
   async sendMessage (messageProtocol, topicConf) {
-    const { metadata: { event: { type, action } } } = messageProtocol
     const { topicName } = topicConf
     const sizeSummary = !!Metrics.isInitiated() && Metrics.getSummary(
       'csstream_producer_messageSize_bytes',
       'Produced message size',
-      ['topicName', 'type', 'action'])
+      ['topics'])
     !!Metrics.isInitiated() && sizeSummary.observe({
-      topicName,
-      type,
-      action
+      topics: topicName
     }, Buffer.from(JSON.stringify(messageProtocol), this._config.options.messageCharset || 'utf8').byteLength)
 
     const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
       'csstream_producer_sendMessage',
       'Produces a kafka message to a certain topic',
-      ['success', 'topicName', 'type', 'action']
+      ['success', 'topics']
     ).startTimer()
     try {
       if (!this._producer) {
-        !!Metrics.isInitiated() && histTimerEnd({ success: false, topicName, type, action })
+        !!Metrics.isInitiated() && histTimerEnd({ success: false, topics: topicName })
         throw new Error('You must call and await .connect() before trying to produce messages.')
       }
       if (this._producer._isConnecting) {
@@ -314,7 +311,7 @@ class Producer extends EventEmitter {
       const parsedMessage = Protocol.parseMessage(messageProtocol)
       const parsedMessageBuffer = this._createBuffer(parsedMessage, this._config.options.messageCharset)
       if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
-        !!Metrics.isInitiated() && histTimerEnd({ success: false, topicName, type, action })
+        !!Metrics.isInitiated() && histTimerEnd({ success: false, topics: topicName })
         throw new Error('message must be a string or an instance of Buffer.')
       }
       this._config.logger.debug('Producer::send() - start %s', JSON.stringify({
@@ -324,11 +321,11 @@ class Producer extends EventEmitter {
       }))
       const producedAt = Date.now()
       await this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey)
-      !!Metrics.isInitiated() && histTimerEnd({ success: true, topicName, type, action })
+      !!Metrics.isInitiated() && histTimerEnd({ success: true, topics: topicName })
       return true
     } catch (e) {
       this._config.logger.debug(e)
-      !!Metrics.isInitiated() && histTimerEnd({ success: false, topicName, type, action })
+      !!Metrics.isInitiated() && histTimerEnd({ success: false, topics: topicName })
       throw e
     }
   }

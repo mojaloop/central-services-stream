@@ -60,22 +60,19 @@ const stateList = {
  * @throws {error} - if not successfully create/produced to
  */
 const produceMessage = async (messageProtocol, topicConf, config) => {
-  const { metadata: { event: { type, action } } } = messageProtocol
   const { topicName } = topicConf
   const sizeSummary = !!Metrics.isInitiated() && Metrics.getSummary(
     'csstream_utilProducer_messageSize_bytes',
     'Produced message size',
-    ['topicName', 'type', 'action'])
+    ['topics'])
   !!Metrics.isInitiated() && sizeSummary.observe({
-    topicName,
-    type,
-    action
+    topics: topicName
   }, Buffer.from(JSON.stringify(messageProtocol), config.options.messageCharset || 'utf8').byteLength)
 
   const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
     'csstream_utilProducer_produceMessage',
     'Util producer to create message on specific topic and config',
-    ['success', 'topicName', 'type', 'action']
+    ['success', 'topics']
   ).startTimer()
   try {
     let producer
@@ -92,11 +89,11 @@ const produceMessage = async (messageProtocol, topicConf, config) => {
     Logger.debug(`Producer.sendMessage::messageProtocol:'${JSON.stringify(messageProtocol)}'`)
     await producer.sendMessage(messageProtocol, topicConf)
     Logger.debug('Producer::end')
-    !!Metrics.isInitiated() && histTimerEnd({ success: true, topicName, type, action })
+    !!Metrics.isInitiated() && histTimerEnd({ success: true, topics: topicName })
     return true
   } catch (err) {
     Logger.error(err)
-    !!Metrics.isInitiated() && histTimerEnd({ success: false, topicName, type, action })
+    !!Metrics.isInitiated() && histTimerEnd({ success: false, topics: topicName })
     Logger.debug(`Producer error has occurred for ${topicConf.topicName}`)
     throw ErrorHandler.Factory.reformatFSPIOPError(err)
   }
