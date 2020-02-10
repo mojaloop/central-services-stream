@@ -63,11 +63,11 @@ const runConsumer = async () => {
           Perf4js.info(metricStartPayload, metricTimeDiffFromMessageSendToDropoff, 'metricTimeDiffFromMessageSendToDropoff')
           Perf4js.info(metricStartPayload, metricTimeDiffFromMessageSendToEnd, 'metricTimeDiffFromMessageSendToEnd')
           Perf4js.info(metricStartPayload, metricTimeDiffFromDropoffToEnd, 'metricTimeDiffFromDropoffToEnd')
+          Logger.info(`[cid=${message.value.content.batchId}, messageBatch=1, messageSize=${message.length}, topicName=${topics}] ~ Consumer::perf::consumeFunction - Message - END`)
         }
         const metricEndNow = (new Date()).getTime()
         const metricEndOfCallBack = metricEndNow - metricStartNow
         Perf4js.info(metricStartNow, metricEndOfCallBack, 'metricEndOfCallBack')
-        Logger.info(`[cid=${messages[0].value.content.batchId}, messageBatch=1, messageSize=${messages.length}, topicName=${topics}] ~ Consumer::perf::consumeFunction - Message - END`)
         resolve(true)
       } else {
         resolve(false)
