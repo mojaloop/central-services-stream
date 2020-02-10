@@ -41,7 +41,8 @@ const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Protocol = require('./protocol')
 const Metrics = require('@mojaloop/central-services-metrics')
-const Setup = require('../../src/shared/setup')
+
+// const Metrics = require('../../../central-services-metrics')
 
 /**
  * Producer ENUMs
@@ -190,26 +191,7 @@ class Producer extends EventEmitter {
     this._status = {}
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
-    if (!Metrics.isInitiated()) {
-      if (!config.INSTRUMENTATION) {
-        config.INSTRUMENTATION = {
-          METRICS: {
-            DISABLED: false,
-            labels: {
-              fspId: '*'
-            },
-            config: {
-              timeout: 5000,
-              prefix: 'moja_css_',
-              defaultLabels: {
-                serviceName: 'central-services-stream'
-              }
-            }
-          }
-        }
-      }
-      Setup.initializeInstrumentation()
-    }
+
     logger.silly('Producer::constructor() - end')
   }
 
@@ -304,14 +286,26 @@ class Producer extends EventEmitter {
    * @returns {boolean} or if failed {Error}
    */
   async sendMessage (messageProtocol, topicConf) {
-    const histTimerEnd = Metrics.getHistogram(
-      'cs_stream_producer_kafka_sendMessage',
+    const { metadata: { event: { type, action } } } = messageProtocol
+    const { topicName } = topicConf
+    const sizeSummary = !!Metrics.isInitiated() && Metrics.getSummary(
+      'csstream_producer_messageSize_bytes',
+      'Produced message size',
+      ['topicName', 'type', 'action'])
+    !!Metrics.isInitiated() && sizeSummary.observe({
+      topicName,
+      type,
+      action
+    }, Buffer.from(JSON.stringify(messageProtocol), this._config.options.messageCharset || 'utf8').byteLength)
+
+    const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
+      'csstream_producer_sendMessage',
       'Produces a kafka message to a certain topic',
-      ['success']
+      ['success', 'topicName', 'type', 'action']
     ).startTimer()
     try {
       if (!this._producer) {
-        histTimerEnd({ success: false })
+        !!Metrics.isInitiated() && histTimerEnd({ success: false, topicName, type, action })
         throw new Error('You must call and await .connect() before trying to produce messages.')
       }
       if (this._producer._isConnecting) {
@@ -320,7 +314,7 @@ class Producer extends EventEmitter {
       const parsedMessage = Protocol.parseMessage(messageProtocol)
       const parsedMessageBuffer = this._createBuffer(parsedMessage, this._config.options.messageCharset)
       if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
-        histTimerEnd({ success: false })
+        !!Metrics.isInitiated() && histTimerEnd({ success: false, topicName, type, action })
         throw new Error('message must be a string or an instance of Buffer.')
       }
       this._config.logger.debug('Producer::send() - start %s', JSON.stringify({
@@ -330,11 +324,11 @@ class Producer extends EventEmitter {
       }))
       const producedAt = Date.now()
       await this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey)
-      histTimerEnd({ success: true })
+      !!Metrics.isInitiated() && histTimerEnd({ success: true, topicName, type, action })
       return true
     } catch (e) {
       this._config.logger.debug(e)
-      histTimerEnd({ success: false })
+      !!Metrics.isInitiated() && histTimerEnd({ success: false, topicName, type, action })
       throw e
     }
   }
@@ -452,7 +446,7 @@ class Producer extends EventEmitter {
    *
    * Disconnects producer from the Kafka broker
    */
-  disconnect (cb = () => {}) {
+  disconnect (cb = () => { }) {
     if (this._producer) {
       this._producer.flush()
       this._producer.disconnect(cb)
@@ -483,7 +477,7 @@ class Producer extends EventEmitter {
    */
   getMetadata (metadataOptions, metaDataCb) {
     if (!metaDataCb || typeof metaDataCb !== 'function') {
-      metaDataCb = () => {}
+      metaDataCb = () => { }
     }
     const { logger } = this._config
     logger.silly('Producer::getMetadata() - start')

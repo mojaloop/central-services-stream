@@ -39,6 +39,8 @@
 // const Logger = require('@mojaloop/central-services-logger')
 const Metrics = require('@mojaloop/central-services-metrics')
 
+// const Metrics = require('../../../../central-services-metrics')
+
 /**
  * Notification Protocol Object
  *
@@ -130,8 +132,8 @@ const Metrics = require('@mojaloop/central-services-metrics')
  */
 
 const parseMessage = (messageProtocol) => {
-  const histTimerEnd = Metrics.getHistogram(
-    'cs_stream_kafka_protocol_parseMessage',
+  const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
+    'csstream_protocol_parseMessage',
     'Parse Kafka Protocol Messages',
     ['success']
   ).startTimer()
@@ -141,10 +143,10 @@ const parseMessage = (messageProtocol) => {
     }
     messageProtocol.metadata['protocol.createdAt'] = Date.now()
   } else {
-    histTimerEnd({ success: false })
+    !!Metrics.isInitiated() && histTimerEnd({ success: false })
     throw Error('Invalid input params')
   }
-  histTimerEnd({ success: true })
+  !!Metrics.isInitiated() && histTimerEnd({ success: true })
   return {
     from: messageProtocol.from,
     to: messageProtocol.to,

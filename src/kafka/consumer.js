@@ -41,11 +41,11 @@ const EventEmitter = require('events')
 const async = require('async')
 const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
+const Metrics = require('@mojaloop/central-services-metrics')
+
+// const Metrics = require('../../../central-services-metrics')
 
 const Protocol = require('./protocol')
-
-const Metrics = require('@mojaloop/central-services-metrics')
-const Setup = require('../../src/shared/setup')
 
 /**
  * Consumer ENUMs
@@ -244,27 +244,6 @@ class Consumer extends EventEmitter {
       Logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
     })
 
-    if (!Metrics.isInitiated()) {
-      if (!config.INSTRUMENTATION) {
-        config.INSTRUMENTATION = {
-          METRICS: {
-            DISABLED: false,
-            labels: {
-              fspId: '*'
-            },
-            config: {
-              timeout: 5000,
-              prefix: 'moja_css_',
-              defaultLabels: {
-                serviceName: 'central-services-stream'
-              }
-            }
-          }
-        }
-      }
-      Setup.initializeInstrumentation()
-    }
-
     logger.silly('Consumer::constructor() - end')
   }
 
@@ -396,7 +375,7 @@ class Consumer extends EventEmitter {
    * Consume messages from Kafka as per the configuration specified in the constructor.
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
    */
-  consume (workDoneCb) {
+  consume (workDoneCb) { // TODO add metrics
     const { logger } = this._config
     logger.silly('Consumer::consume() - start')
 
@@ -413,9 +392,15 @@ class Consumer extends EventEmitter {
           payload = message.message
         } else {
           payload = message.messages
-        }
+        } // wrap workDone with metrics
+        const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
+          'csstream_consumer_consume',
+          'consumer consume histogram',
+          ['success']
+        ).startTimer()
         Promise.resolve(workDoneCb(message.error, payload)).then(() => {
           callbackDone() // this marks the completion of the processing by the worker
+          !!Metrics.isInitiated() && histTimerEnd({ success: true })
           if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
             super.emit('recursive', message.error, payload)
           }
@@ -423,6 +408,7 @@ class Consumer extends EventEmitter {
           logger.error(`Consumer::consume()::syncQueue.queue - error: ${err}`)
           super.emit('error', err)
           callbackDone()
+          !!Metrics.isInitiated() && histTimerEnd({ success: false })
           if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
             super.emit('recursive', err, payload)
           }
@@ -566,8 +552,27 @@ class Consumer extends EventEmitter {
       } else {
         // lets transform the messages into the desired format
         messages.map(msg => {
+          const { topic } = msg
           const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
           msg.value = parsedValue
+          let type, action
+          if (typeof msg.value === 'string') {
+            const parsedString = JSON.parse(msg.value)
+            type = parsedString.metadata.event.type
+            action = parsedString.metadata.event.action
+          } else {
+          type = msg.value.metadata.event.type
+          action = msg.value.metadata.event.action
+        }
+          const sizeSummary = !!Metrics.isInitiated() && Metrics.getSummary(
+            'csstream_consumer_messageSize_bytes',
+            'Consumed message size',
+            ['topicName', 'type', 'action'])
+          !!Metrics.isInitiated() && sizeSummary.observe({
+            topicName: topic,
+            type,
+            action
+          }, msg.size)
         })
         if (this._config.options.messageAsJSON) {
           logger.debug(`Consumer::_consumerRecursive() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
@@ -582,10 +587,19 @@ class Consumer extends EventEmitter {
             }
           })
         } else {
-          Promise.resolve(workDoneCb(error, messages)).then((response) => {
+          const topicName = this._topics.join(',')
+          const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
+            'csstream_consumer_consume',
+            'Consumer consume histogram',
+            ['success', 'topicName']
+          ).startTimer()
+
+          Promise.resolve(workDoneCb(error, messages)).then((response) => { // histogram
             Logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
+            !!Metrics.isInitiated() && histTimerEnd({ success: true, topicName })
           }).catch((err) => {
             Logger.error(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${err}`)
+            !!Metrics.isInitiated() && histTimerEnd({ success: false, topicName })
             super.emit('error', err)
           })
           super.emit('recursive', error, messages)
@@ -673,10 +687,16 @@ class Consumer extends EventEmitter {
    * @param {object} topicPartitions - List of topics that must be commited. If null, it will default to the topics list provided in the constructor. Defaults = null
    */
   commit (topicPartitions = null) {
+    const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
+      'csstream_consumer_commit',
+      'Manually commits topics partition',
+      ['success']
+    ).startTimer()
     const { logger } = this._config
     logger.silly('Consumer::commit() - start')
     this._consumer.commit(topicPartitions)
     logger.silly('Consumer::commit() - end')
+    !!Metrics.isInitiated() && histTimerEnd({ success: true })
   }
 
   /**
@@ -685,10 +705,16 @@ class Consumer extends EventEmitter {
    * @param {KafkaConsumer~Message} msg - Kafka message to be commited
    */
   commitMessage (msg) {
+    const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
+      'csstream_consumer_commitMessage',
+      'Manually commits message',
+      ['success']
+    ).startTimer()
     const { logger } = this._config
     logger.silly('Consumer::commitMessage() - start')
     this._consumer.commitMessage(msg)
     logger.silly('Consumer::commitMessage() - end')
+    !!Metrics.isInitiated() && histTimerEnd({ success: true })
   }
 
   /**
@@ -697,10 +723,16 @@ class Consumer extends EventEmitter {
    * @param {object} topicPartitions - List of topics that must be commited. If null, it will default to the topics list provided in the constructor. Defaults = null
    */
   commitSync (topicPartitions = null) {
+    const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
+      'csstream_consumer_commitSync',
+      'Manually commits topic partition in sync mode',
+      ['success']
+    ).startTimer()
     const { logger } = this._config
     logger.silly('Consumer::commitSync() - start')
     this._consumer.commitSync(topicPartitions)
     logger.silly('Consumer::commitSync() - end')
+    !!Metrics.isInitiated() && histTimerEnd({ success: true })
   }
 
   /**
@@ -709,10 +741,16 @@ class Consumer extends EventEmitter {
    * @param {KafkaConsumer~Message} msg - Kafka message to be commited
    */
   commitMessageSync (msg) {
+    const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
+      'csstream_consumer_commitMessageSync',
+      'Manually commits message in sync mode',
+      ['success']
+    ).startTimer()
     const { logger } = this._config
     logger.silly('Consumer::commitMessageSync() - start')
     this._consumer.commitMessageSync(msg)
     logger.silly('Consumer::commitMessageSync() - end')
+    !!Metrics.isInitiated() && histTimerEnd({ success: true })
   }
 
   /**

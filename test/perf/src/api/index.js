@@ -37,26 +37,26 @@ const HealthPlugin = require('./health/plugin')
 const Config = require('@local/config')
 
 const init = async () => {
-    Logger.info('Server starting...')
+  Logger.info('Server starting...')
 
-    const server = Hapi.server({
-        port: Config.PORT,
-        host: Config.HOSTNAME
-    })
+  const server = Hapi.server({
+    port: Config.PORT,
+    host: Config.HOSTNAME
+  })
 
-    await server.register([MetricsPlugin, HealthPlugin])
+  await server.register([MetricsPlugin, HealthPlugin])
 
-    await server.start()
+  await server.start()
 
-    Logger.info(`Server running on ${server.info.uri}`,)
+  Logger.info(`Server running on ${server.info.uri}`)
 }
 
 // Lets check to see if this is the main startup process
 if (!module.parent) {
-    init() // If it is, then initialise the API
+  init() // If it is, then initialise the API
 } else {
-    // If not, then we export the init function
-    module.exports = {
-        init
-    }
+  // If not, then we export the init function
+  module.exports = {
+    init
+  }
 }

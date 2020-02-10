@@ -58,10 +58,10 @@ Program.command('produce') // sub-command name, coffeeType = type, required
       Logger.debug('CLI: Param --maxMessages')
     }
     if (args.messageSize) {
-        Logger.debug('CLI: Param --messageSize')
+      Logger.debug('CLI: Param --messageSize')
     }
     if (args.batchSize) {
-        Logger.debug('CLI: Param --batchSize')
+      Logger.debug('CLI: Param --batchSize')
     }
 
     // module.exports = Setup.initialize({
@@ -83,7 +83,7 @@ Program.command('consume') // sub-command name, coffeeType = type, required
   // function to execute when command is uses
   .action(async (args) => {
     if (args.batchSize) {
-        Logger.debug('CLI: Param --batchSize')
+      Logger.debug('CLI: Param --batchSize')
     }
 
     // module.exports = Setup.initialize({

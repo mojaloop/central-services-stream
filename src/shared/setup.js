@@ -37,6 +37,8 @@
 const Config = require('../lib/config')
 const Metrics = require('@mojaloop/central-services-metrics')
 
+// const Metrics = require('../../../central-services-metrics')
+
 /**
  * @function initialize
  *

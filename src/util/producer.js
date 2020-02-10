@@ -38,6 +38,8 @@ const Logger = require('@mojaloop/central-services-logger')
 const ErrorHandler = require('@mojaloop/central-services-error-handling')
 const Metrics = require('@mojaloop/central-services-metrics')
 
+// const Metrics = require('../../../central-services-metrics')
+
 const listOfProducers = {}
 const stateList = {
   PENDING: 'PENDING',
@@ -58,10 +60,22 @@ const stateList = {
  * @throws {error} - if not successfully create/produced to
  */
 const produceMessage = async (messageProtocol, topicConf, config) => {
-  const histTimerEnd = Metrics.getHistogram(
-    'cs_stream_producer_produceMessage',
-    'Creates a producer on kafka for the specified topic and configuration',
-    ['success']
+  const { metadata: { event: { type, action } } } = messageProtocol
+  const { topicName } = topicConf
+  const sizeSummary = !!Metrics.isInitiated() && Metrics.getSummary(
+    'csstream_utilProducer_messageSize_bytes',
+    'Produced message size',
+    ['topicName', 'type', 'action'])
+  !!Metrics.isInitiated() && sizeSummary.observe({
+    topicName,
+    type,
+    action
+  }, Buffer.from(JSON.stringify(messageProtocol), config.options.messageCharset || 'utf8').byteLength)
+
+  const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
+    'csstream_utilProducer_produceMessage',
+    'Util producer to create message on specific topic and config',
+    ['success', 'topicName', 'type', 'action']
   ).startTimer()
   try {
     let producer
@@ -78,11 +92,11 @@ const produceMessage = async (messageProtocol, topicConf, config) => {
     Logger.debug(`Producer.sendMessage::messageProtocol:'${JSON.stringify(messageProtocol)}'`)
     await producer.sendMessage(messageProtocol, topicConf)
     Logger.debug('Producer::end')
-    histTimerEnd({ success: true })
+    !!Metrics.isInitiated() && histTimerEnd({ success: true, topicName, type, action })
     return true
   } catch (err) {
     Logger.error(err)
-    histTimerEnd({ success: false })
+    !!Metrics.isInitiated() && histTimerEnd({ success: false, topicName, type, action })
     Logger.debug(`Producer error has occurred for ${topicConf.topicName}`)
     throw ErrorHandler.Factory.reformatFSPIOPError(err)
   }

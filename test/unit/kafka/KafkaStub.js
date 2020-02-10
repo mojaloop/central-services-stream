@@ -169,7 +169,13 @@ class KafkaConsumer extends KafkaClient {
     const encoding = 'utf8'
 
     const bufferedMessage = Buffer.from(JSON.stringify({
-      hello: 'world'
+      hello: 'world',
+      metadata: {
+        event: {
+          type: 'type',
+          action: 'action'
+        }
+      }
     }), encoding)
 
     const messageSample = {

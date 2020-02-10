@@ -36,7 +36,6 @@ const Test = require('tapes')(require('tape'))
 const KafkaProducer = require(`${src}/kafka`).Producer
 const Producer = require(`${src}/util`).Producer
 const Uuid = require('uuid4')
-
 const transfer = {
   transferId: 'b51ec534-ee48-4575-b6a9-ead2955b8999',
   payerFsp: 'dfsp1',
@@ -166,7 +165,7 @@ Test('Producer', producerTest => {
     })
 
     getProducerTest.test('fetch a specific Producers', async test => {
-      await Producer.produceMessage({}, { topicName: 'test' }, {})
+      await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: 'test' }, {})
       test.ok(Producer.getProducer('test'))
       test.end()
     })
@@ -199,7 +198,7 @@ Test('Producer', producerTest => {
       t.end()
     })
     disconnectTest.test('disconnect from kafka', async test => {
-      await Producer.produceMessage({}, { topicName: 'test' }, {})
+      await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: 'test' }, {})
       test.ok(Producer.disconnect('test'))
       test.end()
     })
@@ -207,7 +206,7 @@ Test('Producer', producerTest => {
     disconnectTest.test('disconnect specific topic correctly', async test => {
       try {
         const topicName = 'someTopic'
-        test.ok(await Producer.produceMessage({}, { topicName: topicName }, {}))
+        test.ok(await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicName }, {}))
         await Producer.disconnect(topicName)
         test.pass('Disconnect specific topic successfully')
         test.end()
@@ -220,10 +219,10 @@ Test('Producer', producerTest => {
     disconnectTest.test('disconnect all topics correctly', async test => {
       try {
         let topicName = 'someTopic1'
-        test.ok(await Producer.produceMessage({}, { topicName: topicName }, {}))
+        test.ok(await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicName }, {}))
         await Producer.disconnect(topicName)
         topicName = 'someTopic2'
-        test.ok(await Producer.produceMessage({}, { topicName: topicName }, {}))
+        test.ok(await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicName }, {}))
         await Producer.disconnect()
         test.pass('Disconnected all topics successfully')
         test.end()
@@ -249,8 +248,8 @@ Test('Producer', producerTest => {
         // lets override the getProducer method within the import
         KafkaProducerProxy.__set__('getProducer', getProducerStub)
 
-        await KafkaProducerProxy.produceMessage({}, { topicName: topicNameSuccess }, {})
-        await KafkaProducerProxy.produceMessage({}, { topicName: topicNameFailure }, {})
+        await KafkaProducerProxy.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicNameSuccess }, {})
+        await KafkaProducerProxy.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicNameFailure }, {})
 
         await KafkaProducerProxy.disconnect()
 
@@ -267,7 +266,7 @@ Test('Producer', producerTest => {
     disconnectTest.test('throw error if failure to disconnect from kafka if topic does not exist', async test => {
       try {
         const topicName = 'someTopic'
-        await Producer.produceMessage({}, { topicName: topicName }, {})
+        await Producer.produceMessage({ metadata: { event: { type: 'type', action: 'action' } } }, { topicName: topicName }, {})
         await Producer.disconnect('undefined')
       } catch (e) {
         test.ok(e instanceof Error)

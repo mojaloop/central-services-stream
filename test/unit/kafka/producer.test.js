@@ -50,8 +50,7 @@ Test('Producer test', (producerTests) => {
     sandbox = Sinon.createSandbox()
     config = {
       options: {
-        pollIntervalMs: 100,
-        messageCharset: 'utf8'
+        pollIntervalMs: 100
       },
       rdkafkaConf: {
         'metadata.broker.list': 'localhost:9092',
@@ -200,8 +199,7 @@ Test('Producer test', (producerTests) => {
 
     producer.connect().then(result => {
       assert.ok(result, 'connection result received')
-
-      producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'test', key: '1234' }).then(() => {
+      producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: { event: { type: 'type', action: 'action' } } }, { topicName: 'test', key: '1234' }, { options: { messageCharset: 'utf8' } }).then(() => {
         producer.disconnect(discoCallback)
       })
     })
@@ -217,7 +215,7 @@ Test('Producer test', (producerTests) => {
       pp: '',
       id: 'id',
       metadata: {}
-    }, { topicName: 'test', key: '1234' }).then(() => {}).catch((e) => {
+    }, { topicName: 'test', key: '1234' }, { options: { messageCharset: 'utf8' } }).then(() => {}).catch((e) => {
       assert.ok(e.message, 'You must call and await .connect() before trying to produce messages.')
       assert.end()
     })
@@ -232,8 +230,13 @@ Test('Producer test', (producerTests) => {
       type: 'application/json',
       pp: '',
       id: 'id',
-      metadata: {}
-    }, { topicName: 'test', key: '1234' }).then(() => {}).catch((e) => {
+      metadata: {
+        event: {
+          type: 'type',
+          action: 'action'
+        }
+      }
+    }, { topicName: 'test', key: '1234' }, { options: { messageCharset: 'utf8' }).then(() => {}).catch((e) => {
       assert.ok(e.message, 'You must call and await .connect() before trying to produce messages.')
       assert.end()
     })
@@ -277,10 +280,6 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
     sandbox = Sinon.createSandbox()
 
     config = {
-      options: {
-        pollIntervalMs: 100,
-        messageCharset: 'utf8'
-      },
       rdkafkaConf: {
         'metadata.broker.list': 'localhost:9092',
         'client.id': 'default-client',

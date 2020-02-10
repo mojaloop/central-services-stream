@@ -174,7 +174,6 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(c, true)
       assert.end()
     } catch (e) {
-      console.log('ERRRRRRRR', e)
       assert.fail()
       assert.end()
     }

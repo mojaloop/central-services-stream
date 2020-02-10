@@ -35,6 +35,8 @@ const Logger = require('@mojaloop/central-services-logger')
 const ErrorHandler = require('@mojaloop/central-services-error-handling')
 const Metrics = require('@mojaloop/central-services-metrics')
 
+// const Metrics = require('../../../central-services-metrics')
+
 const listOfConsumers = {}
 
 /**
@@ -51,10 +53,10 @@ const listOfConsumers = {}
  */
 const createHandler = async (topicName, config, command) => {
   Logger.debug(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
-  const histTimerEnd = Metrics.getHistogram(
-    'cs_stream_consumer_createHandler',
+  const histTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
+    'csstream_utilConsumer_createHandler',
     'Consumer creates handler for the specified topic, configuration and command',
-    ['success']
+    ['success', 'topicName']
   ).startTimer()
   let topicNameArray
   if (Array.isArray(topicName)) {
@@ -75,12 +77,19 @@ const createHandler = async (topicName, config, command) => {
     await consumer.connect()
     Logger.debug(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
     connectedTimeStamp = (new Date()).valueOf()
-    histTimerEnd({ success: true })
+    !!Metrics.isInitiated() && histTimerEnd({ success: true, topicName })
+
+    const histTimerEndCommand = !!Metrics.isInitiated() && Metrics.getHistogram(
+      'csstream_utilConsumer_consume_command',
+      'Util Consumer consume command histogram',
+      ['success', 'topicName']
+    ).startTimer()
     await consumer.consume(command)
+    histTimerEndCommand({ success: true, topicName })
   } catch (e) {
     // Don't throw the error, still keep track of the topic we tried to connect to
     Logger.warn(`CreateHandler::connect - error: ${e}`)
-    histTimerEnd({ success: false })
+    !!Metrics.isInitiated() && histTimerEnd({ success: false, topicName })
   }
 
   topicNameArray.forEach(topicName => {
