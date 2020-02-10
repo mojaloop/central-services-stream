@@ -36,6 +36,7 @@
 const Producer = require('../../src').Kafka.Producer
 const Logger = require('@mojaloop/central-services-logger')
 const ErrorHandler = require('@mojaloop/central-services-error-handling')
+const Metrics = require('@mojaloop/central-services-metrics')
 
 const listOfProducers = {}
 const stateList = {
@@ -57,6 +58,11 @@ const stateList = {
  * @throws {error} - if not successfully create/produced to
  */
 const produceMessage = async (messageProtocol, topicConf, config) => {
+  const histTimerEnd = Metrics.getHistogram(
+    'cs_stream_producer_produceMessage',
+    'Creates a producer on kafka for the specified topic and configuration',
+    ['success']
+  ).startTimer()
   try {
     let producer
     if (listOfProducers[topicConf.topicName]) {
@@ -72,9 +78,11 @@ const produceMessage = async (messageProtocol, topicConf, config) => {
     Logger.debug(`Producer.sendMessage::messageProtocol:'${JSON.stringify(messageProtocol)}'`)
     await producer.sendMessage(messageProtocol, topicConf)
     Logger.debug('Producer::end')
+    histTimerEnd({ success: true })
     return true
   } catch (err) {
     Logger.error(err)
+    histTimerEnd({ success: false })
     Logger.debug(`Producer error has occurred for ${topicConf.topicName}`)
     throw ErrorHandler.Factory.reformatFSPIOPError(err)
   }
