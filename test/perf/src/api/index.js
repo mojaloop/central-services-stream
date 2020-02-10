@@ -34,30 +34,29 @@ const Logger = require('@mojaloop/central-services-logger')
 const Hapi = require('@hapi/hapi')
 const MetricsPlugin = require('./metrics/plugin')
 const HealthPlugin = require('./health/plugin')
-const Config = require('@local/config')
 
 const init = async (host, port) => {
-    Logger.info('Server starting...')
+  Logger.info('Server starting...')
 
-    const server = Hapi.server({
-        port,
-        host
-    })
+  const server = Hapi.server({
+    port,
+    host
+  })
 
-    await server.register([MetricsPlugin, HealthPlugin])
+  await server.register([MetricsPlugin, HealthPlugin])
 
-    await server.start()
+  await server.start()
 
-    Logger.info(`Server running on ${server.info.uri}`,)
-    return server
+  Logger.info(`Server running on ${server.info.uri}`)
+  return server
 }
 
 // Lets check to see if this is the main startup process
 if (!module.parent) {
-    init() // If it is, then initialise the API
+  init() // If it is, then initialise the API
 } else {
-    // If not, then we export the init function
-    module.exports = {
-        init
-    }
+  // If not, then we export the init function
+  module.exports = {
+    init
+  }
 }

@@ -59,7 +59,7 @@ Program.command('produce') // sub-command name, coffeeType = type, required
   .option('--api', 'Enable API')
 
   // function to execute when command is uses
-  .action( async (args) => {
+  .action(async (args) => {
     // Logger.info(`Program.command('produce').args=${Flatted.stringify(args)}`)
     let topic
     let maxMessages
@@ -105,7 +105,7 @@ Program.command('consume') // sub-command name, coffeeType = type, required
   // function to execute when command is uses
   .action(async (args) => {
     if (args.batchSize) {
-        Logger.debug('CLI: Param --batchSize')
+      Logger.debug('CLI: Param --batchSize')
     }
 
     try {

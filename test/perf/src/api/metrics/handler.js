@@ -31,9 +31,7 @@ const Metrics = require('@mojaloop/central-services-metrics')
 exports.metrics = (request, h) => {
   if (Metrics.isInitiated()) {
     return h.response(Metrics.getMetricsForPrometheus()).code(200)
-
   } else {
     return h.response('Metrics not enabled').code(501)
-
   }
 }

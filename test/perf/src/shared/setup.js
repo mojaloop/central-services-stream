@@ -25,13 +25,12 @@
  --------------
  ******/
 
- /**
+/**
  * @module src/shared/setup
  */
- 
+
 'use strict'
 
-const Logger = require('@mojaloop/central-services-logger')
 const Config = require('@local/config')
 const Metrics = require('@mojaloop/central-services-metrics')
 const Api = require('../api')
@@ -44,7 +43,7 @@ const initInstrumentation = async () => {
 
 const initAPI = async (hostname, port, apiDisabled) => {
   if (!apiDisabled) {
-    return Api.init(hostname, port)    
+    return Api.init(hostname, port)
   }
   return undefined
 }

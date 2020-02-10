@@ -40,12 +40,13 @@
     "audit:resolve": "SHELL=sh resolve-audit",
     "audit:check": "SHELL=sh check-audit",
     "dep:check": "npx ncu -e 2",
-    "dep:update": "npx ncu -u"
+    "dep:update": "npx ncu -u",
+    "setupMacEnv": "export CPPFLAGS=-I/usr/local/opt/openssl/include; export LDFLAGS=-L/usr/local/opt/openssl/lib"
   },
   "dependencies": {
     "@mojaloop/central-services-error-handling": "8.7.0",
     "@mojaloop/central-services-logger": "8.6.0",
-    "@mojaloop/central-services-metrics": "8.8.0",
+    "@mojaloop/central-services-metrics": "9.1.0-snapshot",
     "async": "3.1.1",
     "events": "3.1.0",
     "node-rdkafka": "2.7.4",

@@ -25,11 +25,10 @@
     "@hapi/hapi": "18.4.0",
     "@local/config": "file:src/lib/config",
     "@mojaloop/central-services-logger": "8.6.0",
-    "@mojaloop/central-services-metrics": "^8.8.0",
+    "@mojaloop/central-services-metrics": "^9.1.0-snapshot",
     "@mojaloop/central-services-stream": "file:../..",
     "commander": "^4.1.1",
     "faker": "^4.1.0",
-    "lodash": "^4.17.15",
     "mustache": "^4.0.0"
   }
 }
