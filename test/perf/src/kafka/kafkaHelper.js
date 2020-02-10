@@ -7,7 +7,7 @@ const Logger = require('@mojaloop/central-services-logger')
 
 const createConsumer = async (topicList, consumeFunction, config) => {
   Logger.debug('createConsumer::start')
-  Logger.log('createConsumer::- Instantiate consumer')
+  Logger.info('createConsumer::- Instantiate consumer')
 
   // set the logger
   config.logger = Logger

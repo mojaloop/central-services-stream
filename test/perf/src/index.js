@@ -39,6 +39,7 @@ const PJson = require('../package.json')
 const Logger = require('@mojaloop/central-services-logger')
 const { Command } = require('commander')
 const KafkaProducer = require('./kafka/producer')
+const KafkaConsumer = require('./kafka/consumer')
 const Setup = require('./shared/setup')
 const Config = require('@local/config')
 
@@ -63,10 +64,12 @@ Program.command('produce') // sub-command name, coffeeType = type, required
     let topic
     let maxMessages
     let messageSize
+
     if (args.topic) {
       Logger.info(`Program.command('produce').args.topic=${args.topic}`)
       topic = args.topic
     }
+
     if (args.maxMessages) {
       Logger.info(`Program.command('produce').args.maxMessages=${args.maxMessages}`)
       try {
@@ -75,6 +78,7 @@ Program.command('produce') // sub-command name, coffeeType = type, required
         Logger.error(err)
       }
     }
+
     if (args.messageSize) {
       Logger.info(`Program.command('produce').args.messageSize=${args.messageSize}`)
       try {
@@ -83,8 +87,13 @@ Program.command('produce') // sub-command name, coffeeType = type, required
         Logger.error(err)
       }
     }
-    await Setup(Config.PRODUCER.HOSTNAME, Config.PRODUCER.PORT, !args.api)
-    KafkaProducer.run(maxMessages, messageSize, topic)
+
+    try {
+      await Setup(Config.PRODUCER.HOSTNAME, Config.PRODUCER.PORT, !args.api)
+      await KafkaProducer.run(maxMessages, messageSize, topic)
+    } catch (err) {
+      Logger.error(err)
+    }
   })
 
 Program.command('consume') // sub-command name, coffeeType = type, required
@@ -97,6 +106,13 @@ Program.command('consume') // sub-command name, coffeeType = type, required
   .action(async (args) => {
     if (args.batchSize) {
         Logger.debug('CLI: Param --batchSize')
+    }
+
+    try {
+      await Setup(Config.CONSUMER.HOSTNAME, Config.CONSUMER.PORT, !args.api)
+      await KafkaConsumer.run()
+    } catch (err) {
+      Logger.error(err)
     }
   })
 
