@@ -43,6 +43,8 @@ const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Metrics = require('@mojaloop/central-services-metrics')
 
+const RdkafkaStats = require('node-rdkafka-prometheus')
+
 // const Metrics = require('../../../central-services-metrics')
 
 const Protocol = require('./protocol')
@@ -238,7 +240,7 @@ class Consumer extends EventEmitter {
     super.on('ready', arg => {
       Logger.debug(`Consumer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
     })
-
+    this.metrics = new RdkafkaStats(config.metrics)
     // setup default onError emit handler
     super.on('error', error => {
       Logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
@@ -289,7 +291,7 @@ class Consumer extends EventEmitter {
         logger.silly('Consumer::connect() - end')
         resolve(true)
       })
-
+    // When setting up a consumer or producer:
       logger.silly('Connecting..')
       this._consumer.connect(null, (error, metadata) => {
         if (error) {
@@ -318,6 +320,11 @@ class Consumer extends EventEmitter {
         const parsedValue = Protocol.parseValue(returnMessage.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
         returnMessage.value = parsedValue
         // }
+        this._consumer.on('event.stats', msg => {
+          const stats = JSON.parse(msg.message)
+          // this.metrics.RdkafkaStats.observe(stats)
+          this.metrics.observe(stats)
+        })
         super.emit('message', returnMessage)
       })
     })
