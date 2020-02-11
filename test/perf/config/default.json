@@ -1,4 +1,83 @@
 {
-    "hostname": "localhost",
-    "port": 6969
+    "PRODUCER": {
+        "HOSTNAME": "localhost",
+        "PORT": 6868,
+        "KAFKA": {
+            "topics": [
+                "test1"
+            ],
+            "configs": {
+                "options": {
+                    "pollIntervalMs": 100,
+                    "messageCharset": "utf8"
+                },
+                "rdkafkaConf": {
+                    "metadata.broker.list": "localhost:9092",
+                    "client.id": "default-client",
+                    "event_cb": true,
+                    "compression.codec": "none",
+                    "retry.backoff.ms": 100,
+                    "message.send.max.retries": 2,
+                    "socket.keepalive.enable": true,
+                    "queue.buffering.max.messages": 1000,
+                    "queue.buffering.max.ms": 50,
+                    "batch.num.messages": 100,
+                    "api.version.request": true,
+                    "dr_cb": true
+                },
+                "topicConf": {
+                    "request.required.acks": 1
+                }
+            }
+        }
+    },
+    "CONSUMER": {
+        "HOSTNAME": "localhost",
+        "PORT": 6969,
+        "KAFKA": {
+            "topics": [
+                "test1"
+            ],
+            "configs": {
+                "options": {
+                    "mode": 2,
+                    "batchSize": 1,
+                    "recursiveTimeout": 100,
+                    "pollFrequency": 0,
+                    "messageCharset": "utf8",
+                    "messageAsJSON": true,
+                    "sync": true,
+                    "consumeTimeout": 1000
+                },
+                "rdkafkaConf": {
+                    "client.id": "consumer1",
+                    "group.id": "group1",
+                    "metadata.broker.list": "localhost:9092",
+                    "queue.buffering.max.messages": 100,
+                    "queue.buffering.max.ms": 50,
+                    "enable.auto.commit": true
+                },
+                "topicConf": {
+                    "auto.offset.reset": "beginning"
+                }
+            }
+        }
+    },
+    "INSTRUMENTATION": {
+        "METRICS": {
+            "DISABLED": false,
+            "config": {
+                "timeout": 5000,
+                "prefix": "moja_",
+                "defaultLabels": {
+                    "serviceName": "central-services-stream"
+                }
+            }
+        }
+    },
+    "TEMPLATES": {
+        "messages": [
+            "{    \"content\": { \"id\": \"{{id}}\",  \"batchId\": \"{{batchId}}\",  \"payload\": \"{{payload}}\",  \"metrics\": { \"start\": \"{{start}}\",  \"batchStart\": \"{{batchStart}}\" } },  \"type\": \"application/json\"}"
+        ]
+    }
 }
