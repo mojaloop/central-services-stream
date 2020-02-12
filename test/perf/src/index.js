@@ -54,7 +54,7 @@ Program.command('produce') // sub-command name, coffeeType = type, required
   .description('Start Producer') // command description
   .option('--topic <name>', 'Kafka topic')
   .option('--maxMessages <num>', 'Max number of messages to be sent', 1)
-  .option('--messageSize <size>', 'Size of each message to be sent in bytes')
+  .option('--payloadSize <size>', 'Size of payload to be sent in bytes')
   // .option('--batchSize', 'Start the Prepare Handler')
   .option('--api', 'Enable API')
 
@@ -63,7 +63,7 @@ Program.command('produce') // sub-command name, coffeeType = type, required
     // Logger.info(`Program.command('produce').args=${Flatted.stringify(args)}`)
     let topic
     let maxMessages
-    let messageSize
+    let payloadSize
 
     if (args.topic) {
       Logger.info(`Program.command('produce').args.topic=${args.topic}`)
@@ -79,10 +79,10 @@ Program.command('produce') // sub-command name, coffeeType = type, required
       }
     }
 
-    if (args.messageSize) {
-      Logger.info(`Program.command('produce').args.messageSize=${args.messageSize}`)
+    if (args.payloadSize) {
+      Logger.info(`Program.command('produce').args.payloadSize=${args.payloadSize}`)
       try {
-        messageSize = parseInt(args.messageSize)
+        payloadSize = parseInt(args.payloadSize)
       } catch (err) {
         Logger.error(err)
       }
@@ -90,7 +90,7 @@ Program.command('produce') // sub-command name, coffeeType = type, required
 
     try {
       await Setup(Config.PRODUCER.HOSTNAME, Config.PRODUCER.PORT, !args.api)
-      await KafkaProducer.run(maxMessages, messageSize, topic)
+      await KafkaProducer.run(maxMessages, payloadSize, topic)
     } catch (err) {
       Logger.error(err)
     }

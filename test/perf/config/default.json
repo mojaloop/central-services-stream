@@ -8,18 +8,18 @@
             ],
             "configs": {
                 "options": {
-                    "pollIntervalMs": 100,
+                    "pollIntervalMs": 10,
                     "messageCharset": "utf8"
                 },
                 "rdkafkaConf": {
                     "metadata.broker.list": "localhost:9092",
                     "client.id": "default-client",
-                    "event_cb": true,
+                    "event_cb": false,
                     "compression.codec": "none",
                     "retry.backoff.ms": 100,
                     "message.send.max.retries": 2,
                     "socket.keepalive.enable": true,
-                    "queue.buffering.max.messages": 1000,
+                    "queue.buffering.max.messages": 20000,
                     "queue.buffering.max.ms": 50,
                     "batch.num.messages": 100,
                     "api.version.request": true,
@@ -41,9 +41,8 @@
             "configs": {
                 "options": {
                     "mode": 2,
-                    "batchSize": 1,
+                    "batchSize": 100,
                     "recursiveTimeout": 100,
-                    "pollFrequency": 0,
                     "messageCharset": "utf8",
                     "messageAsJSON": true,
                     "sync": true,
