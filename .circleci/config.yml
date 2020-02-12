@@ -279,7 +279,7 @@ workflows:
           requires:
             - setup
             - test-unit
-            - test-coverage
+            #- test-coverage
             - vulnerability-check
             - audit-licenses
           filters:
