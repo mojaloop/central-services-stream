@@ -49,6 +49,8 @@ const RdkafkaStats = require('node-rdkafka-prometheus')
 
 const Protocol = require('./protocol')
 
+const LOG_ENABLED = false
+
 /**
  * Consumer ENUMs
  *
@@ -267,7 +269,7 @@ class Consumer extends EventEmitter {
       // this._setDefaultConsumeTimeout(this._config.options.consumeTimeout)
 
       this._consumer.on('event.log', log => {
-        logger.silly(log.message)
+        if (LOG_ENABLED) logger.silly(log.message)
       })
 
       this._consumer.on('event.error', error => {
@@ -307,7 +309,7 @@ class Consumer extends EventEmitter {
 
       logger.silly('Registering data event..')
       this._consumer.on('data', message => {
-        logger.silly(`Consumer::onData() - message: ${JSON.stringify(message)}`)
+        if (LOG_ENABLED) logger.silly(`Consumer::onData() - message: ${JSON.stringify(message)}`)
         const returnMessage = { ...message }
         // let returnMessage = {}
         // Object.assign(returnMessage, message)
@@ -393,7 +395,7 @@ class Consumer extends EventEmitter {
     // setup queues to ensure sync processing of messages if options.sync is true
     if (this._config.options.sync) {
       this._syncQueue = async.queue((message, callbackDone) => {
-        logger.debug(`Consumer::consume() - Sync Process - ${JSON.stringify(message)}`)
+        if (LOG_ENABLED) logger.debug(`Consumer::consume() - Sync Process - ${JSON.stringify(message)}`)
         let payload
         if (this._config.options.mode === ENUMS.CONSUMER_MODES.flow) {
           payload = message.message
@@ -495,10 +497,12 @@ class Consumer extends EventEmitter {
             const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
             msg.value = parsedValue
           })
-          if (this._config.options.messageAsJSON) {
-            logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
-          } else {
-            logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${messages}}`)
+          if (LOG_ENABLED) {
+            if (this._config.options.messageAsJSON) {
+              logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
+            } else {
+              logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${messages}}`)
+            }
           }
           if (this._config.options.sync) {
             this._syncQueue.push({ error, messages }, function (err) {
@@ -508,7 +512,7 @@ class Consumer extends EventEmitter {
             })
           } else {
             Promise.resolve(workDoneCb(error, messages)).then((response) => {
-              Logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
+              if (LOG_ENABLED) Logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
             }).catch((err) => {
               Logger.error(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${err}`)
               super.emit('error', err)
@@ -558,6 +562,7 @@ class Consumer extends EventEmitter {
         }
       } else {
         // lets transform the messages into the desired format
+        const tick = (new Date()).getTime()
         messages.map(msg => {
           const { topic } = msg
           const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
@@ -570,11 +575,15 @@ class Consumer extends EventEmitter {
             topics: topic
           }, msg.size)
         })
-        if (this._config.options.messageAsJSON) {
-          logger.debug(`Consumer::_consumerRecursive() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
-        } else {
-          logger.debug(`Consumer::_consumerRecursive() - messages[${messages.length}]: ${messages}}`)
+        if (LOG_ENABLED) {
+          if (this._config.options.messageAsJSON) {
+            logger.debug(`Consumer::_consumerRecursive() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
+          } else {
+            logger.debug(`Consumer::_consumerRecursive() - messages[${messages.length}]: ${messages}}`)
+          }
         }
+        const toe = (new Date()).getTime()
+        if (LOG_ENABLED) console.log('parse:', toe - tick)
 
         if (this._config.options.sync) {
           this._syncQueue.push({ error, messages }, (error) => {
@@ -591,7 +600,7 @@ class Consumer extends EventEmitter {
             ['success', 'topics']
           ).startTimer()
           Promise.resolve(workDoneCb(error, messages)).then((response) => { // histogram
-            Logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
+            if (LOG_ENABLED) Logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
             !!Metrics.isInitiated() && histTimerEnd({ success: true, topics: topicName })
           }).catch((err) => {
             Logger.error(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${err}`)
@@ -628,10 +637,12 @@ class Consumer extends EventEmitter {
       } else {
         const parsedValue = Protocol.parseValue(message.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
         message.value = parsedValue
-        if (this._config.options.messageAsJSON) {
-          logger.debug(`Consumer::_consumerFlow() - message: ${JSON.stringify(message)}`)
-        } else {
-          logger.debug(`Consumer::_consumerFlow() - message: ${message}`)
+        if (LOG_ENABLED) {
+          if (this._config.options.messageAsJSON) {
+            logger.debug(`Consumer::_consumerFlow() - message: ${JSON.stringify(message)}`)
+          } else {
+            logger.debug(`Consumer::_consumerFlow() - message: ${message}`)
+          }
         }
         if (this._config.options.sync) {
           this._syncQueue.push({ error, message }, function (err) {
@@ -639,7 +650,7 @@ class Consumer extends EventEmitter {
           })
         } else {
           Promise.resolve(workDoneCb(error, message)).then((response) => {
-            Logger.debug(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${response}`)
+            if (LOG_ENABLED) Logger.debug(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${response}`)
           }).catch((err) => {
             Logger.error(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${err}`)
             super.emit('error', err)
@@ -707,9 +718,9 @@ class Consumer extends EventEmitter {
       ['success', 'topics']
     ).startTimer()
     const { logger } = this._config
-    logger.silly('Consumer::commitMessage() - start')
+    if (LOG_ENABLED) logger.silly('Consumer::commitMessage() - start')
     this._consumer.commitMessage(msg)
-    logger.silly('Consumer::commitMessage() - end')
+    if (LOG_ENABLED) logger.silly('Consumer::commitMessage() - end')
     !!Metrics.isInitiated() && histTimerEnd({ success: true, topics: this._topicsStr })
   }
 
@@ -725,9 +736,9 @@ class Consumer extends EventEmitter {
       ['success', 'topics']
     ).startTimer()
     const { logger } = this._config
-    logger.silly('Consumer::commitSync() - start')
+    if (LOG_ENABLED) logger.silly('Consumer::commitSync() - start')
     this._consumer.commitSync(topicPartitions)
-    logger.silly('Consumer::commitSync() - end')
+    if (LOG_ENABLED) logger.silly('Consumer::commitSync() - end')
     !!Metrics.isInitiated() && histTimerEnd({ success: true })
   }
 
@@ -743,9 +754,9 @@ class Consumer extends EventEmitter {
       ['success', 'topics']
     ).startTimer()
     const { logger } = this._config
-    logger.silly('Consumer::commitMessageSync() - start')
+    if (LOG_ENABLED) logger.silly('Consumer::commitMessageSync() - start')
     this._consumer.commitMessageSync(msg)
-    logger.silly('Consumer::commitMessageSync() - end')
+    if (LOG_ENABLED) logger.silly('Consumer::commitMessageSync() - end')
     !!Metrics.isInitiated() && histTimerEnd({ success: true, topics: this._topicsStr })
   }
 
