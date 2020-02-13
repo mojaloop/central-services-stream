@@ -236,11 +236,16 @@ class Consumer extends EventEmitter {
     this._status.runningInConsumeMode = false
     this._status.running = true
     this._topicsStr = JSON.stringify(topics)
+    this.metrics = new RdkafkaStats(Object.assign(
+      Metrics.getOptions(),
+      {
+        namePrefix: `${config.rdkafkaConf['client.id'].split('-').join('_')}_`,
+        registers: [Metrics.getDefaultRegister()]
+      }))
     // setup default onReady emit handler
     super.on('ready', arg => {
       Logger.debug(`Consumer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
     })
-    this.metrics = new RdkafkaStats(config.metrics)
     // setup default onError emit handler
     super.on('error', error => {
       Logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
@@ -291,7 +296,7 @@ class Consumer extends EventEmitter {
         logger.silly('Consumer::connect() - end')
         resolve(true)
       })
-    // When setting up a consumer or producer:
+      // When setting up a consumer or producer:
       logger.silly('Connecting..')
       this._consumer.connect(null, (error, metadata) => {
         if (error) {
@@ -320,12 +325,11 @@ class Consumer extends EventEmitter {
         const parsedValue = Protocol.parseValue(returnMessage.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
         returnMessage.value = parsedValue
         // }
-        this._consumer.on('event.stats', msg => {
-          const stats = JSON.parse(msg.message)
-          // this.metrics.RdkafkaStats.observe(stats)
-          this.metrics.observe(stats)
-        })
         super.emit('message', returnMessage)
+      })
+      this._consumer.on('event.stats', msg => {
+        const stats = JSON.parse(msg.message)
+        this.metrics.observe(stats)
       })
     })
   }
@@ -335,7 +339,7 @@ class Consumer extends EventEmitter {
    *
    * Disconnects consumer from the Kafka brocker
    */
-  disconnect (cb = () => {}) {
+  disconnect (cb = () => { }) {
     const { logger } = this._config
     logger.silly('Consumer::disconnect() - start')
     if (this._pollInterval) {
@@ -387,7 +391,7 @@ class Consumer extends EventEmitter {
     logger.silly('Consumer::consume() - start')
 
     if (!workDoneCb || typeof workDoneCb !== 'function') {
-      workDoneCb = () => {}
+      workDoneCb = () => { }
     }
 
     // setup queues to ensure sync processing of messages if options.sync is true
@@ -672,7 +676,7 @@ class Consumer extends EventEmitter {
    */
   consumeOnce (workDoneCb) {
     if (!workDoneCb || typeof workDoneCb !== 'function') {
-      workDoneCb = () => {}
+      workDoneCb = () => { }
     }
     throw new Error('Not implemented')
   }
@@ -797,7 +801,7 @@ class Consumer extends EventEmitter {
    */
   getMetadata (metadataOptions, metaDatacCb) {
     if (!metaDatacCb || typeof metaDatacCb !== 'function') {
-      metaDatacCb = () => {}
+      metaDatacCb = () => { }
     }
     const { logger } = this._config
     logger.silly('Consumer::getMetadata() - start')

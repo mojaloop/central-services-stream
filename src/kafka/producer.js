@@ -41,6 +41,7 @@ const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Protocol = require('./protocol')
 const Metrics = require('@mojaloop/central-services-metrics')
+const RdkafkaStats = require('node-rdkafka-prometheus')
 
 // const Metrics = require('../../../central-services-metrics')
 
@@ -191,6 +192,12 @@ class Producer extends EventEmitter {
     this._status = {}
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
+    this.metrics = new RdkafkaStats(Object.assign(
+      Metrics.getOptions(),
+      {
+        namePrefix: `${config.rdkafkaConf['client.id'].split('-').join('_')}_`,
+        registers: [Metrics.getDefaultRegister()]
+      }))
 
     logger.silly('Producer::constructor() - end')
   }
@@ -239,6 +246,10 @@ class Producer extends EventEmitter {
         this._producer.setPollInterval(this._config.options.pollIntervalMs)
         super.emit('ready', args)
         resolve(true)
+      })
+      this._producer.on('event.stats', msg => {
+        const stats = JSON.parse(msg.message)
+        this.metrics.observe(stats)
       })
 
       logger.silly('Connecting..')
