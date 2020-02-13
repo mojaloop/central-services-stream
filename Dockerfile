@@ -6,11 +6,16 @@ RUN apk add --no-cache -t build-dependencies git make gcc g++ python libtool aut
     && npm config set unsafe-perm true \
     && npm install -g node-gyp
 
+# Main central-services-stream project
 COPY package.json package-lock.json* /opt/app/
-
 COPY src /opt/app/src
-COPY test /opt/app/src
 COPY config /opt/app/config
+
+# Perf scripts for central-services-stream project
+COPY test/perf/config /opt/app/test/perf/config
+COPY test/perf/src /opt/app/test/perf/src
+COPY test/perf/package.json /opt/app/test/perf/package.json
+COPY test/perf/package-lock.json /opt/app/test/perf/package-lock.json
 
 # RUN npm install
 
@@ -19,15 +24,17 @@ WORKDIR /opt/app/test/perf
 RUN npm install
 
 FROM node:10.15.3-alpine
-WORKDIR /opt/app/
+WORKDIR /opt/app
 
 COPY --from=builder /opt/app .
 
-RUN npm prune --production
+# RUN npm prune --production
 
 WORKDIR /opt/app/test/perf
 
-RUN npm prune --production
+RUN npm install
+
+# RUN npm prune --production
 
 # Create empty log file & link stdout to the application log file
 # RUN mkdir ./logs && touch ./logs/combined.log
@@ -35,4 +42,4 @@ RUN npm prune --production
 
 EXPOSE 6969
 EXPOSE 6868
-CMD ["npm", "run", "start"]
+CMD ["node", "index.js" "produce", "--maxMessages", "10", "--payloadSize", "180", "--topic", "test1", "--api"]]
