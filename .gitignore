@@ -68,3 +68,8 @@ typings/
 
 # Perf scripts
 test/perf/package-lock.json
+
+**/*.jar
+**/perf/src/lib/scripts/**/*
+
+**/*.DS_STORE
