@@ -13,7 +13,7 @@ const initInstrumentation = require('../shared/setup').initInstrumentation
 const runConsumer = async () => {
   const config = Config.CONSUMER.KAFKA.configs
   const topics = Config.CONSUMER.KAFKA.topics
-  await initInstrumentation(  )
+  await initInstrumentation()
   const consumeFunction = async (error, messages) => {
     return new Promise((resolve, reject) => {
       var metricStartNow = (new Date()).getTime()

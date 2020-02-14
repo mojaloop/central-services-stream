@@ -28,7 +28,6 @@
     "@mojaloop/central-services-metrics": "9.1.2-snapshot",
     "@mojaloop/central-services-stream": "file:../..",
     "commander": "^4.1.1",
-    "faker": "^4.1.0",
-    "mustache": "^4.0.0"
+    "faker": "^4.1.0"
   }
 }

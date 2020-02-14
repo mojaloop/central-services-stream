@@ -81,13 +81,26 @@ const runProducer = async (messageNum = 1, payloadSize = 10, topicName) => {
     //   },
     //   "type": "application/json"
     // }
+
     try {
-      const renderedMessage = Mustache.render(Config.TEMPLATES.messages[0], messageValues)
-      message = JSON.parse(renderedMessage)
+      // const renderedMessage = Mustache.render(Config.TEMPLATES.messages[0], messageValues)
+      const message = {
+        content: {
+          id: messageValues.id,
+          batchId: messageValues.batchId,
+          payload: messageValues.payload,
+          metrics: {
+            start: messageValues.start,
+            batchStart: messageValues.batchStart
+          }
+        },
+        type: 'application/json'
+      }
+      const messageSize = Buffer.byteLength(JSON.stringify(message), 'utf8')
       // message = renderedMessage
-      Logger.debug(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, messageSize=${Buffer.byteLength(renderedMessage, 'utf8')}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Sending payload [${i + 1}] - ${JSON.stringify(message)}`)
+      Logger.debug(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, messageSize=${messageSize}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Sending payload [${i + 1}] - ${JSON.stringify(message)}`)
       result = await producerClient.sendMessage(message, topicConf)
-      Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, messageSize=${Buffer.byteLength(renderedMessage, 'utf8')}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Message[${i + 1}] sent with result: ${result}`)
+      Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, messageSize=${messageSize}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Message[${i + 1}] sent with result: ${result}`)
     } catch (err) {
       Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Message[${i + 1}] sent with error: ${result}`)
       Logger.error(err)

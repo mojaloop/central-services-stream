@@ -75,10 +75,5 @@
                 }
             }
         }
-    },
-    "TEMPLATES": {
-        "messages": [
-            "{    \"content\": { \"id\": \"{{id}}\",  \"batchId\": \"{{batchId}}\",  \"payload\": \"{{payload}}\",  \"metrics\": { \"start\": \"{{start}}\",  \"batchStart\": \"{{batchStart}}\" } },  \"type\": \"application/json\"}"
-        ]
     }
 }
