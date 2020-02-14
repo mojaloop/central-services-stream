@@ -4,6 +4,7 @@ const Logger = require('@mojaloop/central-services-logger')
 const KafkaHelper = require('./kafkaHelper')
 const Perf4js = require('../shared/perf4js')
 const Config = require('@local/config')
+const initInstrumentation = require('../shared/setup').initInstrumentation
 
 // const sleep = (ms) => {
 //   var unixtime_ms = new Date().getTime()
@@ -12,7 +13,7 @@ const Config = require('@local/config')
 const runConsumer = async () => {
   const config = Config.CONSUMER.KAFKA.configs
   const topics = Config.CONSUMER.KAFKA.topics
-
+  await initInstrumentation(  )
   const consumeFunction = async (error, messages) => {
     return new Promise((resolve, reject) => {
       var metricStartNow = (new Date()).getTime()

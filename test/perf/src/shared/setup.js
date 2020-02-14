@@ -59,4 +59,4 @@ const init = async (hostname, port, apiDisabled = true) => {
   await initAPI(hostname, port, apiDisabled)
 }
 
-module.exports = init
+module.exports = { init, initInstrumentation }

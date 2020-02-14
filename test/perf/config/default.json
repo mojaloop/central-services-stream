@@ -23,7 +23,8 @@
                     "queue.buffering.max.ms": 50,
                     "batch.num.messages": 100,
                     "api.version.request": true,
-                    "dr_cb": true
+                    "dr_cb": true,
+                    "statistics.interval.ms": 1000
                 },
                 "topicConf": {
                     "request.required.acks": 1
@@ -54,7 +55,8 @@
                     "metadata.broker.list": "localhost:9092",
                     "queue.buffering.max.messages": 100,
                     "queue.buffering.max.ms": 50,
-                    "enable.auto.commit": true
+                    "enable.auto.commit": true,
+                    "statistics.interval.ms": 1000
                 },
                 "topicConf": {
                     "auto.offset.reset": "beginning"

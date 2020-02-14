@@ -36,8 +36,10 @@ const uuidv4 = require('uuid/v4')
 const Config = require('@local/config')
 const Logger = require('@mojaloop/central-services-logger')
 const Faker = require('faker')
+const initInstrumentation = require('../shared/setup').initInstrumentation
 
 const runProducer = async (messageNum = 1, payloadSize = 10, topicName) => {
+  await initInstrumentation()
   const batchId = uuidv4()
   const batchStart = (new Date()).getTime()
   Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, topicName=${topicName}] ~ Producer::perf::runProducer - START`)
