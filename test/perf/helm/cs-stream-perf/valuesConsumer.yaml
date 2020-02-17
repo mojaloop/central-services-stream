@@ -24,7 +24,8 @@ image:
   repository: mojaloop/central-services-stream-perf
   tag: v0.1
   pullPolicy: Always
-  command: "node src/index.js produce --maxMessages 10000 --payloadSize 120 --topic test1 --api"
+  command: "node src/index.js consume --batchSize 10 --api"
+  env: {}
 
 init:
   enabled: true
@@ -45,7 +46,7 @@ service:
   name: cssperf
   type: ClusterIP
   externalPort: 80
-  internalPort: 6868
+  internalPort: 6969
 
   annotations: {}
 
@@ -105,6 +106,17 @@ resources: {}
   # requests:
   #  cpu: 100m
   #  memory: 128Mi
+
+## metric configuration for prometheus instrumentation
+metrics:
+  ## flag to enable/disable the metrics end-points
+  enabled: true
+  config:
+    timeout: 5000
+    prefix: css_perf_
+    defaultLabels:
+      serviceName: css-perf-consumer
+
 config:
   ## Kafka Configuration
   # this can be set if the dependency chart for kafka is disabled. If 'kafka_host' is commented out, then the name of the dependency chart will be used.
@@ -117,6 +129,7 @@ config:
   consumer:
     host: "localhost"
     port: 6969
+    batch_size_value: 10
   statistics:
     intervalMs: 1000
   topics: 'test1'
