@@ -45,6 +45,14 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - exec tail -f /dev/null
+          # command:
+          #   - sh
+          #   - "-c"
+          #   - {{ .Values.image.command | quote }}
           ports:
             - containerPort: {{ .Values.service.internalPort }}
           {{- if .Values.readinessProbe.enabled }}
