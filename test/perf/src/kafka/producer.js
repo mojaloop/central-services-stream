@@ -31,7 +31,6 @@
 'use strict'
 
 const KafkaHelper = require('./kafkaHelper')
-const Mustache = require('mustache')
 const uuidv4 = require('uuid/v4')
 const Config = require('@local/config')
 const Logger = require('@mojaloop/central-services-logger')
@@ -83,7 +82,7 @@ const runProducer = async (messageNum = 1, payloadSize = 10, topicName) => {
     // }
 
     try {
-      // const renderedMessage = Mustache.render(Config.TEMPLATES.messages[0], messageValues)
+        // const renderedMessage = Mustache.render(Config.TEMPLATES.messages[0], messageValues)
       const message = {
         content: {
           id: messageValues.id,
