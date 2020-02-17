@@ -34,7 +34,7 @@ COPY --from=builder /opt/app .
 # Create empty log file & link stdout to the application log file
 # RUN mkdir ./logs && touch ./logs/combined.log
 # RUN ln -sf /dev/stdout ./logs/combined.log
-
+WORKDIR /opt/app/test/perf
 EXPOSE 6969
 EXPOSE 6868
 # CMD ["node", "index.js" "produce", "--maxMessages", "10", "--payloadSize", "180", "--topic", "test1", "--api"]
