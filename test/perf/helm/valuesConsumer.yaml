@@ -64,16 +64,18 @@ service:
         externalPort: 3081
 
 readinessProbe:
-  enabled: false
+  enabled: true
   httpGet:
     path: /health
+    port: 6969
   initialDelaySeconds: 30
   periodSeconds: 15
 
 livenessProbe:
-  enabled: false
+  enabled: true
   httpGet:
     path: /health
+    port: 6969
   initialDelaySeconds: 30
   periodSeconds: 15
 
@@ -124,10 +126,10 @@ config:
   kafka_host: 'cssk-kafka'
   kafka_port: 9092
   producer:
-    host: "localhost"
+    host: '0.0.0.0'
     port: 6868
   consumer:
-    host: "localhost"
+    host: '0.0.0.0'
     port: 6969
     batch_size_value: 10
   statistics:
