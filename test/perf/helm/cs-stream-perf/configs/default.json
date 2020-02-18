@@ -15,7 +15,7 @@
                 "rdkafkaConf": {
                     "metadata.broker.list": "{{ (default .Values.config.kafka_host $kafkaHost) }}:{{ .Values.config.kafka_port }}",
                     "client.id": "default-client",
-                    "event_cb": false,
+                    "event_cb": true,
                     "compression.codec": "none",
                     "retry.backoff.ms": 100,
                     "message.send.max.retries": 2,
