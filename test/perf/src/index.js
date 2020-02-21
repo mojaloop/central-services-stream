@@ -96,20 +96,25 @@ Program.command('produce') // sub-command name, coffeeType = type, required
   })
 
 Program.command('consume') // sub-command name, coffeeType = type, required
-  .alias('p') // alternative sub-command is 'o'
+  .alias('c') // alternative sub-command is 'o'
   .description('Start Consumer') // command description
-  .option('--batchSize', 'Start the Prepare Handler')
+  .option('--batchSize <num>', 'batch size of messages')
   .option('--api', 'Start the Prepare Handler')
+  .option('--produceToTopic <topic>', 'Produce followup message to topic of a choice')
 
   // function to execute when command is uses
   .action(async (args) => {
     if (args.batchSize) {
       Logger.debug('CLI: Param --batchSize')
     }
+    if (args.produceToTopic) {
+      Logger.debug('CLI: Param --produceToTopic')
+    }
 
     try {
+      const batchSize = parseInt(args.batchSize)
       await Setup(Config.CONSUMER.HOSTNAME, Config.CONSUMER.PORT, !args.api)
-      await KafkaConsumer.run()
+      await KafkaConsumer.run(batchSize, args.produceToTopic)
     } catch (err) {
       Logger.error(err)
     }
