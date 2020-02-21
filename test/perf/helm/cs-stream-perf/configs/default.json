@@ -14,15 +14,16 @@
                 },
                 "rdkafkaConf": {
                     "metadata.broker.list": "{{ (default .Values.config.kafka_host $kafkaHost) }}:{{ .Values.config.kafka_port }}",
-                    "client.id": "default-client",
+                    "client.id": "producer1",
                     "event_cb": true,
                     "compression.codec": "none",
                     "retry.backoff.ms": 100,
                     "message.send.max.retries": 2,
                     "socket.keepalive.enable": true,
-                    "queue.buffering.max.messages": 20000,
+                    "queue.buffering.max.messages": 4000000,
                     "queue.buffering.max.ms": 50,
-                    "batch.num.messages": 100,
+                    "queue.buffering.max.kbytes": 20000000,
+                    "batch.num.messages": 1,
                     "api.version.request": true,
                     "dr_cb": true,
                     "statistics.interval.ms": {{ .Values.config.statistics.intervalMs }}
@@ -43,7 +44,7 @@
             "configs": {
                 "options": {
                     "mode": 2,
-                    "batchSize": 100,
+                    "batchSize": 1,
                     "recursiveTimeout": 100,
                     "messageCharset": "utf8",
                     "messageAsJSON": true,

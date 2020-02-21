@@ -24,7 +24,7 @@ image:
   repository: mojaloop/central-services-stream-perf
   tag: v0.1
   pullPolicy: Always
-  command: "node src/index.js produce --maxMessages 100 --payloadSize 180 --topic test1 --api"
+  command: "node src/index.js produce --maxMessages 250000 --payloadSize 30000 --topic test1 --api"
   env: {}
 
 init:

@@ -89,8 +89,7 @@ Program.command('produce') // sub-command name, coffeeType = type, required
     }
 
     try {
-      await Setup(Config.PRODUCER.HOSTNAME, Config.PRODUCER.PORT, !args.api)
-      await KafkaProducer.run(maxMessages, payloadSize, topic)
+      await Promise.all([Setup(Config.PRODUCER.HOSTNAME, Config.PRODUCER.PORT, !args.api), KafkaProducer.run(maxMessages, payloadSize, topic)])
     } catch (err) {
       Logger.error(err)
     }

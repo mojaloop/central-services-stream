@@ -24,7 +24,7 @@ image:
   repository: mojaloop/central-services-stream-perf
   tag: v0.1
   pullPolicy: Always
-  command: "node src/index.js consume --batchSize 10 --api"
+  command: "node src/index.js consume --batchSize 1 --api"
   env: {}
 
 init:

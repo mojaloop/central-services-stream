@@ -37,6 +37,12 @@ const Logger = require('@mojaloop/central-services-logger')
 const Faker = require('faker')
 const initInstrumentation = require('../shared/setup').initInstrumentation
 
+function setImmediatePromise () {
+  return new Promise((resolve) => {
+    setImmediate(() => resolve())
+  })
+}
+
 const runProducer = async (messageNum = 1, payloadSize = 10, topicName) => {
   await initInstrumentation()
   const batchId = uuidv4()
@@ -66,7 +72,7 @@ const runProducer = async (messageNum = 1, payloadSize = 10, topicName) => {
       start: (new Date()).getTime(),
       payload: randomPayload
     }
-    var message
+    // var message
     var result
     // const renderedMessage = {
     //   "content": {
@@ -82,7 +88,7 @@ const runProducer = async (messageNum = 1, payloadSize = 10, topicName) => {
     // }
 
     try {
-        // const renderedMessage = Mustache.render(Config.TEMPLATES.messages[0], messageValues)
+      // const renderedMessage = Mustache.render(Config.TEMPLATES.messages[0], messageValues)
       const message = {
         content: {
           id: messageValues.id,
@@ -99,6 +105,7 @@ const runProducer = async (messageNum = 1, payloadSize = 10, topicName) => {
       // message = renderedMessage
       Logger.debug(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, messageSize=${messageSize}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Sending payload [${i + 1}] - ${JSON.stringify(message)}`)
       result = await producerClient.sendMessage(message, topicConf)
+      await setImmediatePromise()
       Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, messageSize=${messageSize}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Message[${i + 1}] sent with result: ${result}`)
     } catch (err) {
       Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Message[${i + 1}] sent with error: ${result}`)
@@ -107,8 +114,9 @@ const runProducer = async (messageNum = 1, payloadSize = 10, topicName) => {
   }
 
   Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, topicName=${topicName}] ~ Producer::perf::runProducer - Producer for '${topicName}' Disconnecting`)
-  producerClient.disconnect()
+  // producerClient.disconnect()
   Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, topicName=${topicName}] ~ Producer::perf::runProducer - END`)
+  return true
 }
 // Logger.debug(`process.argv=${process.argv}`)
 // if(process.argv.length == 3 && !isNaN(process.argv[2])){
