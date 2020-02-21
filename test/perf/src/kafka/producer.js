@@ -36,6 +36,7 @@ const Config = require('@local/config')
 const Logger = require('@mojaloop/central-services-logger')
 const Faker = require('faker')
 const initInstrumentation = require('../shared/setup').initInstrumentation
+const Metrics = require('@mojaloop/central-services-metrics')
 
 function setImmediatePromise () {
   return new Promise((resolve) => {
@@ -45,6 +46,13 @@ function setImmediatePromise () {
 
 const runProducer = async (messageNum = 1, payloadSize = 10, topicName) => {
   await initInstrumentation()
+
+  const histTimer_runProducer_func = !!Metrics.isInitiated() && Metrics.getHistogram(
+    'producer_runProducer_func',
+    'Central Services Stream - Performance Test Producer Runner',
+    ['success', 'topics']
+  ).startTimer()
+
   const batchId = uuidv4()
   const batchStart = (new Date()).getTime()
   Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, topicName=${topicName}] ~ Producer::perf::runProducer - START`)
@@ -65,6 +73,11 @@ const runProducer = async (messageNum = 1, payloadSize = 10, topicName) => {
   const randomPayload = Faker.random.alphaNumeric(payloadSize)
 
   for (var i = 0; i < messageNum; i++) {
+    const histTimer_runProducer_for = !!Metrics.isInitiated() && Metrics.getHistogram(
+      'producer_runProducer_for',
+      'Central Services Stream - Performance Test Producer For Loop',
+      ['success', 'topics']
+    ).startTimer()
     var messageValues = {
       id: uuidv4(),
       batchId: batchId,
@@ -105,17 +118,22 @@ const runProducer = async (messageNum = 1, payloadSize = 10, topicName) => {
       // message = renderedMessage
       Logger.debug(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, messageSize=${messageSize}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Sending payload [${i + 1}] - ${JSON.stringify(message)}`)
       result = await producerClient.sendMessage(message, topicConf)
-      await setImmediatePromise()
       Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, messageSize=${messageSize}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Message[${i + 1}] sent with result: ${result}`)
+      await setImmediatePromise()
+      !!Metrics.isInitiated() && histTimer_runProducer_for({ success: true, topics: topicName })
     } catch (err) {
       Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, topicName=${topicName}, tid=${messageValues.id}] ~ Producer::perf::runProducer - Message[${i + 1}] sent with error: ${result}`)
       Logger.error(err)
+      await setImmediatePromise()
+      !!Metrics.isInitiated() && histTimer_runProducer_for({ success: false, topics: topicName })
     }
+    // await setImmediatePromise()
   }
 
   Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, topicName=${topicName}] ~ Producer::perf::runProducer - Producer for '${topicName}' Disconnecting`)
   // producerClient.disconnect()
   Logger.info(`[cid=${batchId}, messageNum=${messageNum}, payloadSize=${payloadSize}, topicName=${topicName}] ~ Producer::perf::runProducer - END`)
+  !!Metrics.isInitiated() && histTimer_runProducer_func({ success: true, topics: topicName })
   return true
 }
 // Logger.debug(`process.argv=${process.argv}`)

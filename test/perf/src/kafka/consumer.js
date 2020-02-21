@@ -5,6 +5,7 @@ const KafkaHelper = require('./kafkaHelper')
 const Perf4js = require('../shared/perf4js')
 const Config = require('@local/config')
 const initInstrumentation = require('../shared/setup').initInstrumentation
+const Metrics = require('@mojaloop/central-services-metrics')
 
 // const sleep = (ms) => {
 //   var unixtime_ms = new Date().getTime()
@@ -14,9 +15,36 @@ const runConsumer = async () => {
   const config = Config.CONSUMER.KAFKA.configs
   const topics = Config.CONSUMER.KAFKA.topics
   await initInstrumentation()
+  const histTimer_runConsumer_func = !!Metrics.isInitiated() && Metrics.getHistogram(
+    'consumer_runConsumer_func',
+    'Central Services Stream - Performance Test Consumer Runner',
+    ['success', 'topics']
+  ).startTimer()
+
   const consumeFunction = async (error, messages) => {
     return new Promise((resolve, reject) => {
       var metricStartNow = (new Date()).getTime()
+      const histTimer_runConsumer_consumeFunction = !!Metrics.isInitiated() && Metrics.getHistogram(
+        'consumer_runConsumer_consumeFunction',
+        'Central Services Stream - Performance Test Consumer Callback Handler',
+        ['success', 'topics']
+      ).startTimer()
+
+      const hist_runConsumer_msgAppProduceConsumeLatency = !!Metrics.isInitiated() && Metrics.getHistogram(
+        'consumer_runconsumer_msg_appproduceconsumelatency',
+        'Central Services Stream - MsgAppProduceConsumeLatency = ConsumerStartTime - ProducerMessagePayloadCreationTime',
+        ['success', 'topics']
+      )
+      const hist_runConsumer_msgKafkaProduceConsumeLatency = !!Metrics.isInitiated() && Metrics.getHistogram(
+        'consumer_runconsumer_msg_kafkaproduceconsumelatency',
+        'Central Services Stream - MsgKafkaProduceConsumeLatency = ConsumerStartTime - ProducerMessagePublishedTime',
+        ['success', 'topics']
+      )
+      const hist_runConsumer_msgProducerPublishLatency = !!Metrics.isInitiated() && Metrics.getHistogram(
+        'consumer_runconsumer_msg_producerpublishlatency',
+        'Central Services Stream - MsgProducerPublishLatency = ProducerMessagePublishedTime - ProducerMessagePayloadCreationTime',
+        ['success', 'topics']
+      )
       if (error) {
         Logger.info(`Error consuming message - ${error}`)
         reject(error)
@@ -37,9 +65,15 @@ const runConsumer = async () => {
 
             const metricEndNow = (new Date()).getTime()
 
-            const metricTimeDiffFromMessageSendToEnd = metricEndNow - metricStartPayload
-            const metricTimeDiffFromMessageSendToDropoff = metricStartKafkaRead - metricStartPayload
-            const metricTimeDiffFromDropoffToEnd = metricEndNow - metricStartKafkaRead
+            const metricTimeDiffFromMessageSendToEnd = metricEndNow - metricStartPayload // Metric: MsgAppProduceConsumeLatency = ConsumerStartTime - ProducerMessagePayloadCreationTime
+            hist_runConsumer_msgAppProduceConsumeLatency.observe(metricTimeDiffFromMessageSendToEnd)
+            
+            const metricTimeDiffFromDropoffToEnd = metricEndNow - metricStartKafkaRead // Metric: MsgKafkaProduceConsumeLatency = ConsumerStartTime - ProducerMessagePublishedTime
+            hist_runConsumer_msgKafkaProduceConsumeLatency.observe(metricTimeDiffFromDropoffToEnd)
+
+            const metricTimeDiffFromMessageSendToDropoff = metricStartKafkaRead - metricStartPayload //Metric: MsgProducerPublishLatency = ProducerMessagePublishedTime - ProducerMessagePayloadCreationTime
+            hist_runConsumer_msgProducerPublishLatency.observe(metricTimeDiffFromMessageSendToDropoff)
+          
 
             Perf4js.info(metricStartPayload, metricTimeDiffFromMessageSendToDropoff, 'metricTimeDiffFromMessageSendToDropoff')
             Perf4js.info(metricStartPayload, metricTimeDiffFromMessageSendToEnd, 'metricTimeDiffFromMessageSendToEnd')
@@ -57,9 +91,14 @@ const runConsumer = async () => {
 
           const metricEndNow = (new Date()).getTime()
 
-          const metricTimeDiffFromMessageSendToEnd = metricEndNow - metricStartPayload
-          const metricTimeDiffFromMessageSendToDropoff = metricStartKafkaRead - metricStartPayload
-          const metricTimeDiffFromDropoffToEnd = metricEndNow - metricStartKafkaRead
+          const metricTimeDiffFromMessageSendToEnd = metricEndNow - metricStartPayload // Metric: MsgAppProduceConsumeLatency = ConsumerStartTime - ProducerMessagePayloadCreationTime
+          hist_runConsumer_msgAppProduceConsumeLatency.observe(metricTimeDiffFromMessageSendToEnd)
+          
+          const metricTimeDiffFromDropoffToEnd = metricEndNow - metricStartKafkaRead // Metric: MsgKafkaProduceConsumeLatency = ConsumerStartTime - ProducerMessagePublishedTime
+          hist_runConsumer_msgKafkaProduceConsumeLatency.observe(metricTimeDiffFromDropoffToEnd)
+
+          const metricTimeDiffFromMessageSendToDropoff = metricStartKafkaRead - metricStartPayload //Metric: MsgProducerPublishLatency = ProducerMessagePublishedTime - ProducerMessagePayloadCreationTime
+          hist_runConsumer_msgProducerPublishLatency.observe(metricTimeDiffFromMessageSendToDropoff)
 
           Perf4js.info(metricStartPayload, metricTimeDiffFromMessageSendToDropoff, 'metricTimeDiffFromMessageSendToDropoff')
           Perf4js.info(metricStartPayload, metricTimeDiffFromMessageSendToEnd, 'metricTimeDiffFromMessageSendToEnd')
@@ -69,8 +108,10 @@ const runConsumer = async () => {
         const metricEndNow = (new Date()).getTime()
         const metricEndOfCallBack = metricEndNow - metricStartNow
         Perf4js.info(metricStartNow, metricEndOfCallBack, 'metricEndOfCallBack')
+        !!Metrics.isInitiated() && histTimer_runConsumer_consumeFunction({ success: true, topics: topicName })
         resolve(true)
       } else {
+        !!Metrics.isInitiated() && histTimer_runConsumer_consumeFunction({ success: false, topics: topicName })
         resolve(false)
       }
     })
@@ -100,6 +141,7 @@ const runConsumer = async () => {
   // obsTimerfyConsumeFunction.observe({ entryTypes: ['function'] })
 
   // const consumerClient = KafkaHelper.createConsumer(topics, timerfyConsumeFunction, config)
+  !!Metrics.isInitiated() && histTimer_runConsumer_func({ success: true, topics: JSON.stringify(topics) })
   return consumerClient
 }
 
