@@ -19,3 +19,6 @@ helm install --namespace testcss --name css-producer ./cs-stream-perf -f ./value
 ```bash
 helm del --purge css-producer
 ```
+
+## CLI Command to list consumers of a consumer group1
+kubectl -n backend exec -ti testclient -- ./bin/kafka-consumer-groups.sh --bootstrap-server cssk-kafka.testcss:9092 --group group1 --describe

@@ -30,7 +30,7 @@ affinity:
         - matchExpressions:
             - key: "node-role.mojaloop.io"
               operator: In
-              values: [ "ml_cl_position" ]
+              values: [ "ml_cl_fulfil" ]
 
 ## Node labels for pod assignment
 ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
@@ -42,14 +42,14 @@ nodeSelector: {}
 tolerations:
   - key: "node-role.mojaloop.io"
     operator: "Equal"
-    value: "ml_cl_position"
+    value: "ml_cl_fulfil"
     effect: "NoSchedule"
 
 image:
   repository: mojaloop/central-services-stream-perf
   tag: v0.2
   pullPolicy: Always
-  command: "node src/index.js consume --batchSize 1 --api --produceToTopic notification"
+  command: "node src/index.js consume --batchSize 1 --api --produceToTopic position_fulfil"
   env: {}
 
 init:
@@ -142,7 +142,7 @@ metrics:
     timeout: 5000
     prefix: css_perf_
     defaultLabels:
-      serviceName: css-perf-consumer
+      serviceName: css-perf-consumer-fulfil
 
 config:
   ## Kafka Configuration
@@ -159,7 +159,7 @@ config:
     batch_size_value: 10
   statistics:
     intervalMs: 1000
-  topics: 'position'
+  topics: 'fulfilv2'
 
 kafka:
   enabled: false

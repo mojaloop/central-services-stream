@@ -142,7 +142,7 @@ metrics:
     timeout: 5000
     prefix: css_perf_
     defaultLabels:
-      serviceName: css-perf-consumer
+      serviceName: css-perf-consumer-fulfil
 
 config:
   ## Kafka Configuration
