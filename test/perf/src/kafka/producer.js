@@ -105,6 +105,7 @@ const runProducer = async (messageNum = 1, payloadSize = 10, topicName) => {
       const message = {
         content: {
           id: messageValues.id,
+          flow: topicName,
           batchId: messageValues.batchId,
           payload: messageValues.payload,
           metrics: {

@@ -68,7 +68,7 @@ const runConsumer = async (batchSize, produceToTopic) => {
           Logger.info(`[cid=${messages[0].value.content.batchId}, batchSize=${messages.length}, topicName=${topics}] ~ Consumer::perf::consumeFunction - Batch - START`)
           Logger.info(`Processing a message batch of size ${messages.length}`)
           messages.forEach(async message => {
-            Logger.info(`[cid=${message.value.content.batchId}, messageBatch=${messages.length}, messageSize=${message.length}, topicName=${topics}, tid=${message.value.content.id}] ~ Producer::perf::consumeFunction - Message - START`)
+            Logger.info(`[cid=${message.value.content.batchId}, flow=${message.value.content.flow}, messageBatch=${messages.length}, messageSize=${message.length}, topicName=${topics}, tid=${message.value.content.id}] ~ Producer::perf::consumeFunction - Message - START`)
             // c.commitMessage(msg)
             const metricStartPayload = parseInt(message.value.content.metrics.start)
             const metricStartKafkaRead = parseInt(message.timestamp)
@@ -88,7 +88,7 @@ const runConsumer = async (batchSize, produceToTopic) => {
             Perf4js.info(metricStartPayload, metricTimeDiffFromMessageSendToEnd, 'metricTimeDiffFromMessageSendToEnd')
             Perf4js.info(metricStartPayload, metricTimeDiffFromDropoffToEnd, 'metricTimeDiffFromDropoffToEnd')
             Logger.info(`[cid=${message.value.content.batchId}, messageBatch=${messages.length}, messageSize=${message.length}, topicName=${topics}, tid=${message.value.content.id}] ~ Producer::perf::consumeFunction - Message - END`)
-            if (producerClient) {
+            if (producerClient && message.value.content.flow !== 'prepare-position-notification-fulfil-position-notification') {
               const produceBackStart = (new Date()).getTime()
               const histProduceFeedBackTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
                 'consumer_runconsumer_produce_back',
@@ -96,7 +96,7 @@ const runConsumer = async (batchSize, produceToTopic) => {
                 ['success', 'topics']
               ).startTimer()
               const newMessage = { ...message.value }
-              newMessage.content = { ...message.value.content, ...{ id: uuidv4(), refId: message.value.content.id, metrics: { ...message.value.content.metrics, ...{ start: (new Date()).getTime() } } } }      
+              newMessage.content = { ...message.value.content, ...{ id: uuidv4(), flow: `${message.value.content.flow}-${produceToTopic}`, to: produceToTopic, refId: message.value.content.id, metrics: { ...message.value.content.metrics, ...{ start: (new Date()).getTime() } } } }      
               try {
                 Logger.info(`[cid=${newMessage.content.batchId}, messageBatch=1, messageSize=${newMessage.length}, topicName=${topics}] ~ Consumer::perf::Produced back - START`)
                 const r = await producerClient.sendMessage(newMessage, { topicName: produceToTopic })
@@ -117,7 +117,7 @@ const runConsumer = async (batchSize, produceToTopic) => {
           // c.commitMessage(message)
           Logger.info('Processing a single message')
           const message = messages
-          Logger.info(`[cid=${message.value.content.batchId}, messageBatch=1, messageSize=${message.length}, topicName=${topics}, tid=${message.value.content.id}] ~ Consumer::perf::consumeFunction - Message - START`)
+          Logger.info(`[cid=${message.value.content.batchId}, flow=${message.value.content.flow}, messageBatch=1, messageSize=${message.length}, topicName=${topics}, tid=${message.value.content.id}] ~ Consumer::perf::consumeFunction - Message - START`)
           const metricStartPayload = parseInt(message.value.content.metrics.start)
           const metricStartKafkaRead = parseInt(message.timestamp)
 
@@ -136,7 +136,7 @@ const runConsumer = async (batchSize, produceToTopic) => {
           Perf4js.info(metricStartPayload, metricTimeDiffFromMessageSendToEnd, 'metricTimeDiffFromMessageSendToEnd')
           Perf4js.info(metricStartPayload, metricTimeDiffFromDropoffToEnd, 'metricTimeDiffFromDropoffToEnd')
           Logger.info(`[cid=${message.value.content.batchId}, messageBatch=1, messageSize=${message.length}, topicName=${topics}] ~ Consumer::perf::consumeFunction - Message - END`)
-          if (produceToTopic) {
+          if (produceToTopic && message.value.content.flow !== 'prepare-position-notification-fulfil-position-notification') {
             const produceBackStart = (new Date()).getTime()
             const histProduceFeedBackTimerEnd = !!Metrics.isInitiated() && Metrics.getHistogram(
               'consumer_runconsumer_produce_back',
@@ -144,7 +144,7 @@ const runConsumer = async (batchSize, produceToTopic) => {
               ['success', 'topics']
             ).startTimer()
             const newMessage = { ...message.value }
-            newMessage.content = { ...message.value.content, ...{ id: uuidv4(), refId: message.value.content.id, metrics: { ...message.value.content.metrics, ...{ start: (new Date()).getTime() } } } }
+            newMessage.content = { ...message.value.content, ...{ id: uuidv4(), flow: `${message.value.content.flow}-${produceToTopic}`, refId: message.value.content.id, metrics: { ...message.value.content.metrics, ...{ start: (new Date()).getTime() } } } }
             Logger.info(`[cid=${newMessage.value.content.batchId}, messageBatch=1, messageSize=${newMessage.length}, topicName=${topics}] ~ Consumer::perf::Produced back - START`)
             producerClient.sendMessage(newMessage, { topicName: produceToTopic })
               .then(r => {

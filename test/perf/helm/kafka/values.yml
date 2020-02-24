@@ -1,3 +1,4 @@
+enabled: true
 nameOverride: kafka
 # ------------------------------------------------------------------------------
 # Kafka:
@@ -56,14 +57,14 @@ logSubPath: "logs"
 ## Pod scheduling preferences (by default keep pods within a release on separate nodes).
 ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
 ## By default we don't set affinity
-# affinity:
-#   nodeAffinity:
-#     requiredDuringSchedulingIgnoredDuringExecution:
-#       nodeSelectorTerms:
-#         - matchExpressions:
-#             - key: "node-role.mojaloop.io"
-#               operator: In
-#               values: [ "broker" ]
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: "node-role.mojaloop.io"
+              operator: In
+              values: [ "broker" ]
 ## Alternatively, this typical example defines:
 ## antiAffinity (to keep Kafka pods on separate pods)
 ## and affinity (to encourage Kafka pods to be collocated with Zookeeper pods)
@@ -92,11 +93,11 @@ logSubPath: "logs"
 # Tolerations for nodes that have taints on them.
 # Useful if you want to dedicate nodes to just run kafka
 # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
-# tolerations:
-#   - key: "node-role.mojaloop.io"
-#     operator: "Equal"
-#     value: "broker"
-#     effect: "NoSchedule"
+tolerations:
+  - key: "node-role.mojaloop.io"
+    operator: "Equal"
+    value: "broker"
+    effect: "NoSchedule"
 
 ## Node labels for pod assignment
 ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
@@ -283,22 +284,22 @@ prometheus:
     #      requests:
     #        cpu: 100m
     #        memory: 100Mi
-    # affinity:
-    #   nodeAffinity:
-    #     requiredDuringSchedulingIgnoredDuringExecution:
-    #       nodeSelectorTerms:
-    #         - matchExpressions:
-    #             - key: "node-role.mojaloop.io"
-    #               operator: In
-    #               values: [ "broker" ]
-    #       # Tolerations for nodes that have taints on them.
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: "node-role.mojaloop.io"
+                  operator: In
+                  values: [ "broker" ]
+          # Tolerations for nodes that have taints on them.
     # Useful if you want to dedicate nodes to just run kafka
     # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
-    # tolerations:
-    #   - key: "node-role.mojaloop.io"
-    #     operator: "Equal"
-    #     value: "broker"
-    #     effect: "NoSchedule"
+    tolerations:
+      - key: "node-role.mojaloop.io"
+        operator: "Equal"
+        value: "broker"
+        effect: "NoSchedule"
 
   operator:
     ## Are you using Prometheus Operator?
@@ -350,14 +351,14 @@ zookeeper:
   ## Pod scheduling preferences (by default keep pods within a release on separate nodes).
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
   ## By default we don't set affinity
-  # affinity:
-  #   nodeAffinity:
-  #     requiredDuringSchedulingIgnoredDuringExecution:
-  #       nodeSelectorTerms:
-  #         - matchExpressions:
-  #             - key: "node-role.mojaloop.io"
-  #               operator: In
-  #               values: [ "broker" ]
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: "node-role.mojaloop.io"
+                operator: In
+                values: [ "broker" ]
   ## Alternatively, this typical example defines:
   ## antiAffinity (to keep Kafka pods on separate pods)
   ## and affinity (to encourage Kafka pods to be collocated with Zookeeper pods)
@@ -386,8 +387,8 @@ zookeeper:
   # Tolerations for nodes that have taints on them.
   # Useful if you want to dedicate nodes to just run kafka
   # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
-  # tolerations:
-  #   - key: "node-role.mojaloop.io"
-  #     operator: "Equal"
-  #     value: "broker"
-  #     effect: "NoSchedule"
+  tolerations:
+    - key: "node-role.mojaloop.io"
+      operator: "Equal"
+      value: "broker"
+      effect: "NoSchedule"
