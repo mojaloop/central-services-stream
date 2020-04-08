@@ -48,6 +48,10 @@ Test('Producer test', (producerTests) => {
   // lets setup the tests
   producerTests.beforeEach((test) => {
     sandbox = Sinon.createSandbox()
+    sandbox.stub(Logger, 'isErrorEnabled').value(true)
+    sandbox.stub(Logger, 'isDebugEnabled').value(true)
+    sandbox.stub(Logger, 'isSillyEnabled').value(true)
+
     config = {
       options: {
         pollIntervalMs: 100,
@@ -275,6 +279,9 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
   // lets setup the tests
   producerTests.beforeEach((test) => {
     sandbox = Sinon.createSandbox()
+    sandbox.stub(Logger, 'isErrorEnabled').value(true)
+    sandbox.stub(Logger, 'isDebugEnabled').value(true)
+    sandbox.stub(Logger, 'isSillyEnabled').value(true)
 
     config = {
       options: {
