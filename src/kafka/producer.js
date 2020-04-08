@@ -183,12 +183,12 @@ class Producer extends EventEmitter {
       config.logger = Logger
     }
     const { logger } = config
-    logger.silly('Producer::constructor() - start')
+    Logger.isSillyEnabled && logger.silly('Producer::constructor() - start')
     this._config = config
     this._status = {}
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
-    logger.silly('Producer::constructor() - end')
+    Logger.isSillyEnabled && logger.silly('Producer::constructor() - end')
   }
 
   /**
@@ -202,12 +202,12 @@ class Producer extends EventEmitter {
    */
   async connect () {
     const { logger } = this._config
-    logger.silly('Producer::connect() - start')
+    Logger.isSillyEnabled && logger.silly('Producer::connect() - start')
     return new Promise((resolve, reject) => {
       this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
 
       this._producer.on('event.log', log => {
-        logger.silly(log.message)
+        Logger.isSillyEnabled && logger.silly(log.message)
       })
 
       this._producer.on('event.error', error => {
@@ -219,15 +219,15 @@ class Producer extends EventEmitter {
       })
 
       this._producer.on('delivery-report', (report) => {
-        logger.debug('DeliveryReport: ' + JSON.stringify(report))
+        Logger.isDebugEnabled && logger.debug('DeliveryReport: ' + JSON.stringify(report))
       })
 
       this._producer.on('disconnected', () => {
-        logger.warn('Disconnected.')
+        Logger.isWarnEnabled && logger.warn('Disconnected.')
       })
 
       this._producer.on('ready', (args) => {
-        logger.debug(`Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
+        Logger.isDebugEnabled && logger.debug(`Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
         // Passing non-integer (including "undefined") to setPollInterval() may cause unexpected behaviour, which is hard to trace.
         if (!Number.isInteger(this._config.options.pollIntervalMs)) {
           return reject(new Error('pollIntervalMs should be integer'))
@@ -237,16 +237,16 @@ class Producer extends EventEmitter {
         resolve(true)
       })
 
-      logger.silly('Connecting..')
+      Logger.isSillyEnabled && logger.silly('Connecting..')
       this._producer.connect(null, (error, metadata) => {
         if (error) {
           super.emit('error', error)
-          logger.silly('Consumer::connect() - end')
+          Logger.isSillyEnabled && logger.silly('Consumer::connect() - end')
           return reject(error)
         }
         // this.subscribe()
-        logger.silly('Consumer metadata:')
-        logger.silly(metadata)
+        Logger.isSillyEnabled && logger.silly('Consumer metadata:')
+        Logger.isSillyEnabled && logger.silly(metadata)
         resolve(true)
       })
     })
@@ -288,14 +288,14 @@ class Producer extends EventEmitter {
         throw new Error('You must call and await .connect() before trying to produce messages.')
       }
       if (this._producer._isConnecting) {
-        logger.debug('still connecting')
+        Logger.isDebugEnabled && logger.debug('still connecting')
       }
       const parsedMessage = Protocol.parseMessage(messageProtocol)
       const parsedMessageBuffer = this._createBuffer(parsedMessage, this._config.options.messageCharset)
       if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
         throw new Error('message must be a string or an instance of Buffer.')
       }
-      logger.debug('Producer::send() - start %s', JSON.stringify({
+      Logger.isDebugEnabled && logger.debug('Producer::send() - start %s', JSON.stringify({
         topicName: topicConf.topicName,
         partition: topicConf.partition,
         key: topicConf.key
@@ -304,7 +304,7 @@ class Producer extends EventEmitter {
       await this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey)
       return true
     } catch (e) {
-      logger.debug(e)
+      Logger.isDebugEnabled && logger.debug(e)
       throw e
     }
   }
@@ -348,9 +348,9 @@ class Producer extends EventEmitter {
       metaDataCb = () => {}
     }
     const { logger } = this._config
-    logger.silly('Producer::getMetadata() - start')
+    Logger.isSillyEnabled && logger.silly('Producer::getMetadata() - start')
     this._producer.getMetadata(metadataOptions, metaDataCb)
-    logger.silly('Producer::getMetadata() - end')
+    Logger.isSillyEnabled && logger.silly('Producer::getMetadata() - end')
   }
 }
 

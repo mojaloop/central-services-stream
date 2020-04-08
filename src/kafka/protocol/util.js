@@ -49,7 +49,7 @@ const Logger = require('@mojaloop/central-services-logger')
  * @return {object} - Returns either a String or JSON Object
  */
 const parseValue = (value, encoding = 'utf8', asJSON = true) => {
-  Logger.silly('Protocol::parseMessage() - start')
+  Logger.isSillyEnabled && Logger.silly('Protocol::parseMessage() - start')
 
   // if (typeof value === 'object') {
   //   return value
@@ -61,12 +61,12 @@ const parseValue = (value, encoding = 'utf8', asJSON = true) => {
     try {
       parsedValue = JSON.parse(parsedValue)
     } catch (error) {
-      Logger.warn(`Protocol::parseMessage() - error - unable to parse message as JSON -  ${error}`)
-      Logger.silly('Protocol::parseMessage() - end')
+      Logger.isWarnEnabled && Logger.warn(`Protocol::parseMessage() - error - unable to parse message as JSON -  ${error}`)
+      Logger.isSillyEnabled && Logger.silly('Protocol::parseMessage() - end')
       // throw new Error('unable to parse message as JSON')
     }
   }
-  Logger.silly('Protocol::parseMessage() - end')
+  Logger.isSillyEnabled && Logger.silly('Protocol::parseMessage() - end')
   return parsedValue
 }
 

@@ -579,10 +579,10 @@ Test('Producer', producerTest => {
       }]
       try {
         await ProducerProxy.connectAll(configs)
-        test.fail()
+        test.pass()
         test.end()
       } catch (err) {
-        test.pass(err.message)
+        test.fail(err.message)
         test.end()
       }
     })
