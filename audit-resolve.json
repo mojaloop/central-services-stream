@@ -11,6 +11,14 @@
     "1325|nyc>istanbul-reports>handlebars": {
       "decision": "fix",
       "madeAt": 1576067111613
+    },
+    "1179|tap-xunit>minimist": {
+      "decision": "fix",
+      "madeAt": 1586356984040
+    },
+    "1179|faucet>minimist": {
+      "decision": "postpone",
+      "madeAt": 1586356987724
     }
   },
   "rules": {},

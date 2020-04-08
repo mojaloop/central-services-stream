@@ -233,12 +233,12 @@ class Consumer extends EventEmitter {
 
     // setup default onReady emit handler
     super.on('ready', arg => {
-      Logger.debug(`Consumer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
+      logger.debug(`Consumer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
     })
 
     // setup default onError emit handler
     super.on('error', error => {
-      Logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
+      logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
     })
 
     logger.silly('Consumer::constructor() - end')
@@ -350,7 +350,7 @@ class Consumer extends EventEmitter {
     }
 
     if (this._topics) {
-      this._config.logger.silly(`Consumer::subscribe() - subscribing too [${this._topics}]`)
+      logger.silly(`Consumer::subscribe() - subscribing too [${this._topics}]`)
       this._consumer.subscribe(this._topics)
     }
     logger.silly('Consumer::subscribe() - end')
@@ -491,9 +491,9 @@ class Consumer extends EventEmitter {
             })
           } else {
             Promise.resolve(workDoneCb(error, messages)).then((response) => {
-              Logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
+              logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
             }).catch((err) => {
-              Logger.error(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${err}`)
+              logger.error(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${err}`)
               super.emit('error', err)
             })
             super.emit('batch', messages)
@@ -559,9 +559,9 @@ class Consumer extends EventEmitter {
           })
         } else {
           Promise.resolve(workDoneCb(error, messages)).then((response) => {
-            Logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
+            logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
           }).catch((err) => {
-            Logger.error(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${err}`)
+            logger.error(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${err}`)
             super.emit('error', err)
           })
           super.emit('recursive', error, messages)
@@ -605,9 +605,9 @@ class Consumer extends EventEmitter {
           })
         } else {
           Promise.resolve(workDoneCb(error, message)).then((response) => {
-            Logger.debug(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${response}`)
+            logger.debug(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${response}`)
           }).catch((err) => {
-            Logger.error(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${err}`)
+            logger.error(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${err}`)
             super.emit('error', err)
           })
         }
@@ -615,13 +615,6 @@ class Consumer extends EventEmitter {
       }
     })
   }
-
-  // _setDefaultConsumeTimeout (consumeTimeout = 1000) {
-  //   let { logger } = this._config
-  //   logger.silly('Consumer::_setDefaultConsumeTimeout() - start')
-  //   this._consumer.setDefaultConsumeTimeout(consumeTimeout)
-  //   logger.silly('Consumer::_setDefaultConsumeTimeout() - end')
-  // }
 
   /**
    * Consume Once (Not implemented)

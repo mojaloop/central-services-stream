@@ -282,19 +282,20 @@ class Producer extends EventEmitter {
    * @returns {boolean} or if failed {Error}
    */
   async sendMessage (messageProtocol, topicConf) {
+    const { logger } = this._config
     try {
       if (!this._producer) {
         throw new Error('You must call and await .connect() before trying to produce messages.')
       }
       if (this._producer._isConnecting) {
-        this._config.logger.debug('still connecting')
+        logger.debug('still connecting')
       }
       const parsedMessage = Protocol.parseMessage(messageProtocol)
       const parsedMessageBuffer = this._createBuffer(parsedMessage, this._config.options.messageCharset)
       if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
         throw new Error('message must be a string or an instance of Buffer.')
       }
-      this._config.logger.debug('Producer::send() - start %s', JSON.stringify({
+      logger.debug('Producer::send() - start %s', JSON.stringify({
         topicName: topicConf.topicName,
         partition: topicConf.partition,
         key: topicConf.key
@@ -303,118 +304,10 @@ class Producer extends EventEmitter {
       await this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey)
       return true
     } catch (e) {
-      this._config.logger.debug(e)
+      logger.debug(e)
       throw e
     }
   }
-
-  // /**
-  //  * @async
-  //  * produces a kafka message to a certain topic
-  //  * @param {string} topicName - name of the topic to produce to
-  //  * @param {object} message - value object for the message
-  //  * @param {string} key - optional message key
-  //  * @param {string} from - uri of the initiating fsp
-  //  * @param {string} to - uri of the receiving fsp
-  //  * @param {object} metadata -  data relevant to the context of the message
-  //  * @param {string} event - value from EVENT enum
-  //  * @param {object} reason - if a failed event occurs the code and description will be populated
-  //  * @param {string} type - MIME declaration of the content type of the message
-  //  * @param {number} partition - optional partition to produce to
-  //  * @param {string} pp - Optional for the sender, when is considered the identity of the session. Is mandatory in the destination if the identity of the originator is different of the identity of the from property.
-  //  * @param {*} _opaqueKey - optional opaque token, which gets passed along to your delivery reports
-  //  * @returns {Promise.<object>}
-  //  */
-  // async sendNotify (topicName, message, key, from, to, metadata, event, reason, type, pp, partition = 0, _opaqueKey = null) {
-  //   try {
-  //     if (!this._producer) {
-  //       throw new Error('You must call and await .connect() before trying to produce messages.')
-  //     }
-  //     if (this._producer._isConnecting) {
-  //       this._config.logger.debug('still connecting')
-  //     }
-  //     let parsedNotification = Protocol.parseNotify(from, to, key, message, metadata, event, reason, type, pp)
-  //     // parsedNotification = Buffer.isBuffer(parsedNotification) ? parsedNotification : Buffer.from(JSON.stringify(parsedNotification))
-  //     parsedNotification = this._createBuffer(parsedNotification, this._config.options.messageCharset)
-  //     if (!parsedNotification || !(typeof parsedNotification === 'string' || Buffer.isBuffer(parsedNotification))) {
-  //       throw new Error('message must be a string or an instance of Buffer.')
-  //     }
-  //     this._config.logger.debug('Producer::send() - start %s', JSON.stringify({
-  //       topicName,
-  //       partition,
-  //       key
-  //     }))
-  //     const producedAt = Date.now()
-  //     this._producer.produce(topicName, partition, parsedNotification, key, producedAt, _opaqueKey)
-  //     return {
-  //       key,
-  //       message
-  //     }
-  //   } catch (e) {
-  //     this._config.logger.debug(e)
-  //     throw e
-  //   }
-  // }
-  //
-  // /**
-  //  * @async
-  //  * produces a kafka message to a certain topic
-  //  * @param {string} topicName - name of the topic to produce to
-  //  * @param {object} message - value object for the message
-  //  * @param {string} key - optional message key
-  //  * @param {string} from - uri of the initiating fsp
-  //  * @param {string} to - uri of the receiving fsp
-  //  * @param {object} metadata -  data relevant to the context of the message
-  //  * @param {object} reason - if a failed event occurs the code and description will be populated
-  //  * @param {string} method - value from METHOD enum
-  //  * @param {string} type - MIME declaration of the content type of the message
-  //  * @param {string} status - value from STATUS enum
-  //  * @param {number} partition - optional partition to produce to
-  //  * @param {string} pp - Optional for the sender, when is considered the identity of the session. Is mandatory in the destination if the identity of the originator is different of the identity of the from property.
-  //  * @param {*} _opaqueKey - optional opaque token, which gets passed along to your delivery reports
-  //  * @returns {Promise.<object>}
-  //  */
-  // async sendCommand (topicName, message, key, from, to, reason, method, metadata, status, type, pp, partition = 0, _opaqueKey = null) {
-  //   try {
-  //     if (!this._producer) {
-  //       throw new Error('You must call and await .connect() before trying to produce messages.')
-  //     }
-  //     if (this._producer._isConnecting) {
-  //       this._config.logger.debug('still connecting')
-  //     }
-  //     let parsedCommand = Protocol.parseCommand(from, to, key, message, reason, method, metadata, status, type, pp)
-  //     // parsedCommand = Buffer.isBuffer(parsedCommand) ? parsedCommand : Buffer.from(JSON.stringify(parsedCommand))
-  //     parsedCommand = this._createBuffer(parsedCommand, this._config.options.messageCharset)
-  //     if (!parsedCommand || !(typeof parsedCommand === 'string' || Buffer.isBuffer(parsedCommand))) {
-  //       throw new Error('message must be a string or an instance of Buffer.')
-  //     }
-  //     this._config.logger.debug('Producer::send() - start %s', JSON.stringify({
-  //       topicName,
-  //       partition,
-  //       key
-  //     }))
-  //     const producedAt = Date.now()
-  //     this._producer.produce(topicName, partition, parsedCommand, key, producedAt, _opaqueKey)
-  //     return {
-  //       key,
-  //       message
-  //     }
-  //   } catch (e) {
-  //     this._config.logger.debug(e)
-  //     throw e
-  //   }
-  // }
-
-  // publishHandler (event) {
-  //   return async (eventMessage) => {
-  //     const {topic, key, msg, id, to, from, metadata, pp, type} = eventMessage
-  //     Logger.info('Kafka.publish.publishHandler:: start(%s, %s, %s)', topic, key, msg)
-  //
-  //     await this.sendMessage({message: msg, id, to, from, metadata, pp, type}, {topicName: topic, key}).then(results => {
-  //       Logger.info(`Kafka.publish.publishHandler:: result:'${results}'`)
-  //     })
-  //   }
-  // }
 
   /**
    * Disconnect producer
