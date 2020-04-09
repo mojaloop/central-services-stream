@@ -62,20 +62,20 @@ const produceMessage = async (messageProtocol, topicConf, config) => {
     if (listOfProducers[topicConf.topicName]) {
       producer = listOfProducers[topicConf.topicName]
     } else {
-      Logger.debug('Producer::start::topic=' + topicConf.topicName)
+      Logger.isDebugEnabled && Logger.debug('Producer::start::topic=' + topicConf.topicName)
       producer = new Producer(config)
-      Logger.debug('Producer::connect::start')
+      Logger.isDebugEnabled && Logger.debug('Producer::connect::start')
       await producer.connect()
-      Logger.debug('Producer::connect::end')
+      Logger.isDebugEnabled && Logger.debug('Producer::connect::end')
       listOfProducers[topicConf.topicName] = producer
     }
-    Logger.debug(`Producer.sendMessage::messageProtocol:'${JSON.stringify(messageProtocol)}'`)
+    Logger.isDebugEnabled && Logger.debug(`Producer.sendMessage::messageProtocol:'${JSON.stringify(messageProtocol)}'`)
     await producer.sendMessage(messageProtocol, topicConf)
-    Logger.debug('Producer::end')
+    Logger.isDebugEnabled && Logger.debug('Producer::end')
     return true
   } catch (err) {
-    Logger.error(err)
-    Logger.debug(`Producer error has occurred for ${topicConf.topicName}`)
+    Logger.isErrorEnabled && Logger.error(err)
+    Logger.isDebugEnabled && Logger.debug(`Producer error has occurred for ${topicConf.topicName}`)
     throw ErrorHandler.Factory.reformatFSPIOPError(err)
   }
 }
@@ -94,16 +94,16 @@ const connectAll = async (configs) => {
     try {
       let producer
       if (!listOfProducers[config.topicConfig.topicName]) {
-        Logger.debug('Producer::start::topic=' + config.topicConfig.topicName)
+        Logger.isDebugEnabled && Logger.debug('Producer::start::topic=' + config.topicConfig.topicName)
         producer = new Producer(config.kafkaConfig)
-        Logger.debug('Producer::connect::start')
+        Logger.isDebugEnabled && Logger.debug('Producer::connect::start')
         await producer.connect()
-        Logger.debug('Producer::connect::end')
+        Logger.isDebugEnabled && Logger.debug('Producer::connect::end')
         listOfProducers[config.topicConfig.topicName] = producer
       }
     } catch (err) {
-      Logger.error(err)
-      Logger.debug(`Producer error has occurred for ${config.topicConf.topicName}`)
+      Logger.isErrorEnabled && Logger.error(err)
+      Logger.isDebugEnabled && Logger.debug(`Producer error has occurred for ${config.topicConf.topicName}`)
     }
   }
 }
@@ -122,7 +122,7 @@ const disconnect = async (topicName = null) => {
     try {
       await getProducer(topicName).disconnect()
     } catch (err) {
-      Logger.error(err)
+      Logger.isErrorEnabled && Logger.error(err)
       throw ErrorHandler.Factory.reformatFSPIOPError(err)
     }
   } else if (topicName === null) {
@@ -205,7 +205,7 @@ const isConnected = async (topicName = undefined) => {
     const metadata = await getMetadataPromise(producer, topicName)
     const foundTopics = metadata.topics.map(topic => topic.name)
     if (foundTopics.indexOf(topicName) === -1) {
-      Logger.debug(`Connected to producer, but ${topicName} not found.`)
+      Logger.isDebugEnabled && Logger.debug(`Connected to producer, but ${topicName} not found.`)
       throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to producer, but ${topicName} not found.`)
     }
     status = stateList.OK
@@ -215,7 +215,7 @@ const isConnected = async (topicName = undefined) => {
       const metadata = await getMetadataPromise(value._producer, key)
       const foundTopics = metadata.topics.map(topic => topic.name)
       if (foundTopics.indexOf(key) === -1) {
-        Logger.debug(`Connected to producer, but ${key} not found.`)
+        Logger.isDebugEnabled && Logger.debug(`Connected to producer, but ${key} not found.`)
         throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to producer, but ${key} not found.`)
       }
     })

@@ -49,7 +49,7 @@ const listOfConsumers = {}
  * @throws {Error} -  if failure occurs
  */
 const createHandler = async (topicName, config, command) => {
-  Logger.debug(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
+  Logger.isDebugEnabled && Logger.debug(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
   let topicNameArray
   if (Array.isArray(topicName)) {
     topicNameArray = topicName
@@ -67,12 +67,12 @@ const createHandler = async (topicName, config, command) => {
   let connectedTimeStamp = 0
   try {
     await consumer.connect()
-    Logger.debug(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
+    Logger.isDebugEnabled && Logger.debug(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
     connectedTimeStamp = (new Date()).valueOf()
     await consumer.consume(command)
   } catch (e) {
     // Don't throw the error, still keep track of the topic we tried to connect to
-    Logger.warn(`CreateHandler::connect - error: ${e}`)
+    Logger.isWarnEnabled && Logger.warn(`CreateHandler::connect - error: ${e}`)
   }
 
   topicNameArray.forEach(topicName => {
@@ -174,7 +174,7 @@ const isConnected = async topicName => {
   const metadata = await getMetadataPromise(consumer, topicName)
   const foundTopics = metadata.topics.map(topic => topic.name)
   if (foundTopics.indexOf(topicName) === -1) {
-    Logger.debug(`Connected to consumer, but ${topicName} not found.`)
+    Logger.isDebugEnabled && Logger.debug(`Connected to consumer, but ${topicName} not found.`)
     throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to consumer, but ${topicName} not found.`)
   }
   return true

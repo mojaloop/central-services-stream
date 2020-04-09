@@ -59,6 +59,11 @@ Test('Consumer test', (consumerTests) => {
     //   shouldAdvanceTime: true
     // })
 
+    sandbox.stub(Logger, 'isErrorEnabled').value(true)
+    sandbox.stub(Logger, 'isWarnEnabled').value(true)
+    sandbox.stub(Logger, 'isDebugEnabled').value(true)
+    sandbox.stub(Logger, 'isSillyEnabled').value(true)
+
     config = {
       options: {
         mode: ConsumerEnums.CONSUMER_MODES.recursive,
