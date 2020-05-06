@@ -37,6 +37,10 @@
 
 'use strict'
 
+const CONCURRENCY = 16
+const KAFKA_BATCH_COUNT = 32
+const KAFKA_BATCH_TIMEOUT = 50
+
 const EventEmitter = require('events')
 const async = require('async')
 const Logger = require('@mojaloop/central-services-logger')
@@ -231,6 +235,9 @@ class Consumer extends EventEmitter {
     this._status.runningInConsumeMode = false
     this._status.running = true
 
+    // guard against excessive recursive mode calls
+    this._recursing = false
+
     // setup default onReady emit handler
     super.on('ready', arg => {
       Logger.isDebugEnabled && logger.debug(`Consumer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
@@ -258,7 +265,8 @@ class Consumer extends EventEmitter {
     return new Promise((resolve, reject) => {
       this._consumer = new Kafka.KafkaConsumer(this._config.rdkafkaConf, this._config.topicConf)
 
-      this._consumer.setDefaultConsumeTimeout(this._config.options.consumeTimeout)
+      this._consumer.setDefaultConsumeTimeout(KAFKA_BATCH_TIMEOUT)
+      // this._consumer.setDefaultConsumeTimeout(this._config.options.consumeTimeout)
       // this._setDefaultConsumeTimeout(this._config.options.consumeTimeout)
 
       this._consumer.on('event.log', log => {
@@ -403,7 +411,7 @@ class Consumer extends EventEmitter {
             super.emit('recursive', err, payload)
           }
         })
-      }, 1)
+      }, CONCURRENCY)
 
       // a callback function, invoked when queue is empty.
       this._syncQueue.drain(() => {
@@ -527,6 +535,23 @@ class Consumer extends EventEmitter {
    */
   _consumeRecursive (recursiveTimeout = 100, batchSize, workDoneCb) {
     const { logger } = this._config
+
+    // Guard against multiple calls to _consumeRecursive when batchSize > 1:
+    if (this._recursing) return
+    if (this._syncQueue && this._syncQueue.concurrency > 1) {
+      // We want to hide the network latency to Kafka by consuming from Kafka in
+      // the background while waiting on workDoneCb to process. We don't want to
+      // consume, then process, then consume because that surfaces the network
+      // latency of consuming from Kafka. We therefore make sure that our
+      // async.queue has more than enough jobs in memory to saturate our
+      // concurrency and batchSize targets.
+      let lowWaterMark = Math.max(this._syncQueue.concurrency, batchSize, 1) * 2
+      let syncQueueLength = this._syncQueue.length()
+      if (syncQueueLength > lowWaterMark) return
+    }
+    this._recursing = true
+    batchSize = KAFKA_BATCH_COUNT
+
     this._consumer.consume(batchSize, (error, messages) => {
       if (error || !messages.length) {
         if (error) {
@@ -552,7 +577,12 @@ class Consumer extends EventEmitter {
         }
 
         if (this._config.options.sync) {
-          this._syncQueue.push({ error, messages }, (error) => {
+          const batch = messages.map(
+            function(message) {
+              return { error: error , messages: [message] }
+            }
+          )
+          this._syncQueue.push(batch, (error) => {
             if (error) {
               Logger.isErrorEnabled && logger.error(`Consumer::_consumerRecursive()::syncQueue.push - error: ${error}`)
             }
