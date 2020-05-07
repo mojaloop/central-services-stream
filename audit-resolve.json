@@ -13,12 +13,29 @@
       "madeAt": 1576067111613
     },
     "1179|tap-xunit>minimist": {
-      "decision": "postpone",
-      "madeAt": 1586359537492
+      "decision": "ignore",
+      "madeAt": 1588839326202,
+      "expiresAt": 1589444122420
     },
     "1179|faucet>minimist": {
-      "decision": "postpone",
-      "madeAt": 1586356987724
+      "decision": "ignore",
+      "madeAt": 1588839331230,
+      "expiresAt": 1589444122420
+    },
+    "1500|npm-audit-resolver>yargs-parser": {
+      "decision": "ignore",
+      "madeAt": 1588839327813,
+      "expiresAt": 1589444122420
+    },
+    "1500|npm-audit-resolver>yargs-unparser>yargs>yargs-parser": {
+      "decision": "ignore",
+      "madeAt": 1588839329416,
+      "expiresAt": 1589444122420
+    },
+    "1500|npm-audit-resolver>audit-resolve-core>yargs-parser": {
+      "decision": "ignore",
+      "madeAt": 1588839333080,
+      "expiresAt": 1589444122420
     }
   },
   "rules": {},
