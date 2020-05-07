@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "9.5.0",
+  "version": "10.1.0-snapshot",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
