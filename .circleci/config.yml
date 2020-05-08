@@ -278,7 +278,8 @@ workflows:
           context: org-global
           requires:
             - setup
-            ## for test performance changes. Please remove bellow commented out lines when merging back in master
+            ## Just for test performance changes.
+            ## Please remove bellow commented out lines when merging back in master
             # - test-unit 
             # - test-coverage
             # - vulnerability-check
