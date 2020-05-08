@@ -545,14 +545,15 @@ class Consumer extends EventEmitter {
       // latency of consuming from Kafka. We therefore make sure that our
       // async.queue has more than enough jobs in memory to saturate our
       // concurrency and batchSize targets.
-      let lowWaterMark = Math.max(this._syncQueue.concurrency, batchSize, 1) * 2
-      let syncQueueLength = this._syncQueue.length()
+      const lowWaterMark = Math.max(this._syncQueue.concurrency, batchSize, 1) * 2
+      const syncQueueLength = this._syncQueue.length()
       if (syncQueueLength > lowWaterMark) return
     }
     this._recursing = true
     batchSize = KAFKA_BATCH_COUNT
 
     this._consumer.consume(batchSize, (error, messages) => {
+      this._recursing = false
       if (error || !messages.length) {
         if (error) {
           super.emit('error', error)
