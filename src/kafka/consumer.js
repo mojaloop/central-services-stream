@@ -37,9 +37,9 @@
 
 'use strict'
 
-const CONCURRENCY = process.env.KAFKA_CONCURRENCY || 16
-const KAFKA_BATCH_COUNT = process.env.KAFKA_BATCH_COUNT || 32
-const KAFKA_BATCH_TIMEOUT = process.env.KAFKA_BATCH_TIMEOUT || 50
+const CONCURRENCY = parseInt(process.env.KAFKA_CONCURRENCY) || 16
+const KAFKA_BATCH_COUNT = parseInt(process.env.KAFKA_BATCH_COUNT) || 32
+const KAFKA_BATCH_TIMEOUT = parseInt(process.env.KAFKA_BATCH_TIMEOUT) || 50
 
 const EventEmitter = require('events')
 const async = require('async')
