@@ -632,19 +632,19 @@ class Consumer extends EventEmitter {
         } else {
           Promise.resolve(workDoneCb(error, messages)).then((response) => {
             Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
-            if (process.env.ASYNC_CHAINED_MODE) {
+            if (process.env.ASYNC_CHAINED_MODE === 'true') {
               super.emit('recursive', error, messages)
               super.emit('batch', messages)
             }
           }).catch((err) => {
             Logger.isErrorEnabled && logger.error(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${err}`)
-            if (process.env.ASYNC_CHAINED_MODE) {
+            if (process.env.ASYNC_CHAINED_MODE === 'true') {
               super.emit('recursive', error, messages)
               super.emit('batch', messages)
             }
             super.emit('error', err)
           })
-          if (!process.env.ASYNC_CHAINED_MODE) {
+          if (!process.env.ASYNC_CHAINED_MODE === 'true') {
             super.emit('recursive', error, messages)
             super.emit('batch', messages)
           }
