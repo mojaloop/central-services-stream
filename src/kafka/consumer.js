@@ -238,9 +238,13 @@ class Consumer extends EventEmitter {
     this._status.runningInConsumeOnceMode = false
     this._status.runningInConsumeMode = false
     this._status.running = true
+    this._status.isConsumerRunning = true
+
+
+    this._highBatchWaterMark = Math.max(this._config.options.consumeConcurrency, this._config.options.batchSize, 1) * 2
 
     // guard against excessive recursive mode calls
-    this._recursing = false
+    // this._recursing = false
 
     // setup default onReady emit handler
     super.on('ready', arg => {
@@ -392,29 +396,26 @@ class Consumer extends EventEmitter {
       workDoneCb = () => {}
     }
 
-    this._isConsumerRunning = true
-
     // setup queues to ensure sync processing of messages if options.sync is true
     if (this._config.options.sync) {
       this._syncQueue = async.queue((message, callbackDone) => {
 
-        const highBatchWaterMark = Math.max(this._syncQueue.concurrency, this._config.options.batchSize, 1) * 2
-        Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - concurrency=${this._config.options.consumeConcurrency}, highBatchWaterMark=${highBatchWaterMark}, batchSize=${this._config.options.batchSize}, concurrency=${this._syncQueue.concurrency}, queuSize=${this._syncQueue.length()}`)
-        if(this._syncQueue && this._syncQueue.length() > highBatchWaterMark) {
-          if(this._isConsumerRunning) {
-            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Pausing @ ${this._syncQueue.length()} > ${highBatchWaterMark}`)
+        Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - concurrency=${this._config.options.consumeConcurrency}, highBatchWaterMark=${this._highBatchWaterMark}, batchSize=${this._config.options.batchSize}, concurrency=${this._syncQueue.concurrency}, queuSize=${this._syncQueue.length()}`)
+        if(this._syncQueue && this._syncQueue.length() > this._highBatchWaterMark) {
+          if(this._status.isConsumerRunning) {
+            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Pausing @ ${this._syncQueue.length()} > ${this._highBatchWaterMark}`)
             this._consumer.pause(this._topics)
-            this._isConsumerRunning = false
+            this._status.isConsumerRunning = false
           } else {
-            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Paused @ ${this._syncQueue.length()} > ${highBatchWaterMark}`)
+            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Paused @ ${this._syncQueue.length()} > ${this._highBatchWaterMark}`)
           }
         } else {
-          if(!this._isConsumerRunning) {
+          if(!this._status.isConsumerRunning) {
             this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
-            this._isConsumerRunning = true
-            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Resuming @ ${this._syncQueue.length()} <= ${highBatchWaterMark}`)
+            this._status.isConsumerRunning = true
+            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Resuming @ ${this._syncQueue.length()} <= ${this._highBatchWaterMark}`)
           } else {
-            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Continuing @ ${this._syncQueue.length()} <= ${highBatchWaterMark}`)
+            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Running @ ${this._syncQueue.length()} <= ${this._highBatchWaterMark}`)
           }
         }
 
@@ -442,9 +443,9 @@ class Consumer extends EventEmitter {
 
       // a callback function, invoked when queue is empty.
       this._syncQueue.drain(() => {
-        if(!this._isConsumerRunning) {
+        if(!this._status.isConsumerRunning) {
           this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
-          this._isConsumerRunning = true
+          this._status.isConsumerRunning = true
           Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Resuming @ ${this._syncQueue.length()} - Queue drained`)
         }
       })
@@ -465,7 +466,7 @@ class Consumer extends EventEmitter {
             if (error) {
               Logger.isErrorEnabled && logger.error(`Consumer::consume() - error ${error}`)
             }
-            if (this._status.running) {
+            if (this._status.isConsumerRunning && this._status.running) {
               this._consumeRecursive(this._config.options.recursiveTimeout, this._config.options.batchSize, workDoneCb)
             }
           })
@@ -592,6 +593,10 @@ class Consumer extends EventEmitter {
 
     // this._recursing = true
     // batchSize = KAFKA_BATCH_COUNT
+    // if(!this._isConsumerRunning) {
+    //   Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
+    //   return 
+    // }
 
     this._consumer.consume(batchSize, (error, messages) => {
       // this._recursing = false
