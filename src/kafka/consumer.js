@@ -644,7 +644,7 @@ class Consumer extends EventEmitter {
             }
             super.emit('error', err)
           })
-          if (!process.env.ASYNC_CHAINED_MODE === 'true') {
+          if (!process.env.ASYNC_CHAINED_MODE !== 'true') {
             super.emit('recursive', error, messages)
             super.emit('batch', messages)
           }
