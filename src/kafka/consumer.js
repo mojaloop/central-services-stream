@@ -392,6 +392,8 @@ class Consumer extends EventEmitter {
       workDoneCb = () => {}
     }
 
+    this._isConsumerRunning = true
+
     // setup queues to ensure sync processing of messages if options.sync is true
     if (this._config.options.sync) {
       this._syncQueue = async.queue((message, callbackDone) => {
@@ -399,16 +401,20 @@ class Consumer extends EventEmitter {
         const highBatchWaterMark = Math.max(this._syncQueue.concurrency, this._config.options.batchSize, 1) * 2
         Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - concurrency=${this._config.options.consumeConcurrency}, highBatchWaterMark=${highBatchWaterMark}, batchSize=${this._config.options.batchSize}, concurrency=${this._syncQueue.concurrency}, queuSize=${this._syncQueue.length()}`)
         if(this._syncQueue && this._syncQueue.length() > highBatchWaterMark) {
-          Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Paused @ ${this._syncQueue.length()} > ${highBatchWaterMark}`)
-          this._consumer.pause(this._topics)
-          this._isConsumerRunning = false
+          if(this._isConsumerRunning) {
+            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Pausing @ ${this._syncQueue.length()} > ${highBatchWaterMark}`)
+            this._consumer.pause(this._topics)
+            this._isConsumerRunning = false
+          } else {
+            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Paused @ ${this._syncQueue.length()} > ${highBatchWaterMark}`)
+          }
         } else {
           if(!this._isConsumerRunning) {
             this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
             this._isConsumerRunning = true
-            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Resuming @ ${this._syncQueue.length()} <= ${highBatchWaterMark}`)
+            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Resuming @ ${this._syncQueue.length()} <= ${highBatchWaterMark}`)
           } else {
-            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Continuing @ ${this._syncQueue.length()} <= ${highBatchWaterMark}`)
+            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Continuing @ ${this._syncQueue.length()} <= ${highBatchWaterMark}`)
           }
         }
 
