@@ -37,9 +37,9 @@
 
 'use strict'
 
-const CONCURRENCY = parseInt(process.env.KAFKA_CONCURRENCY) || 16
-const KAFKA_BATCH_COUNT = parseInt(process.env.KAFKA_BATCH_COUNT) || 32
-const KAFKA_BATCH_TIMEOUT = parseInt(process.env.KAFKA_BATCH_TIMEOUT) || 50
+// const CONCURRENCY = parseInt(process.env.KAFKA_CONCURRENCY) || 16
+// const KAFKA_BATCH_COUNT = parseInt(process.env.KAFKA_BATCH_COUNT) || 32
+// const KAFKA_BATCH_TIMEOUT = parseInt(process.env.KAFKA_BATCH_TIMEOUT) || 50
 
 const EventEmitter = require('events')
 const async = require('async')
@@ -208,7 +208,7 @@ class Consumer extends EventEmitter {
         messageCharset: 'utf8',
         messageAsJSON: true,
         sync: false,
-        consumeTimeout: 1000
+        consumeTimeout: 50 // default librdkafka is 1000
       }
     }
     if (!config.rdkafkaConf) {
@@ -230,6 +230,10 @@ class Consumer extends EventEmitter {
     Logger.isSillyEnabled && logger.silly('Consumer::constructor() - start')
     this._topics = topics
     this._config = config
+    this._config.options.consumeConcurrency = this._config.options.consumeConcurrency || 1
+    this._config.options.consumeTimeout = this._config.options.consumeTimeout || 50
+    // this._config.options.consumeConcurrency = this._config.options.consumeConcurrency || CONCURRENCY
+    // this._config.options.consumeTimeout = this._config.options.consumeTimeout || KAFKA_BATCH_TIMEOUT
     this._status = {}
     this._status.runningInConsumeOnceMode = false
     this._status.runningInConsumeMode = false
@@ -265,8 +269,8 @@ class Consumer extends EventEmitter {
     return new Promise((resolve, reject) => {
       this._consumer = new Kafka.KafkaConsumer(this._config.rdkafkaConf, this._config.topicConf)
 
-      this._consumer.setDefaultConsumeTimeout(KAFKA_BATCH_TIMEOUT)
-      // this._consumer.setDefaultConsumeTimeout(this._config.options.consumeTimeout)
+      // this._consumer.setDefaultConsumeTimeout(KAFKA_BATCH_TIMEOUT)
+      this._consumer.setDefaultConsumeTimeout(this._config.options.consumeTimeout)
       // this._setDefaultConsumeTimeout(this._config.options.consumeTimeout)
 
       this._consumer.on('event.log', log => {
@@ -391,6 +395,23 @@ class Consumer extends EventEmitter {
     // setup queues to ensure sync processing of messages if options.sync is true
     if (this._config.options.sync) {
       this._syncQueue = async.queue((message, callbackDone) => {
+
+        const highBatchWaterMark = Math.max(this._syncQueue.concurrency, this._config.options.batchSize, 1) * 2
+        Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - concurrency=${this._config.options.consumeConcurrency}, highBatchWaterMark=${highBatchWaterMark}, batchSize=${this._config.options.batchSize}, concurrency=${this._syncQueue.concurrency}, queuSize=${this._syncQueue.length()}`)
+        if(this._syncQueue && this._syncQueue.length() > highBatchWaterMark) {
+          Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Pausing @ ${this._syncQueue.length()} > ${highBatchWaterMark}`)
+          this._consumer.pause(this._topics)
+          this._isConsumerRunning = false
+        } else {
+          if(!this._isConsumerRunning) {
+            this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
+            this._isConsumerRunning = true
+            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Resuming @ ${this._syncQueue.length()} <= ${highBatchWaterMark}`)
+          } else {
+            Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Continuing @ ${this._syncQueue.length()} <= ${highBatchWaterMark}`)
+          }
+        }
+
         Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - ${JSON.stringify(message)}`)
         let payload
         if (this._config.options.mode === ENUMS.CONSUMER_MODES.flow) {
@@ -411,11 +432,15 @@ class Consumer extends EventEmitter {
             super.emit('recursive', err, payload)
           }
         })
-      }, CONCURRENCY)
+      }, this._config.options.consumeConcurrency)
 
       // a callback function, invoked when queue is empty.
       this._syncQueue.drain(() => {
-        this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
+        if(!this._isConsumerRunning) {
+          this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
+          this._isConsumerRunning = true
+          Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Resuming @ ${this._syncQueue.length()} - Queue drained`)
+        }
       })
     }
 
@@ -537,23 +562,33 @@ class Consumer extends EventEmitter {
     const { logger } = this._config
 
     // Guard against multiple calls to _consumeRecursive when batchSize > 1:
-    if (this._recursing) return
-    if (this._syncQueue && this._syncQueue.concurrency > 1) {
-      // We want to hide the network latency to Kafka by consuming from Kafka in
-      // the background while waiting on workDoneCb to process. We don't want to
-      // consume, then process, then consume because that surfaces the network
-      // latency of consuming from Kafka. We therefore make sure that our
-      // async.queue has more than enough jobs in memory to saturate our
-      // concurrency and batchSize targets.
-      const lowWaterMark = Math.max(this._syncQueue.concurrency, batchSize, 1) * 2
-      const syncQueueLength = this._syncQueue.length()
-      if (syncQueueLength > lowWaterMark) return
-    }
-    this._recursing = true
-    batchSize = KAFKA_BATCH_COUNT
+    // if (this._recursing) return
+    // if (this._syncQueue && this._syncQueue.concurrency > 1) {
+    //   // We want to hide the network latency to Kafka by consuming from Kafka in
+    //   // the background while waiting on workDoneCb to process. We don't want to
+    //   // consume, then process, then consume because that surfaces the network
+    //   // latency of consuming from Kafka. We therefore make sure that our
+    //   // async.queue has more than enough jobs in memory to saturate our
+    //   // concurrency and batchSize targets.
+    //   const lowWaterMark = Math.max(this._syncQueue.concurrency, batchSize, 1) * 2
+    //   const syncQueueLength = this._syncQueue.length()
+    //   if (syncQueueLength > lowWaterMark) return
+    // }
+    // if(this._syncQueue && this._syncQueue.length() > batchSize) {
+    //   this._consumer.pause(this._topics)
+    //   this._isConsumerRunning = false
+    // } else {
+    //   if(!this._isConsumerRunning) {
+    //     this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
+    //     this._isConsumerRunning = true
+    //   }
+    // }
+
+    // this._recursing = true
+    // batchSize = KAFKA_BATCH_COUNT
 
     this._consumer.consume(batchSize, (error, messages) => {
-      this._recursing = false
+      // this._recursing = false
       if (error || !messages.length) {
         if (error) {
           super.emit('error', error)
