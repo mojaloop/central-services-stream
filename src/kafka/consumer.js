@@ -401,20 +401,23 @@ class Consumer extends EventEmitter {
       this._syncQueue = async.queue((message, callbackDone) => {
 
         Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - concurrency=${this._config.options.consumeConcurrency}, highBatchWaterMark=${this._highBatchWaterMark}, batchSize=${this._config.options.batchSize}, concurrency=${this._syncQueue.concurrency}, queuSize=${this._syncQueue.length()}`)
+        // Check if we should pause Consumer based on the highBatchWaterMark
         if(this._syncQueue && this._syncQueue.length() > this._highBatchWaterMark) {
+          // Only pause Consumer if we are in a running state
           if(this._status.isConsumerRunning) {
             Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Pausing @ ${this._syncQueue.length()} > ${this._highBatchWaterMark}`)
             this._consumer.pause(this._topics)
             this._status.isConsumerRunning = false
-          } else {
+          } else { // Do nothing since we are already paused
             Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Paused @ ${this._syncQueue.length()} > ${this._highBatchWaterMark}`)
           }
         } else {
+          // Resume the Consumer if we are NOT in a running state
           if(!this._status.isConsumerRunning) {
             this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
             this._status.isConsumerRunning = true
             Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Resuming @ ${this._syncQueue.length()} <= ${this._highBatchWaterMark}`)
-          } else {
+          } else { // Do nothing since we are already running
             Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Running @ ${this._syncQueue.length()} <= ${this._highBatchWaterMark}`)
           }
         }
@@ -427,7 +430,7 @@ class Consumer extends EventEmitter {
           payload = message.messages
         }
         Promise.resolve(workDoneCb(message.error, payload)).then(() => {
-          callbackDone() // this marks the completion of the processing by the worker
+          callbackDone() // This marks the completion of the processing by the worker
           if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
             super.emit('recursive', message.error, payload)
           }
@@ -441,12 +444,13 @@ class Consumer extends EventEmitter {
         })
       }, this._config.options.consumeConcurrency)
 
-      // a callback function, invoked when queue is empty.
+      // A callback function, invoked when queue is empty.
       this._syncQueue.drain(() => {
+        // Resume the Consumer if we are NOT in a running state since we need more work
         if(!this._status.isConsumerRunning) {
           this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
           this._status.isConsumerRunning = true
-          Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Resuming @ ${this._syncQueue.length()} - Queue drained`)
+          Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Queue Drained - Resuming @ ${this._syncQueue.length()} - Queue drained`)
         }
       })
     }
@@ -466,13 +470,14 @@ class Consumer extends EventEmitter {
             if (error) {
               Logger.isErrorEnabled && logger.error(`Consumer::consume() - error ${error}`)
             }
+            // Only call recursive-consume if both the client & consumer are in a running state
             if (this._status.isConsumerRunning && this._status.running) {
               this._consumeRecursive(this._config.options.recursiveTimeout, this._config.options.batchSize, workDoneCb)
             }
           })
           this._consumeRecursive(this._config.options.recursiveTimeout, this._config.options.batchSize, workDoneCb)
         } else {
-          // throw error
+          // Throw error
           throw new Error('batchSize option is not valid - Select an integer greater then 0')
         }
         break
