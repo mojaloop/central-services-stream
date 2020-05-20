@@ -402,11 +402,11 @@ class Consumer extends EventEmitter {
 
         Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - concurrency=${this._config.options.consumeConcurrency}, highBatchWaterMark=${this._highBatchWaterMark}, batchSize=${this._config.options.batchSize}, concurrency=${this._syncQueue.concurrency}, queuSize=${this._syncQueue.length()}`)
         // Check if we should pause Consumer based on the highBatchWaterMark and when running in flow mode
-        if(this._syncQueue && this._syncQueue.length() > this._highBatchWaterMark && this._config.options.mode === CONSUMER_MODES.flow) {
+        if(this._syncQueue && this._syncQueue.length() > this._highBatchWaterMark) {
           // Only pause Consumer if we are in a running state
           if(this._status.isConsumerRunning) {
             Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Pausing @ ${this._syncQueue.length()} > ${this._highBatchWaterMark}`)
-            this._consumer.pause(this._topics)
+            if (this._config.options.mode === CONSUMER_MODES.flow) this._consumer.pause(this._topics) // pause consumer if we are in flow mode
             this._status.isConsumerRunning = false
           } else { // Do nothing since we are already paused
             Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Paused @ ${this._syncQueue.length()} > ${this._highBatchWaterMark}`)
@@ -414,7 +414,7 @@ class Consumer extends EventEmitter {
         } else {
           // Resume the Consumer if we are NOT in a running state
           if(!this._status.isConsumerRunning) {
-            this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
+            if (this._config.options.mode === CONSUMER_MODES.flow) this._consumer.resume(this._topics) // resume consumer if we are in flow mode
             this._status.isConsumerRunning = true
             Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Resuming @ ${this._syncQueue.length()} <= ${this._highBatchWaterMark}`)
           } else { // Do nothing since we are already running
