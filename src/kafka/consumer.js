@@ -402,7 +402,7 @@ class Consumer extends EventEmitter {
 
         Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - concurrency=${this._config.options.consumeConcurrency}, highBatchWaterMark=${this._highBatchWaterMark}, batchSize=${this._config.options.batchSize}, concurrency=${this._syncQueue.concurrency}, queuSize=${this._syncQueue.length()}`)
         // Check if we should pause Consumer based on the highBatchWaterMark
-        if(this._syncQueue && this._syncQueue.length() > this._highBatchWaterMark) {
+        if(this._syncQueue && this._syncQueue.length() > this._highBatchWaterMark && this._config.options.mode === CONSUMER_MODES.flow) {
           // Only pause Consumer if we are in a running state
           if(this._status.isConsumerRunning) {
             Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - Consumer Pausing @ ${this._syncQueue.length()} > ${this._highBatchWaterMark}`)
@@ -629,12 +629,16 @@ class Consumer extends EventEmitter {
         }
 
         if (this._config.options.sync) {
+          // # Use this if we want to always pass a single message into code
           const batch = messages.map(
             function (message) {
               return { error: error, messages: [message] }
             }
           )
+          // # Use this is we want to process batches in code
           this._syncQueue.push(batch, (error) => {
+          // # Use this is we want to process batches via the application code
+          // this._syncQueue.push({ error: error, messages }, (error) => {
             if (error) {
               Logger.isErrorEnabled && logger.error(`Consumer::_consumerRecursive()::syncQueue.push - error: ${error}`)
             }
