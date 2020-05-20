@@ -508,44 +508,61 @@ class Consumer extends EventEmitter {
   _consumePoller (pollFrequency = 10, batchSize, workDoneCb) {
     const { logger } = this._config
     this._pollInterval = setInterval(() => {
-      // if (this._status.running) {
-      this._consumer.consume(batchSize, (error, messages) => {
-        if (error || !messages.length) {
-          if (error) {
-            super.emit('error', error)
-            Logger.isErrorEnabled && logger.error(`Consumer::_consumerPoller() - ERROR - ${error}`)
+      if (this._status.running && this._status.isConsumerRunning) {
+        this._consumer.consume(batchSize, (error, messages) => {
+          if (error || !messages.length) {
+            if (error) {
+              super.emit('error', error)
+              Logger.isErrorEnabled && logger.error(`Consumer::_consumerPoller() - ERROR - ${error}`)
+            } else {
+              // Logger.isDebugEnabled && logger.debug(`Consumer::_consumerPoller() - POLL EMPTY PING`)
+            }
           } else {
-            // Logger.isDebugEnabled && logger.debug(`Consumer::_consumerPoller() - POLL EMPTY PING`)
-          }
-        } else {
-          // lets transform the messages into the desired format
-          messages.map(msg => {
-            const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
-            msg.value = parsedValue
-          })
-          if (this._config.options.messageAsJSON) {
-            Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
-          } else {
-            Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${messages}}`)
-          }
-          if (this._config.options.sync) {
-            this._syncQueue.push({ error, messages }, function (err) {
-              if (err) {
-                Logger.isErrorEnabled && logger.error(`Consumer::_consumePoller()::syncQueue.push - error: ${error}`)
-              }
+            if (process.env.ASYNC_CHAINED_MODE === 'true' && !this._config.options.sync) {
+              // this._consumer.pause(this._topics)
+              this._status.isConsumerRunning = false
+              Logger.isDebugEnabled && logger.debug('Consumer::consume() - Poll Aysnc Process - Consumer Paused')
+            }
+            // lets transform the messages into the desired format
+            messages.map(msg => {
+              const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+              msg.value = parsedValue
             })
-          } else {
-            Promise.resolve(workDoneCb(error, messages)).then((response) => {
-              Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
-            }).catch((err) => {
-              Logger.isErrorEnabled && logger.error(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${err}`)
-              super.emit('error', err)
-            })
-            super.emit('batch', messages)
+            if (this._config.options.messageAsJSON) {
+              Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
+            } else {
+              Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${messages}}`)
+            }
+            if (this._config.options.sync) {
+              this._syncQueue.push({ error, messages }, function (err) {
+                if (err) {
+                  Logger.isErrorEnabled && logger.error(`Consumer::_consumePoller()::syncQueue.push - error: ${error}`)
+                }
+              })
+            } else {
+              Promise.resolve(workDoneCb(error, messages)).then((response) => {
+                Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
+                if (process.env.ASYNC_CHAINED_MODE === 'true') {
+                  // this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
+                  Logger.isDebugEnabled && logger.debug('Consumer::consume() - Poll Aysnc Process - Consumer Resuming')
+                  this._status.isConsumerRunning = true
+                }
+              }).catch((err) => {
+                Logger.isErrorEnabled && logger.error(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${err}`)
+                super.emit('error', err)
+                if (process.env.ASYNC_CHAINED_MODE === 'true') {
+                  // this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
+                  Logger.isDebugEnabled && logger.debug('Consumer::consume() - Poll Aysnc Process - Consumer Resuming')
+                  this._status.isConsumerRunning = true
+                }
+              })
+              super.emit('batch', messages)
+            }
           }
-        }
-      })
-      // }
+        })
+      } else {
+        Logger.isDebugEnabled && logger.debug('Consumer::consume() - Poll Aysnc Process - Consumer Running')
+      }
     }, pollFrequency)
   }
 
@@ -688,6 +705,9 @@ class Consumer extends EventEmitter {
           super.emit('error', error)
         }
       } else {
+        if (process.env.ASYNC_CHAINED_MODE === 'true' && !this._config.options.sync) {
+          this._consumer.pause(this._topics)
+        }
         const parsedValue = Protocol.parseValue(message.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
         message.value = parsedValue
         if (this._config.options.messageAsJSON) {
@@ -702,12 +722,17 @@ class Consumer extends EventEmitter {
         } else {
           Promise.resolve(workDoneCb(error, message)).then((response) => {
             Logger.isDebugEnabled && logger.debug(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${response}`)
+            if (process.env.ASYNC_CHAINED_MODE === 'true') {
+              this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
+            }
           }).catch((err) => {
             Logger.isErrorEnabled && logger.error(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${err}`)
             super.emit('error', err)
+            if (process.env.ASYNC_CHAINED_MODE === 'true') {
+              this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
+            }
           })
         }
-        // super.emit('batch', message) // not applicable in flow mode since its one message at a time
       }
     })
   }
