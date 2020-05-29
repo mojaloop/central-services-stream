@@ -783,5 +783,5 @@ class Consumer extends EventEmitter {
 
 // TODO: WRITE STREAM CONSUMER
 
-e tmodule.exports = Consumer
+module.exports = Consumer
 module.exports.ENUMS = ENUMS
