@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "10.2.8-snapshot",
+  "version": "10.3.0-snapshot",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -37,27 +37,28 @@
     "test:xunit": "npm run test:unit | tap-xunit",
     "test:coverage": "nyc --reporter=lcov --reporter=text-summary tapes -- 'test/unit/**/**.test.js'",
     "test:coverage-check": "npm run test:coverage && nyc check-coverage",
-    "audit:resolve": "SHELL=sh resolve-audit",
-    "audit:check": "SHELL=sh check-audit",
+    "audit:resolve": "SHELL=sh resolve-audit --production",
+    "audit:check": "SHELL=sh check-audit --production",
     "dep:check": "npx ncu -e 2",
     "dep:update": "npx ncu -u"
   },
   "dependencies": {
-    "@mojaloop/central-services-error-handling": "9.1.0",
+    "@mojaloop/central-services-error-handling": "10.2.2",
     "@mojaloop/central-services-logger": "9.5.1",
     "async": "3.2.0",
     "events": "3.1.0",
-    "node-rdkafka": "2.8.1"
+    "node-rdkafka": "2.8.1",
+    "node-rdkafka-prometheus": "0.3.3"
   },
   "devDependencies": {
     "faucet": "0.0.1",
     "npm-audit-resolver": "2.2.0",
-    "npm-check-updates": "4.1.2",
+    "npm-check-updates": "6.0.1",
     "nyc": "15.0.1",
     "pre-commit": "1.2.2",
     "rewire": "5.0.0",
     "sinon": "9.0.2",
-    "standard": "14.3.3",
+    "standard": "14.3.4",
     "tap-xunit": "2.4.1",
     "tape": "5.0.0",
     "tapes": "4.1.0",

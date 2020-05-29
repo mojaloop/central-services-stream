@@ -45,6 +45,8 @@ const EventEmitter = require('events')
 const async = require('async')
 const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
+const Metrics = require('@mojaloop/central-services-metrics')
+const RdkafkaStats = require('node-rdkafka-prometheus')
 
 const Protocol = require('./protocol')
 
@@ -246,6 +248,16 @@ class Consumer extends EventEmitter {
     // guard against excessive recursive mode calls
     // this._recursing = false
 
+    this.metrics = new RdkafkaStats(Object.assign(
+      Metrics.getOptions(),
+      {
+        namePrefix: `${config.rdkafkaConf['client.id'].split('-').join('_')}_`,
+        registers: [Metrics.getDefaultRegister()]
+      }))
+
+    // guard against excessive recursive mode calls
+    this._recursing = false
+
     // setup default onReady emit handler
     super.on('ready', arg => {
       Logger.isDebugEnabled && logger.debug(`Consumer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
@@ -332,6 +344,12 @@ class Consumer extends EventEmitter {
         returnMessage.value = parsedValue
         // }
         super.emit('message', returnMessage)
+
+        this._consumer.on('event.stats', msg => {
+          const stats = JSON.parse(msg.message)
+          this.metrics.observe(stats)
+        })
+
       })
     })
   }
