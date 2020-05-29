@@ -40,6 +40,8 @@ const EventEmitter = require('events')
 const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Protocol = require('./protocol')
+const Metrics = require('@mojaloop/central-services-metrics')
+const RdkafkaStats = require('node-rdkafka-prometheus')
 
 /**
  * Producer ENUMs
@@ -189,6 +191,12 @@ class Producer extends EventEmitter {
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
     Logger.isSillyEnabled && logger.silly('Producer::constructor() - end')
+    this.metrics = new RdkafkaStats(Object.assign(
+      Metrics.getOptions(),
+      {
+        namePrefix: `${config.rdkafkaConf['client.id'].split('-').join('_')}_`,
+        registers: [Metrics.getDefaultRegister()]
+      }))
   }
 
   /**
@@ -248,6 +256,11 @@ class Producer extends EventEmitter {
         Logger.isSillyEnabled && logger.silly('Consumer metadata:')
         Logger.isSillyEnabled && logger.silly(metadata)
         resolve(true)
+      })
+
+      this._producer.on('event.stats', msg => {
+        const stats = JSON.parse(msg.message)
+        this.metrics.observe(stats)
       })
     })
   }

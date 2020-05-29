@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "10.2.0",
+  "version": "10.2.1",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -47,7 +47,8 @@
     "@mojaloop/central-services-logger": "9.5.1",
     "async": "3.2.0",
     "events": "3.1.0",
-    "node-rdkafka": "2.8.1"
+    "node-rdkafka": "2.8.1",
+    "node-rdkafka-prometheus": "0.3.3"
   },
   "devDependencies": {
     "faucet": "0.0.1",
