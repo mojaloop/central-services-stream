@@ -191,7 +191,8 @@ class Producer extends EventEmitter {
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
     Logger.isSillyEnabled && logger.silly('Producer::constructor() - end')
-    this.metrics = new RdkafkaStats(Object.assign(
+    this.metrics = {}
+    this.metrics.rdkafka = new RdkafkaStats(Object.assign(
       Metrics.getOptions(),
       {
         namePrefix: `${config.rdkafkaConf['client.id'].split('-').join('_')}_`,
@@ -260,7 +261,7 @@ class Producer extends EventEmitter {
 
       this._producer.on('event.stats', msg => {
         const stats = JSON.parse(msg.message)
-        this.metrics.observe(stats)
+        this.metrics.rdkafka.observe(stats)
       })
     })
   }
