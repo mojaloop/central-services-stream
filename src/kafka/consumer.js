@@ -247,10 +247,18 @@ class Consumer extends EventEmitter {
     // guard against excessive recursive mode calls
     // this._recursing = false
     this.metrics = {}
-    this.metrics.asyncQueue = Metrics.getGauge(
+
+    this.metrics.highBatchWaterMarkMetric = Metrics.getGauge(
+      'highBatchWaterMark',
+      'gauge for high batch water mark metric',
+      []
+      )
+      this.metrics.highBatchWaterMarkMetric.set({}, this._highBatchWaterMark, new Date())
+
+      this.metrics.asyncQueue = Metrics.getGauge(
       'asyncQueueDepth',
       'gauge for async.queue size',
-      ['label']
+      ['topics']
       )
 
       this.metrics.rdkafka = new RdkafkaStats(Object.assign(
@@ -421,7 +429,7 @@ class Consumer extends EventEmitter {
     // setup queues to ensure sync processing of messages if options.sync is true
     if (this._config.options.sync) {
       this._syncQueue = async.queue((message, callbackDone) => {
-        this.metrics.asyncQueue.observe({ label: 'label' }, this._syncQueue.length())
+        this.metrics.asyncQueue.set({ topics: this._topics.length > 0 ? this._topics.length > 1 ? this._topics.join(', ') : this._topics[0] : '' }, this._syncQueue.length(), new Date())
         Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - concurrency=${this._config.options.consumeConcurrency}, highBatchWaterMark=${this._highBatchWaterMark}, batchSize=${this._config.options.batchSize}, concurrency=${this._syncQueue.concurrency}, queuSize=${this._syncQueue.length()}`)
         // Check if we should pause Consumer based on the highBatchWaterMark and when running in flow mode
         if(this._syncQueue && this._syncQueue.length() > this._highBatchWaterMark) {
