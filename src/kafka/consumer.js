@@ -251,22 +251,22 @@ class Consumer extends EventEmitter {
     this.metrics.highBatchWaterMarkMetric = Metrics.getGauge(
       'highBatchWaterMark',
       'gauge for high batch water mark metric',
-      []
-      )
-      this.metrics.highBatchWaterMarkMetric.set({}, this._highBatchWaterMark, new Date())
+      [])
 
-      this.metrics.asyncQueue = Metrics.getGauge(
+    this.metrics.highBatchWaterMarkMetric.set({}, this._highBatchWaterMark, new Date())
+
+    this.metrics.asyncQueue = Metrics.getGauge(
       'asyncQueueDepth',
       'gauge for async.queue size',
-      ['topics']
-      )
+      ['topics'])
 
       this.metrics.rdkafka = new RdkafkaStats(Object.assign(
-      Metrics.getOptions(),
+        Metrics.getOptions(),
       {
         namePrefix: `${config.rdkafkaConf['client.id'].split('-').join('_')}_`,
         registers: [Metrics.getDefaultRegister()]
       }))
+
     // guard against excessive recursive mode calls
     this._recursing = false
 

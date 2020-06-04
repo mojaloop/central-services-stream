@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "10.3.2-snapshot",
+  "version": "10.3.3-snapshot",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -45,7 +45,7 @@
   "dependencies": {
     "@mojaloop/central-services-error-handling": "10.2.2",
     "@mojaloop/central-services-logger": "9.5.1",
-    "@mojaloop/central-services-metrics": "10.3.0-perf",
+    "@mojaloop/central-services-metrics": "10.3.1-perf",
     "async": "3.2.0",
     "events": "3.1.0",
     "node-rdkafka": "2.8.1",
