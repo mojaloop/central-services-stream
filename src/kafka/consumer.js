@@ -477,6 +477,7 @@ class Consumer extends EventEmitter {
           messages.map(msg => {
             const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
             msg.value = parsedValue
+            return msg
           })
           if (this._config.options.messageAsJSON) {
             Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
@@ -544,6 +545,7 @@ class Consumer extends EventEmitter {
         messages.map(msg => {
           const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
           msg.value = parsedValue
+          return msg
         })
         if (this._config.options.messageAsJSON) {
           Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
