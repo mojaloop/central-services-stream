@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "10.6.0",
+  "version": "10.7.0",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -25,14 +25,17 @@
   ],
   "main": "src/index.js",
   "pre-commit": [
-    "standard",
+    "lint",
     "dep:check",
     "test"
   ],
   "scripts": {
     "test": "npm run test:unit | faucet",
     "standard": "standard",
+    "standard:fix": "standard --fix",
     "pretest": "standard",
+    "lint": "npm run standard",
+    "lint:fix": "npm run standard:fix",
     "test:unit": "tapes 'test/unit/**/**.test.js'",
     "test:xunit": "npm run test:unit | tap-xunit",
     "test:coverage": "nyc --reporter=lcov --reporter=text-summary tapes -- 'test/unit/**/**.test.js'",
@@ -43,21 +46,21 @@
     "dep:update": "npx ncu -u"
   },
   "dependencies": {
-    "@mojaloop/central-services-error-handling": "10.6.0",
-    "@mojaloop/central-services-logger": "10.6.0",
+    "@mojaloop/central-services-error-handling": "11.3.0",
+    "@mojaloop/central-services-logger": "10.6.1",
     "async": "3.2.0",
-    "events": "3.1.0",
-    "node-rdkafka": "2.9.0"
+    "events": "3.3.0",
+    "node-rdkafka": "2.10.1"
   },
   "devDependencies": {
     "faucet": "0.0.1",
-    "npm-audit-resolver": "2.2.0",
-    "npm-check-updates": "7.0.1",
+    "npm-audit-resolver": "2.3.0",
+    "npm-check-updates": "11.5.11",
     "nyc": "15.1.0",
     "pre-commit": "1.2.2",
     "rewire": "5.0.0",
-    "sinon": "9.0.2",
-    "standard": "14.3.4",
+    "sinon": "10.0.0",
+    "standard": "16.0.3",
     "tap-xunit": "2.4.1",
     "tape": "4.13.3",
     "tapes": "4.1.0",
