@@ -48,7 +48,7 @@
   "dependencies": {
     "@mojaloop/central-services-error-handling": "11.3.0",
     "@mojaloop/central-services-logger": "10.6.1",
-    "async": "3.2.0",
+    "async": "3.2.2",
     "events": "3.3.0",
     "node-rdkafka": "2.10.1"
   },
