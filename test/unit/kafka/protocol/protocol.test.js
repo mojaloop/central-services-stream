@@ -18,7 +18,7 @@ const parseM = {
   id: 'key',
   content: 'message',
   type: 'type',
-  metadata: metadata,
+  metadata,
   pp: ''
 }
 
