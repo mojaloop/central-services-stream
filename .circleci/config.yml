@@ -4,13 +4,17 @@ version: 2
 defaults_working_directory: &defaults_working_directory
   working_directory: /home/circleci/project
 
+##
+# defaults
+#
+# YAML defaults templates, in alphabetical order
+##
 defaults_Dependencies: &defaults_Dependencies |
     apk --no-cache add git
     apk --no-cache add ca-certificates
     apk --no-cache add curl
     apk --no-cache add openssh-client
-    apk --no-cache add bash
-    apk add --no-cache -t build-dependencies make gcc g++ python libtool autoconf automake
+    apk add --no-cache -t build-dependencies make gcc g++ python libtool autoconf automake jq
     npm config set unsafe-perm true
     npm install -g node-gyp
 
@@ -68,11 +72,11 @@ executors:
   default-docker:
     working_directory: /home/circleci/project
     docker:
-      - image: node:12.16.1-alpine
+      - image: node:16.14.2-alpine
 
   default-machine:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:current
 
 jobs:
   setup:
