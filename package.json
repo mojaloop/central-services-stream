@@ -43,7 +43,8 @@
     "audit:resolve": "SHELL=sh resolve-audit --production",
     "audit:check": "SHELL=sh check-audit --production",
     "dep:check": "npx ncu -e 2",
-    "dep:update": "npx ncu -u"
+    "dep:update": "npx ncu -u",
+    "release": "standard-version --releaseCommitMessageFormat 'chore(release): {{currentTag}} [skip ci]'"
   },
   "dependencies": {
     "@mojaloop/central-services-error-handling": "11.3.0",
@@ -60,6 +61,7 @@
     "rewire": "6.0.0",
     "sinon": "13.0.2",
     "standard": "17.0.0",
+    "standard-version": "^9.3.2",
     "tap-spec": "^5.0.0",
     "tap-xunit": "2.4.1",
     "tape": "4.13.3",
