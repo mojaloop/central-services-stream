@@ -1,9 +1,6 @@
 # CircleCI v2 Config
 version: 2
 
-defaults_working_directory: &defaults_working_directory
-  working_directory: /home/circleci/project
-
 ##
 # defaults
 #
@@ -81,7 +78,6 @@ executors:
 jobs:
   setup:
     executor: default-docker
-    <<: *defaults_working_directory
     steps:
       - run:
           name: Install general dependencies
@@ -97,7 +93,6 @@ jobs:
 
   test-unit:
     executor: default-docker
-    <<: *defaults_working_directory
     steps:
       - run:
           name: Install general dependencies
@@ -122,7 +117,6 @@ jobs:
 
   test-coverage:
     executor: default-docker
-    <<: *defaults_working_directory
     steps:
       - run:
           name: Install general dependencies
@@ -154,7 +148,6 @@ jobs:
 
   vulnerability-check:
     executor: default-docker
-    <<: *defaults_working_directory
     steps:
       - run:
           name: Install general dependencies
@@ -174,7 +167,6 @@ jobs:
 
   audit-licenses:
     executor: default-docker
-    <<: *defaults_working_directory
     steps:
       - run:
           name: Install general dependencies
@@ -196,7 +188,6 @@ jobs:
 
   build-snapshot:
     executor: default-docker
-    <<: *defaults_working_directory
     steps:
       - run:
           name: Install general dependencies
@@ -215,7 +206,6 @@ jobs:
 
   build:
     executor: default-docker
-    <<: *defaults_working_directory
     steps:
       - run:
           name: Install general dependencies
