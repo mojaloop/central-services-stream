@@ -4,10 +4,6 @@ version: 2
 defaults_working_directory: &defaults_working_directory
   working_directory: /home/circleci/project
 
-defaults_docker_node: &defaults_docker_node
-  docker:
-    - image: node:16.14.2-alpine
-
 defaults_Dependencies: &defaults_Dependencies |
     apk --no-cache add git
     apk --no-cache add ca-certificates
@@ -19,14 +15,14 @@ defaults_Dependencies: &defaults_Dependencies |
     npm install -g node-gyp
 
 defaults_awsCliDependencies: &defaults_awsCliDependencies |
+    apk upgrade --no-cache
     apk --no-cache add \
-            python \
-            py-pip \
+            python3 \
+            py3-pip \
             groff \
             less \
             mailcap
-    pip install --upgrade awscli==1.14.5 s3cmd==2.0.1 python-magic
-    apk -v --purge del py-pip
+    pip3 install --upgrade pip awscli==1.14.5 s3cmd==2.0.1 python-magic
 
 defaults_license_scanner: &defaults_license_scanner
   name: Install and set up license-scanner
@@ -63,10 +59,25 @@ defaults_slack_announcement: &defaults_slack_announcement
       \"text\": \"*${CIRCLE_PROJECT_REPONAME}* - Release \`${CIRCLE_TAG}\`: https://github.com/mojaloop/${CIRCLE_PROJECT_REPONAME}/releases/tag/${CIRCLE_TAG}\"
     }"
 
+##
+# Executors
+#
+# CircleCI Executors
+##
+executors:
+  default-docker:
+    working_directory: /home/circleci/project
+    docker:
+      - image: node:12.16.1-alpine
+
+  default-machine:
+    machine:
+      image: ubuntu-1604:201903-01
+
 jobs:
   setup:
+    executor: default-docker
     <<: *defaults_working_directory
-    <<: *defaults_docker_node
     steps:
       - run:
           name: Install general dependencies
@@ -81,8 +92,8 @@ jobs:
             - node_modules
 
   test-unit:
+    executor: default-docker
     <<: *defaults_working_directory
-    <<: *defaults_docker_node
     steps:
       - run:
           name: Install general dependencies
@@ -106,8 +117,8 @@ jobs:
           path: ./test/results
 
   test-coverage:
+    executor: default-docker
     <<: *defaults_working_directory
-    <<: *defaults_docker_node
     steps:
       - run:
           name: Install general dependencies
@@ -138,8 +149,8 @@ jobs:
             fi
 
   vulnerability-check:
+    executor: default-docker
     <<: *defaults_working_directory
-    <<: *defaults_docker_node
     steps:
       - run:
           name: Install general dependencies
@@ -158,8 +169,8 @@ jobs:
           prefix: audit
 
   audit-licenses:
+    executor: default-docker
     <<: *defaults_working_directory
-    <<: *defaults_docker_node
     steps:
       - run:
           name: Install general dependencies
@@ -180,8 +191,8 @@ jobs:
           prefix: licenses
 
   build-snapshot:
+    executor: default-docker
     <<: *defaults_working_directory
-    <<: *defaults_docker_node
     steps:
       - run:
           name: Install general dependencies
@@ -199,8 +210,8 @@ jobs:
           <<: *defaults_slack_announcement
 
   build:
+    executor: default-docker
     <<: *defaults_working_directory
-    <<: *defaults_docker_node
     steps:
       - run:
           name: Install general dependencies
