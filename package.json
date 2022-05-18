@@ -71,8 +71,8 @@
     "uuid4": "2.0.2"
   },
   "peerDependencies": {
-    "@mojaloop/central-services-error-handling": "12.0.0",
-    "@mojaloop/central-services-logger": "11.0.0"
+    "@mojaloop/central-services-error-handling": "12.x.x",
+    "@mojaloop/central-services-logger": "11.x.x"
   },
   "peerDependenciesMeta": {
     "@mojaloop/central-services-error-handling": {
