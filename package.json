@@ -29,6 +29,9 @@
     "dep:check",
     "test"
   ],
+  "engines": {
+    "node": "=16.x"
+  },
   "scripts": {
     "test": "npm run test:unit | faucet",
     "standard": "standard",
@@ -47,20 +50,20 @@
   },
   "dependencies": {
     "@mojaloop/central-services-error-handling": "11.3.0",
-    "@mojaloop/central-services-logger": "10.6.1",
-    "async": "3.2.0",
+    "@mojaloop/central-services-logger": "11.0.0",
+    "async": "3.2.3",
     "events": "3.3.0",
-    "node-rdkafka": "2.10.1"
+    "node-rdkafka": "2.12.0"
   },
   "devDependencies": {
     "faucet": "0.0.1",
-    "npm-audit-resolver": "2.3.0",
-    "npm-check-updates": "11.5.11",
+    "npm-audit-resolver": "3.0.0-7",
+    "npm-check-updates": "13.0.1",
     "nyc": "15.1.0",
     "pre-commit": "1.2.2",
-    "rewire": "5.0.0",
-    "sinon": "10.0.0",
-    "standard": "16.0.3",
+    "rewire": "6.0.0",
+    "sinon": "14.0.0",
+    "standard": "17.0.0",
     "tap-xunit": "2.4.1",
     "tape": "4.13.3",
     "tapes": "4.1.0",
