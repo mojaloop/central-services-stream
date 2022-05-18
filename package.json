@@ -49,7 +49,7 @@
     "dep:update": "npx ncu -u"
   },
   "dependencies": {
-    "@mojaloop/central-services-error-handling": "11.3.0",
+    "@mojaloop/central-services-error-handling": "12.0.0",
     "@mojaloop/central-services-logger": "11.0.0",
     "async": "3.2.3",
     "events": "3.3.0",
