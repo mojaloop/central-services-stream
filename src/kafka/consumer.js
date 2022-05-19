@@ -275,8 +275,9 @@ class Consumer extends EventEmitter {
         super.emit('error', error)
       })
 
-      this._consumer.on('disconnected', () => {
+      this._consumer.on('disconnected', (metrics) => {
         Logger.isWarnEnabled && logger.warn('disconnected.')
+        super.emit('disconnected', metrics)
       })
 
       this._consumer.on('ready', arg => {

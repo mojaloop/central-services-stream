@@ -37,7 +37,7 @@
     "test": "npm run test:unit",
     "standard": "standard",
     "standard:fix": "standard --fix",
-    "pretest": "npx run lint",
+    "pretest": "npm run lint",
     "lint": "npm run standard",
     "lint:fix": "npm run standard:fix",
     "test:unit": "npx tapes 'test/unit/**/**.test.js' | tap-spec",
@@ -57,6 +57,8 @@
     "node-rdkafka": "2.12.0"
   },
   "devDependencies": {
+    "@mojaloop/central-services-error-handling": "12.0.1",
+    "@mojaloop/central-services-logger": "11.0.0",
     "npm-audit-resolver": "3.0.0-7",
     "npm-check-updates": "13.0.1",
     "nyc": "15.1.0",
@@ -73,8 +75,8 @@
     "uuid4": "2.0.2"
   },
   "peerDependencies": {
-    "@mojaloop/central-services-error-handling": "12.x.x",
-    "@mojaloop/central-services-logger": "11.x.x"
+    "@mojaloop/central-services-error-handling": "12.0.1",
+    "@mojaloop/central-services-logger": "11.0.0"
   },
   "peerDependenciesMeta": {
     "@mojaloop/central-services-error-handling": {

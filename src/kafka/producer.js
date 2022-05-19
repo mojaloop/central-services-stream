@@ -222,8 +222,9 @@ class Producer extends EventEmitter {
         Logger.isDebugEnabled && logger.debug('DeliveryReport: ' + JSON.stringify(report))
       })
 
-      this._producer.on('disconnected', () => {
-        Logger.isWarnEnabled && logger.warn('Disconnected.')
+      this._producer.on('disconnected', (metrics) => {
+        Logger.isWarnEnabled && logger.warn('disconnected.')
+        super.emit('disconnected', metrics)
       })
 
       this._producer.on('ready', (args) => {
