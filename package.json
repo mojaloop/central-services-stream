@@ -37,7 +37,7 @@
     "test": "npm run test:unit",
     "standard": "standard",
     "standard:fix": "standard --fix",
-    "pretest": "standard",
+    "pretest": "npx run lint",
     "lint": "npm run standard",
     "lint:fix": "npm run standard:fix",
     "test:unit": "npx tapes 'test/unit/**/**.test.js' | tap-spec",
