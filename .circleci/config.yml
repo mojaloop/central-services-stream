@@ -309,11 +309,6 @@ jobs:
             echo "export SLACK_RELEASE_URL=https://www.npmjs.com/package/@mojaloop/${CIRCLE_PROJECT_REPONAME}/v/${CIRCLE_TAG:1}" >> $BASH_ENV
             echo "export SLACK_BUILD_ID=${CIRCLE_BUILD_NUM}" >> $BASH_ENV
             echo "export SLACK_CI_URL=${CIRCLE_BUILD_URL}" >> $BASH_ENV
-      # Make sure we build the typescript here so the dist is included in the lib
-      - run:
-          name: Build Typescript
-          command: |
-            npm run build
       - run:
           <<: *defaults_npm_auth
       - run:
@@ -355,11 +350,6 @@ jobs:
             echo "export SLACK_RELEASE_URL=https://www.npmjs.com/package/@mojaloop/${CIRCLE_PROJECT_REPONAME}/v/${CIRCLE_TAG:1}" >> $BASH_ENV
             echo "export SLACK_BUILD_ID=${CIRCLE_BUILD_NUM}" >> $BASH_ENV
             echo "export SLACK_CI_URL=${CIRCLE_BUILD_URL}" >> $BASH_ENV
-      # Make sure we build the typescript here so the dist is included in the lib
-      - run:
-          name: Build Typescript
-          command: |
-            npm run build
       - run:
           <<: *defaults_npm_auth
       - run:
