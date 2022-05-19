@@ -21,7 +21,6 @@ defaults_Dependencies: &defaults_Dependencies |
     apk --no-cache add ca-certificates
     apk --no-cache add curl
     apk --no-cache add openssh-client
-    apk --no-cache add bash
     apk add --no-cache -t build-dependencies make gcc g++ python3 libtool autoconf automake jq
     npm config set unsafe-perm true
     npm install -g node-gyp
@@ -38,6 +37,7 @@ defaults_license_scanner: &defaults_license_scanner
 defaults_npm_auth: &defaults_npm_auth
   name: Update NPM registry auth token
   command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > .npmrc
+
 
 defaults_npm_publish_release: &defaults_npm_publish_release
   name: Publish NPM $RELEASE_TAG artifact
@@ -85,7 +85,7 @@ jobs:
       - checkout
       - run:
           name: Update NPM install
-          command: npm install
+          command: npm ci
       - save_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
           paths:
@@ -131,14 +131,11 @@ jobs:
           name: Install tape, tapes and tap-xunit
           command: npm install tape tapes tap-xunit
       - run:
-          name: Install tape, tapes and tap-xunit
-          command: npm install tape tapes tap-xunit
-      - run:
           name: Create dir for test results
           command: mkdir -p ./test/results
       - run:
           name: Execute unit tests
-          command: npm -s run test:xunit > ./test/results/tape.xml
+          command: npm -s run test:xunit
       - store_artifacts:
           path: ./test/results
           prefix: test
@@ -292,6 +289,8 @@ jobs:
           name: Install general dependencies
           command: *defaults_Dependencies
       - checkout
+      - restore_cache:
+          key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
           name: Setup for LATEST release
           command: |
@@ -310,6 +309,11 @@ jobs:
             echo "export SLACK_RELEASE_URL=https://www.npmjs.com/package/@mojaloop/${CIRCLE_PROJECT_REPONAME}/v/${CIRCLE_TAG:1}" >> $BASH_ENV
             echo "export SLACK_BUILD_ID=${CIRCLE_BUILD_NUM}" >> $BASH_ENV
             echo "export SLACK_CI_URL=${CIRCLE_BUILD_URL}" >> $BASH_ENV
+      # Make sure we build the typescript here so the dist is included in the lib
+      - run:
+          name: Build Typescript
+          command: |
+            npm run build
       - run:
           <<: *defaults_npm_auth
       - run:
@@ -328,6 +332,8 @@ jobs:
           name: Install general dependencies
           command: *defaults_Dependencies
       - checkout
+      - restore_cache:
+          key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
           name: Setup for SNAPSHOT release
           command: |
@@ -349,6 +355,11 @@ jobs:
             echo "export SLACK_RELEASE_URL=https://www.npmjs.com/package/@mojaloop/${CIRCLE_PROJECT_REPONAME}/v/${CIRCLE_TAG:1}" >> $BASH_ENV
             echo "export SLACK_BUILD_ID=${CIRCLE_BUILD_NUM}" >> $BASH_ENV
             echo "export SLACK_CI_URL=${CIRCLE_BUILD_URL}" >> $BASH_ENV
+      # Make sure we build the typescript here so the dist is included in the lib
+      - run:
+          name: Build Typescript
+          command: |
+            npm run build
       - run:
           <<: *defaults_npm_auth
       - run:

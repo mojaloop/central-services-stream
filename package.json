@@ -21,7 +21,8 @@
   "keywords": [
     "shared",
     "central",
-    "services"
+    "services",
+    "mojaloop"
   ],
   "main": "src/index.js",
   "pre-commit": [
@@ -39,15 +40,16 @@
     "pretest": "standard",
     "lint": "npm run standard",
     "lint:fix": "npm run standard:fix",
-    "test:unit": "tapes 'test/unit/**/**.test.js' | tap-spec",
-    "test:xunit": "tapes 'test/unit/**/**.test.js' | tap-xunit",
-    "test:coverage": "nyc --reporter=lcov --reporter=text-summary tapes -- 'test/unit/**/**.test.js'",
+    "test:unit": "npx tapes 'test/unit/**/**.test.js' | tap-spec",
+    "test:xunit": "npx tapes 'test/unit/**/**.test.js' | tap-xunit > ./test/results/xunit.xml",
+    "test:coverage": "npx nyc --reporter=lcov --reporter=text-summary tapes -- 'test/unit/**/**.test.js'",
     "test:coverage-check": "npm run test:coverage && nyc check-coverage",
-    "audit:resolve": "resolve-audit --production",
-    "audit:check": "check-audit --production",
-    "dep:check": "ncu -e 2",
-    "dep:update": "ncu -u",
-    "release": "standard-version --releaseCommitMessageFormat 'chore(release): {{currentTag}} [skip ci]'"
+    "audit:resolve": "npx resolve-audit --production",
+    "audit:check": "npx check-audit --production",
+    "dep:check": "npx ncu -e 2",
+    "dep:update": "npx ncu -u",
+    "release": "npx standard-version --no-verify --releaseCommitMessageFormat 'chore(release): {{currentTag}} [skip ci]'",
+    "snapshot": "npx standard-version --no-verify --skip.changelog --prerelease snapshot --releaseCommitMessageFormat 'chore(snapshot): {{currentTag}}'"
   },
   "dependencies": {
     "async": "3.2.3",
@@ -55,11 +57,11 @@
     "node-rdkafka": "2.12.0"
   },
   "devDependencies": {
-    "faucet": "0.0.1",
     "npm-audit-resolver": "3.0.0-7",
     "npm-check-updates": "13.0.1",
     "nyc": "15.1.0",
     "pre-commit": "1.2.2",
+    "replace": "^1.2.1",
     "rewire": "6.0.0",
     "sinon": "14.0.0",
     "standard": "17.0.0",
