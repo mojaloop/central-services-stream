@@ -7,11 +7,16 @@ class Test extends Sampler {
   constructor (opts) {
     super(opts)
 
+    const serializeFn = (message, opts) => {
+      return Buffer.from(JSON.stringify(message), opts.messageCharset)
+    }
+
     this.producerConf = opts?.producerConf || {
       options:
       {
         pollIntervalMs: 100,
-        messageCharset: 'utf8'
+        messageCharset: 'utf8',
+        serializeFn
       },
       rdkafkaConf: {
         'metadata.broker.list': 'localhost:9092',
@@ -28,7 +33,7 @@ class Test extends Sampler {
         // 'queue.buffering.max.messages': 10000000,
         // 'queue.buffering.max.ms': 50,
         // 'batch.num.messages': 10000,
-        'api.version.request': true
+        // 'api.version.request': true
       },
       topicConf: {
         'request.required.acks': 1,

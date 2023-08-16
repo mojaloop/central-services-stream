@@ -157,8 +157,8 @@ class Producer extends EventEmitter {
       }
     }
     if (!config.options.serializeFn) {
-      config.options.serializeFn = (message) => {
-        return Producer._createBuffer(message, this._config.options.messageCharset)
+      config.options.serializeFn = (message, opts) => {
+        return Producer._createBuffer(message, opts.messageCharset)
       }
     }
     if (!config.options.pollIntervalMs) {
@@ -302,7 +302,7 @@ class Producer extends EventEmitter {
           Logger.isDebugEnabled && logger.debug('still connecting')
         }
         const parsedMessage = Protocol.parseMessage(messageProtocol)
-        const parsedMessageBuffer = this._config.options.serializeFn(parsedMessage) // this._createBuffer(parsedMessage, this._config.options.messageCharset)
+        const parsedMessageBuffer = this._config.options.serializeFn(parsedMessage, this._config.options) // this._createBuffer(parsedMessage, this._config.options.messageCharset)
         if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
           throw new Error('message must be a string or an instance of Buffer.')
         }

@@ -1,11 +1,16 @@
 const Consumer = require('@mojaloop/central-services-stream').Kafka.Consumer
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
+const Protocol = require('@mojaloop/central-services-stream').Kafka.Protocol
 const Logger = require('@mojaloop/central-services-logger')
 const Sampler = require('#utils/sampler')
 
 class Test extends Sampler {
   constructor (opts) {
     super(opts)
+
+    const deserializeFn = (buffer, opts) => {
+      return Protocol.parseValue(buffer, opts.messageCharset, opts.messageAsJSON)
+    }
 
     this.consumerConf = opts?.consumerConf || {
       options: {
@@ -16,7 +21,8 @@ class Test extends Sampler {
         messageCharset: 'utf8',
         messageAsJSON: true,
         sync: true,
-        consumeTimeout: 1000
+        consumeTimeout: 1000,
+        deserializeFn
       },
       rdkafkaConf: {
         'client.id': 'cl-test',

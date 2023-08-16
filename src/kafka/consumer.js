@@ -172,6 +172,7 @@ exports.ENUMS = ENUMS
  *     pollFrequency: 10, // only applicable for poll mode
  *     recursiveTimeout: 100,
  *     messageCharset: 'utf8',
+ *     deserializeFn: (object, opts) => {} (optional)
  *     messageAsJSON: true,
  *     sync: true
  *   },
@@ -207,6 +208,11 @@ class Consumer extends EventEmitter {
         consumeTimeout: 1000
       }
     }
+    if (!config.options.deserializeFn) {
+      config.options.deserializeFn = (message, opts) => {
+        return Consumer._parseBuffer(message, opts.messageCharset, opts.messageAsJSON)
+      }
+    }
     if (!config.rdkafkaConf) {
       config.rdkafkaConf = {
         'group.id': 'kafka',
@@ -240,7 +246,9 @@ class Consumer extends EventEmitter {
     super.on('error', error => {
       Logger.isErrorEnabled && logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
     })
-
+    // TODO: FIX THIS!!!
+    // super.setMaxListeners(super.getMaxListeners() + 1);
+    super.setMaxListeners(0) // Temporarily disable the max listener limit
     Logger.isSillyEnabled && logger.silly('Consumer::constructor() - end')
   }
 
@@ -275,6 +283,10 @@ class Consumer extends EventEmitter {
         super.emit('error', error)
       })
 
+      this._consumer.on('partition.eof', eof => {
+        super.emit('partition.eof', eof)
+      })
+
       this._consumer.on('disconnected', (metrics) => {
         Logger.isWarnEnabled && logger.warn('disconnected.')
         super.emit('disconnected', metrics)
@@ -302,22 +314,23 @@ class Consumer extends EventEmitter {
       })
 
       Logger.isSillyEnabled && logger.silly('Registering data event..')
-      this._consumer.on('data', message => {
-        Logger.isSillyEnabled && logger.silly(`Consumer::onData() - message: ${JSON.stringify(message)}`)
-        const returnMessage = { ...message }
-        // let returnMessage = {}
-        // Object.assign(returnMessage, message)
-        // if (message instanceof Array) {
-        //   returnMessage.map(msg => {
-        //     let parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
-        //     msg.value = parsedValue
-        //   })
-        // } else {
-        const parsedValue = Protocol.parseValue(returnMessage.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
-        returnMessage.value = parsedValue
-        // }
-        super.emit('message', returnMessage)
-      })
+      // this._consumer.on('data', message => {
+      //   Logger.isSillyEnabled && logger.silly(`Consumer::onData() - message: ${JSON.stringify(message)}`)
+      //   const returnMessage = { ...message }
+      //   // let returnMessage = {}
+      //   // Object.assign(returnMessage, message)
+      //   // if (message instanceof Array) {
+      //   //   returnMessage.map(msg => {
+      //   //     let parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+      //   //     msg.value = parsedValue
+      //   //   })
+      //   // } else {
+      //   // const parsedValue = Protocol.parseValue(returnMessage.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+      //   const parsedValue = this._config.options.deserializeFn(returnMessage.value)
+      //   returnMessage.value = parsedValue
+      //   // }
+      //   super.emit('message', returnMessage)
+      // })
     })
   }
 
@@ -476,8 +489,10 @@ class Consumer extends EventEmitter {
         } else {
           // lets transform the messages into the desired format
           messages.map(msg => {
-            const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+            // const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+            const parsedValue = this._config.options.deserializeFn(msg.value)
             msg.value = parsedValue
+            super.emit('message', msg)
             return msg
           })
           if (this._config.options.messageAsJSON) {
@@ -544,8 +559,10 @@ class Consumer extends EventEmitter {
       } else {
         // lets transform the messages into the desired format
         messages.map(msg => {
-          const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+          // const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+          const parsedValue = this._config.options.deserializeFn(msg.value, this._config.options)
           msg.value = parsedValue
+          super.emit('message', msg)
           return msg
         })
         if (this._config.options.messageAsJSON) {
@@ -595,8 +612,10 @@ class Consumer extends EventEmitter {
           super.emit('error', error)
         }
       } else {
-        const parsedValue = Protocol.parseValue(message.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+        // const parsedValue = Protocol.parseValue(message.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
+        const parsedValue = this._config.options.deserializeFn(message.value)
         message.value = parsedValue
+        super.emit('message', message)
         if (this._config.options.messageAsJSON) {
           Logger.isDebugEnabled && logger.debug(`Consumer::_consumerFlow() - message: ${JSON.stringify(message)}`)
         } else {
@@ -742,7 +761,12 @@ class Consumer extends EventEmitter {
     this._consumer.getMetadata(metadataOptions, metaDatacCb)
     Logger.isSillyEnabled && logger.silly('Consumer::getMetadata() - end')
   }
+
+  static _parseBuffer (buffer, encoding, asJson) {
+    return Protocol.parseValue(buffer, encoding, asJson)
+  }
 }
+
 //
 // class Stream extends Consumer {
 //   constructor (consumerConfig = {
