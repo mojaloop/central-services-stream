@@ -113,6 +113,7 @@ const
  *   {
  *     pollIntervalMs: 50,
  *     messageCharset: 'utf8'
+ *     serializeFn: (object, opts) => {}, (optional)
  *   },
  *   rdkafkaConf: {
  *     'metadata.broker.list': 'localhost:9092',
@@ -153,6 +154,11 @@ class Producer extends EventEmitter {
     if (!config.options) {
       config.options = {
         messageCharset: 'utf8'
+      }
+    }
+    if (!config.options.serializeFn) {
+      config.options.serializeFn = (message) => {
+        return Producer._createBuffer(message, this._config.options.messageCharset)
       }
     }
     if (!config.options.pollIntervalMs) {
@@ -204,7 +210,9 @@ class Producer extends EventEmitter {
     const { logger } = this._config
     Logger.isSillyEnabled && logger.silly('Producer::connect() - start')
     return new Promise((resolve, reject) => {
-      this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
+      // NOTE: this is the old way of creating a producer, we should use the new one
+      // this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
+      this._producer = new Kafka.HighLevelProducer(this._config.rdkafkaConf, this._config.topicConf)
 
       this._producer.on('event.log', log => {
         Logger.isSillyEnabled && logger.silly(log.message)
@@ -218,8 +226,9 @@ class Producer extends EventEmitter {
         super.emit('error', error)
       })
 
-      this._producer.on('delivery-report', (report) => {
+      this._producer.on('delivery-report', (err, report) => {
         Logger.isDebugEnabled && logger.debug('DeliveryReport: ' + JSON.stringify(report))
+        super.emit('delivery-report', err, report)
       })
 
       this._producer.on('disconnected', (metrics) => {
@@ -253,7 +262,7 @@ class Producer extends EventEmitter {
     })
   }
 
-  _createBuffer (str, encoding) {
+  static _createBuffer (str, encoding) {
     const bufferResponse = Buffer.from(JSON.stringify(str), encoding)
     return bufferResponse
   }
@@ -283,31 +292,43 @@ class Producer extends EventEmitter {
    * @returns {boolean} or if failed {Error}
    */
   async sendMessage (messageProtocol, topicConf) {
-    const { logger } = this._config
-    try {
-      if (!this._producer) {
-        throw new Error('You must call and await .connect() before trying to produce messages.')
+    return new Promise((resolve, reject) => {
+      const { logger } = this._config
+      try {
+        if (!this._producer) {
+          throw new Error('You must call and await .connect() before trying to produce messages.')
+        }
+        if (this._producer._isConnecting) {
+          Logger.isDebugEnabled && logger.debug('still connecting')
+        }
+        const parsedMessage = Protocol.parseMessage(messageProtocol)
+        const parsedMessageBuffer = this._config.options.serializeFn(parsedMessage) // this._createBuffer(parsedMessage, this._config.options.messageCharset)
+        if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
+          throw new Error('message must be a string or an instance of Buffer.')
+        }
+        Logger.isDebugEnabled && logger.debug('Producer::send() - start %s', JSON.stringify({
+          topicName: topicConf.topicName,
+          partition: topicConf.partition,
+          key: topicConf.key
+        }))
+        const producedAt = Date.now()
+        // NOTE: this is the old way of producing a message, we should use the new one
+        // this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey)
+        this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, (err, offset) => {
+          // The offset if our acknowledgement level allows us to receive delivery offsets
+          if (err) {
+            Logger.isDebugEnabled && logger.debug(err)
+            reject(err)
+          } else {
+            Logger.isDebugEnabled && logger.debug(`Producer::send() - delivery-callback offset=${offset}`)
+            resolve(offset)
+          }
+        })
+      } catch (err) {
+        Logger.isDebugEnabled && logger.debug(err)
+        reject(err)
       }
-      if (this._producer._isConnecting) {
-        Logger.isDebugEnabled && logger.debug('still connecting')
-      }
-      const parsedMessage = Protocol.parseMessage(messageProtocol)
-      const parsedMessageBuffer = this._createBuffer(parsedMessage, this._config.options.messageCharset)
-      if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
-        throw new Error('message must be a string or an instance of Buffer.')
-      }
-      Logger.isDebugEnabled && logger.debug('Producer::send() - start %s', JSON.stringify({
-        topicName: topicConf.topicName,
-        partition: topicConf.partition,
-        key: topicConf.key
-      }))
-      const producedAt = Date.now()
-      await this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey)
-      return true
-    } catch (e) {
-      Logger.isDebugEnabled && logger.debug(e)
-      throw e
-    }
+    })
   }
 
   /**
