@@ -1,9 +1,6 @@
 const { Bench } = require('tinybench')
 
-// const Producer = require('@mojaloop/central-services-stream').Kafka.Producer
-
 const TestProducer = require('./scripts/producer')
-
 const TestConsumer = require('./scripts/consumer')
 
 const main = async () => {
@@ -11,11 +8,11 @@ const main = async () => {
 
   const testProducer = new TestProducer({
     name: 'Producer',
-    debug: false
+    debug: process.env.DEBUG || false
   })
   const testConsumer = new TestConsumer({
     name: 'Consumer',
-    debug: false
+    debug: process.env.DEBUG || false
   })
 
   const fnProducerOpts = {
@@ -37,11 +34,8 @@ const main = async () => {
   }
 
   const benchProducer = new Bench({
-    iterations: 1000,
-    time: 0
-    // iterations: 100
-    // iterations: 1000,
-    // time: 10 * 1000,
+    iterations: 1000, // This is how many messages we want to produce.
+    time: 0 // This is set to 0, to guarantee the number of iterations.
   })
 
   benchProducer
@@ -56,11 +50,8 @@ const main = async () => {
   // console.table(benchProducer.table())
 
   const benchConsumer = new Bench({
-    iterations: 1,
-    time: 0
-    // iterations: 100,
-    // iterations: 1000,
-    // time: 10 * 1000,
+    iterations: 1, // We only want 1 iteration since the consumer will run until the partition.eof event is reached.
+    time: 0 // This is set to 0, to guarantee the number of iterations.
   })
 
   benchConsumer
@@ -74,6 +65,7 @@ const main = async () => {
   console.timeEnd('timer:benchmark::consumer:run')
   console.timeEnd('timer:benchmark::main')
 
+  // We can print the tinybench stats using these commands:
   // console.table(benchProducer.table())
   // console.table(benchConsumer.table())
 

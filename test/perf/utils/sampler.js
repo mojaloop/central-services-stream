@@ -1,5 +1,6 @@
 const { performance } = require('perf_hooks')
 
+// Common Sampler class to capture start-end, duration, ops, etc
 class Sampler {
   constructor (opts) {
     this.opts = opts
