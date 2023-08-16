@@ -28,7 +28,7 @@ class Test extends Sampler {
         // 'retry.backoff.ms': 100,
         // 'message.send.max.retries': 2,
         'socket.keepalive.enable': true,
-        'queue.buffering.max.messages': 10,
+        'queue.buffering.max.messages': 10
         // 'queue.buffering.max.messages': 10000,
         // 'queue.buffering.max.messages': 10000000,
         // 'queue.buffering.max.ms': 50,
