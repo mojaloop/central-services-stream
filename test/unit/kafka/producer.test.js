@@ -100,6 +100,39 @@ Test('Producer test', (producerTests) => {
     assert.end()
   })
 
+  producerTests.test('Test Producer::constructor - defaults', (assert) => {
+    const config = {
+      options: {
+        pollIntervalMs: 100,
+        serializeFn: 123
+      },
+      rdkafkaConf: {
+        'metadata.broker.list': 'localhost:9092',
+        'client.id': 'default-client',
+        event_cb: true,
+        'compression.codec': 'none',
+        'retry.backoff.ms': 100,
+        'message.send.max.retries': 2,
+        'socket.keepalive.enable': true,
+        'queue.buffering.max.messages': 10,
+        'queue.buffering.max.ms': 50,
+        'batch.num.messages': 100,
+        'api.version.request': true,
+        dr_cb: true
+      },
+      topicConf: {
+        'request.required.acks': 1
+      },
+      logger: Logger
+    }
+    const ProducerSpy = Sinon.spy(Producer.prototype, 'constructor')
+    const producer = new ProducerSpy(config)
+    assert.ok(producer, 'Producer instance created')
+    assert.ok(ProducerSpy.calledOnce, 'Producer constructor called once')
+    ProducerSpy.restore()
+    assert.end()
+  })
+
   producerTests.test('Test Producer::constructor null', (assert) => {
     try {
       const producer = new Producer(null)

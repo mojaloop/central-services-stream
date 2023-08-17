@@ -122,6 +122,34 @@ Test('Consumer test', (consumerTests) => {
     }
   })
 
+  consumerTests.test('Test Consumer::constructor - defaults', (assert) => {
+    const config = {
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.recursive,
+        batchSize: 1,
+        recursiveTimeout: 100,
+        messageAsJSON: true,
+        sync: true,
+        syncConcurrency: 1,
+        consumeTimeout: 1000,
+        deserializeFn: 123
+      },
+      rdkafkaConf: {
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger: Logger
+    }
+    const ConsumerSpy = Sinon.spy(Consumer.prototype, 'constructor')
+    const c = new ConsumerSpy(topicsList, config)
+    assert.ok(c, 'Consumer instance created')
+    assert.ok(ConsumerSpy.calledOnce, 'Consumer constructor called once')
+    ConsumerSpy.restore()
+    assert.end()
+  })
+
   consumerTests.test('Test Consumer::constructor - no params', (assert) => {
     try {
       const c = new Consumer()
@@ -2009,7 +2037,7 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::connect - test KafkaConsumer events: event.log, event.error, error', (assert) => {
-    assert.plan(6)
+    assert.plan(7)
     const c = new Consumer(topicsList, config)
 
     const discoCallback = (err) => {
@@ -2046,6 +2074,10 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
       assert.fail(arg, 'data')
     })
 
+    c.on('partition.eof', arg => {
+      assert.ok(arg, 'partition.eof')
+    })
+
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
       c.disconnect(discoCallback())
@@ -2053,7 +2085,7 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::connect - test KafkaConsumer events: event.log, event.error, error, stats enabled', (assert) => {
-    assert.plan(7)
+    assert.plan(8)
 
     const modifiedConfig = { ...config }
     modifiedConfig.rdkafkaConf['statistics.interval.ms'] = 1
@@ -2092,6 +2124,10 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
     // This should never be called!
     c.on('message', arg => {
       assert.fail(arg, 'data')
+    })
+
+    c.on('partition.eof', arg => {
+      assert.ok(arg, 'partition.eof')
     })
 
     c.connect().then(result => {

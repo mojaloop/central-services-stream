@@ -83,6 +83,7 @@ class KafkaClient extends EventEmitter {
   constructor () {
     super()
     this._dummyFunction()
+    super.setMaxListeners(0) // Temporarily disable the max listener limit
   }
 
   connect (err, info) {
@@ -250,6 +251,7 @@ class KafkaConsumerForEventTests extends KafkaConsumer {
     this.emit('event.throttle', 'event.throttle')
     this.emit('event.stats', 'event.stats')
     this.emit('data', 'data') // currently commented out due to performance reasons!
+    this.emit('partition.eof', 'partition.eof')
 
     info(null, this.metrics)
     this._dummyFunction()
