@@ -36,7 +36,7 @@ const main = async () => {
   const benchProducerConf = {
     // iterations: 100, // This is how many messages we want to produce.
     // time: 0 // This is set to 0, to guarantee the number of iterations.
-    time: 30 * 1000 // This is the time in milliseconds we want to run the benchmark for.
+    time: 10 * 1000 // This is the time in milliseconds we want to run the benchmark for.
   }
   const benchProducer = new Bench(benchProducerConf)
 

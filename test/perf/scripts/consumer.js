@@ -28,12 +28,14 @@ class Test extends Sampler {
         syncConcurrency: 1,
         consumeTimeout: 1000,
         deserializeFn: null // Use this if you want to use default deserializeFn
-        // deserializeFn: overrideDeserializeFn
+        // deserializeFn: overrideDeserializeFn // Use this if you want to override the default deserializeFn
       },
       rdkafkaConf: {
         'client.id': 'cl-test',
         'group.id': 'cl-group-test',
         'metadata.broker.list': 'localhost:9092',
+        'statistics.interval.ms': 0, // Enable event.stats event if value is greater than 0
+        // 'statistics.interval.ms': 100, // Enable event.stats event if value is greater than 0
         'socket.keepalive.enable': true,
         'allow.auto.create.topics': true,
         'enable.partition.eof': true
@@ -68,6 +70,8 @@ class Test extends Sampler {
     // this.client.on('message', message => console.log(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`))
     // // consume 'batch' event
     // this.client.on('batch', message => console.log(`onBatch: ${JSON.stringify(message)}`))
+    this.client.on('event.stats', eventData => console.log('event.stats:', eventData))
+    this.client.on('event.throttle', eventData => console.warn('event.throttle:', eventData))
     super.beforeAll()
   }
 

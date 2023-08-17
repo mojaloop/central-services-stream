@@ -23,7 +23,7 @@ class Test extends Sampler {
         sync: true,
         // sync: false,
         serializeFn: null // Use this if you want to use default serializeFn
-        // serializeFn: overrideSerializeFn
+        // serializeFn: overrideSerializeFn // Use this if you want to override the default serializeFn
       },
       rdkafkaConf: {
         'metadata.broker.list': 'localhost:9092',
@@ -31,6 +31,8 @@ class Test extends Sampler {
         event_cb: true,
         dr_cb: true,
         dr_msg_cb: false,
+        'statistics.interval.ms': 0, // Enable event.stats event if value is greater than 0
+        // 'statistics.interval.ms': 100, // Enable event.stats event if value is greater than 0
         // 'compression.codec': 'none', // none, gzip, snappy, lz4, zstd
         'compression.codec': 'lz4',
         // 'retry.backoff.ms': 100,
@@ -78,6 +80,9 @@ class Test extends Sampler {
       auditStartPrepareMsg,
       auditStartFulfilMsg
     ]
+
+    this.client.on('event.stats', eventData => console.log('event-stats:', eventData))
+    this.client.on('event.throttle', eventData => console.warn('event.throttle:', eventData))
 
     // this.client.on('delivery-report', (err, report) => {
     //   if (err) {

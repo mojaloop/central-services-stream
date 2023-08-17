@@ -173,6 +173,7 @@ class Producer extends EventEmitter {
         'compression.codec': 'none',
         'retry.backoff.ms': 100,
         'message.send.max.retries': 2,
+        'statistics.interval.ms': 0, // Enable event.stats event if value is greater than 0
         'socket.keepalive.enable': true,
         'queue.buffering.max.messages': 10,
         'queue.buffering.max.ms': 50,
@@ -225,6 +226,16 @@ class Producer extends EventEmitter {
       this._producer.on('event.error', error => {
         super.emit('error', error)
       })
+
+      this._producer.on('event.throttle', eventData => {
+        super.emit('event.throttle', eventData)
+      })
+
+      if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
+        this._producer.on('event.stats', (eventData) => {
+          super.emit('event.stats', eventData)
+        })
+      }
 
       this._producer.on('error', error => {
         super.emit('error', error)

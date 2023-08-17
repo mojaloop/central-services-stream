@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Get the current date and time
-now=$(date +"%Y%m%d-%H%M%S")
+now=$(date +"%Y%m%d-%Hh%Mm%Ss")
 
 echo "Starting test > $now.log"
 

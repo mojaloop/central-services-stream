@@ -222,7 +222,8 @@ class Consumer extends EventEmitter {
       config.rdkafkaConf = {
         'group.id': 'kafka',
         'metadata.broker.list': 'localhost:9092',
-        'enable.auto.commit': true
+        'enable.auto.commit': true,
+        'statistics.interval.ms': 0 // Enable event.stats event if value is greater than 0
         // 'debug': 'all'
       }
     }
@@ -282,6 +283,16 @@ class Consumer extends EventEmitter {
         Logger.isSillyEnabled && logger.silly(error)
         super.emit('error', error)
       })
+
+      this._consumer.on('event.throttle', eventData => {
+        super.emit('event.throttle', eventData)
+      })
+
+      if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
+        this._consumer.on('event.stats', (eventData) => {
+          super.emit('event.stats', eventData)
+        })
+      }
 
       this._consumer.on('error', error => {
         super.emit('error', error)
