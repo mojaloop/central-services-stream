@@ -82,6 +82,12 @@ Test('Producer test', (producerTests) => {
         return new KafkaStubs.KafkaProducer()
       }
     )
+
+    sandbox.stub(Kafka, 'HighLevelProducer').callsFake(
+      () => {
+        return new KafkaStubs.KafkaSyncProducer()
+      }
+    )
     test.end()
   })
 
@@ -245,7 +251,7 @@ Test('Producer test', (producerTests) => {
   })
 
   producerTests.test('Test sync Producer::sendMessage', (assert) => {
-    assert.plan(3)
+    assert.plan(4)
     const syncConfig = { ...config }
     syncConfig.options.sync = true
     const producer = new Producer(syncConfig)
@@ -265,7 +271,8 @@ Test('Producer test', (producerTests) => {
     producer.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'test', key: '1234' }).then(() => {
+      producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'test', key: '1234' }).then((resolve) => {
+        assert.equal(resolve, 1)
         producer.disconnect(discoCallback)
       })
     })

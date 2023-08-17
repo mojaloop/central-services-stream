@@ -270,6 +270,20 @@ class KafkaProducer extends KafkaClient {
   }
 }
 
+class KafkaSyncProducer extends KafkaClient {
+  setPollInterval () {
+  }
+
+  flush () {
+  }
+
+  produce (arg1, arg2, arg3, arg4, arg5, arg6) {
+    const err = null
+    const offset = 1
+    arg6(err, offset)
+  }
+}
+
 // KafkaProducerForEventTests Stub
 class KafkaProducerForEventTests extends KafkaProducer {
   connect (err, info) {
@@ -293,5 +307,6 @@ exports.messageSampleStub = messageSampleStub
 exports.KafkaClient = KafkaClient
 exports.KafkaConsumer = KafkaConsumer
 exports.KafkaProducer = KafkaProducer
+exports.KafkaSyncProducer = KafkaSyncProducer
 exports.KafkaConsumerForEventTests = KafkaConsumerForEventTests
 exports.KafkaProducerForEventTests = KafkaProducerForEventTests
