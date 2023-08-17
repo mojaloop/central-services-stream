@@ -58,7 +58,7 @@
   },
   "devDependencies": {
     "npm-audit-resolver": "3.0.0-RC.0",
-    "npm-check-updates": "16.11.1",
+    "npm-check-updates": "16.11.2",
     "nyc": "15.1.0",
     "pre-commit": "1.2.2",
     "replace": "^1.2.2",
