@@ -357,7 +357,7 @@ class Consumer extends EventEmitter {
   /**
    * Disconnect consumer
    *
-   * Disconnects consumer from the Kafka brocker
+   * Disconnects consumer from the Kafka broker
    */
   disconnect (cb = () => {}) {
     const { logger } = this._config
@@ -509,7 +509,6 @@ class Consumer extends EventEmitter {
         } else {
           // lets transform the messages into the desired format
           messages.map(msg => {
-            // const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
             const parsedValue = this._config.options.deserializeFn(msg.value, this._config.options)
             msg.value = parsedValue
             super.emit('message', msg)
@@ -579,7 +578,6 @@ class Consumer extends EventEmitter {
       } else {
         // lets transform the messages into the desired format
         messages.map(msg => {
-          // const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
           const parsedValue = this._config.options.deserializeFn(msg.value, this._config.options)
           msg.value = parsedValue
           super.emit('message', msg)
@@ -632,7 +630,6 @@ class Consumer extends EventEmitter {
           super.emit('error', error)
         }
       } else {
-        // const parsedValue = Protocol.parseValue(message.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
         const parsedValue = this._config.options.deserializeFn(message.value, this._config.options)
         message.value = parsedValue
         super.emit('message', message)

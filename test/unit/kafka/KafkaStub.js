@@ -82,8 +82,8 @@ class KafkaClient extends EventEmitter {
 
   constructor () {
     super()
-    this._dummyFunction()
     super.setMaxListeners(0) // Temporarily disable the max listener limit
+    this._dummyFunction()
   }
 
   connect (err, info) {

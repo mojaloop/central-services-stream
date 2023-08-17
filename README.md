@@ -11,7 +11,18 @@ Streaming library for central services
 ## Usage
 
 ### Kafka
+
 Refer to documentation in [src/kafka/readme.md](./src/kafka/readme.md)
+
+### Manually installing Librdkafka lib dependency
+
+Ensure that you install [Librdkafka](https://github.com/confluentinc/librdkafka).
+
+The configure the following env var before running `npm install`:
+
+```env
+export BUILD_LIBRDKAFKA=0
+```
 
 ## Auditing Dependencies
 

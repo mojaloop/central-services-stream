@@ -78,4 +78,6 @@ const main = async () => {
   console.table(testConsumer.getTable())
 }
 
-main()
+if (require.main === module) {
+  main()
+}
