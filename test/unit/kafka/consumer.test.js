@@ -2009,8 +2009,14 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::connect - test KafkaConsumer events: event.log, event.error, error', (assert) => {
-    assert.plan(4)
+    assert.plan(6)
     const c = new Consumer(topicsList, config)
+
+    const discoCallback = (err) => {
+      if (err) {
+        Logger.error(`Error received: ${err}`)
+      }
+    }
 
     // consume 'message' event
     c.on('error', error => {
@@ -2022,8 +2028,75 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
+
+    c.on('event.throttle', arg => {
+      assert.ok(arg, 'event.throttle')
+    })
+
+    c.on('event.stats', arg => {
+      assert.ok(arg, 'event.stats')
+    })
+
+    c.on('disconnected', arg => {
+      assert.ok(arg, 'disconnected')
+    })
+
+    // This should never be called!
+    c.on('message', arg => {
+      assert.fail(arg, 'data')
+    })
+
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
+      c.disconnect(discoCallback())
+    })
+  })
+
+  consumerTests.test('Test Consumer::connect - test KafkaConsumer events: event.log, event.error, error, stats enabled', (assert) => {
+    assert.plan(7)
+
+    const modifiedConfig = { ...config }
+    modifiedConfig.rdkafkaConf['statistics.interval.ms'] = 1
+
+    const c = new Consumer(topicsList, modifiedConfig)
+
+    const discoCallback = (err) => {
+      if (err) {
+        Logger.error(`Error received: ${err}`)
+      }
+    }
+
+    // consume 'message' event
+    c.on('error', error => {
+      Logger.error(error)
+      assert.ok(Sinon.match(error, 'event.error') || Sinon.match(error, 'event'), 'on Error event received')
+    })
+
+    c.on('ready', arg => {
+      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+
+    c.on('event.throttle', arg => {
+      assert.ok(arg, 'event.throttle')
+    })
+
+    c.on('event.stats', arg => {
+      assert.ok(arg, 'event.stats')
+    })
+
+    c.on('disconnected', arg => {
+      assert.ok(arg, 'disconnected')
+    })
+
+    // This should never be called!
+    c.on('message', arg => {
+      assert.fail(arg, 'data')
+    })
+
+    c.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      c.disconnect(discoCallback())
     })
   })
 

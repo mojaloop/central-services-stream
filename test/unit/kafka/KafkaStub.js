@@ -245,8 +245,11 @@ class KafkaConsumerForEventTests extends KafkaConsumer {
     super.connect(err, info)
 
     this.emit('event.error', 'event.error')
-    this.emit('event.log', 'event.log')
     this.emit('error', 'error')
+    this.emit('event.log', 'event.log')
+    this.emit('event.throttle', 'event.throttle')
+    this.emit('event.stats', 'event.stats')
+    this.emit('data', 'data') // currently commented out due to performance reasons!
 
     info(null, this.metrics)
     this._dummyFunction()
@@ -273,7 +276,10 @@ class KafkaProducerForEventTests extends KafkaProducer {
     this.emit('event.error', 'event.error')
     this.emit('error', 'error')
     this.emit('event.log', 'event.log')
+    this.emit('event.throttle', 'event.throttle')
+    this.emit('event.stats', 'event.stats')
     this.emit('delivery-report', 'delivery-report')
+
     info(null, this.metrics)
     this._dummyFunction()
   }

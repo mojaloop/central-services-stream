@@ -211,6 +211,33 @@ Test('Producer test', (producerTests) => {
     })
   })
 
+  producerTests.test('Test sync Producer::sendMessage', (assert) => {
+    assert.plan(3)
+    const syncConfig = { ...config }
+    syncConfig.options.sync = true
+    const producer = new Producer(syncConfig)
+    const discoCallback = (err, metrics) => {
+      if (err) {
+        Logger.error(err)
+      }
+      assert.equal(typeof metrics.connectionOpened, 'number')
+      assert.end()
+    }
+    // produce 'ready' event
+    producer.on('ready', arg => {
+      Logger.info(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+
+    producer.connect().then(result => {
+      assert.ok(result, 'connection result received')
+
+      producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'test', key: '1234' }).then(() => {
+        producer.disconnect(discoCallback)
+      })
+    })
+  })
+
   producerTests.test('Test Producer::sendMessage producer null', (assert) => {
     const producer = new Producer(config)
     producer.sendMessage({
@@ -324,13 +351,12 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
   })
 
   producerTests.test('Test Producer::connect - test KafkaProducer events: event.log, event.error, error, deliver-report', (assert) => {
-    assert.plan(4)
+    assert.plan(7)
     const producer = new Producer(config)
     const discoCallback = (err) => {
       if (err) {
         Logger.error(`Error received: ${err}`)
       }
-      assert.end()
     }
     // consume 'message' event
     producer.on('error', error => {
@@ -341,6 +367,67 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
     producer.on('ready', arg => {
       Logger.info(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
+    })
+
+    producer.on('event.throttle', arg => {
+      assert.ok(arg, 'event.throttle')
+    })
+
+    // this should never be hit
+    producer.on('event.stats', arg => {
+      assert.fail(arg, 'event.stats')
+    })
+
+    producer.on('delivery-report', arg => {
+      assert.ok(arg, 'delivery-report')
+    })
+
+    producer.on('disconnected', arg => {
+      assert.ok(arg, 'disconnected')
+    })
+
+    producer.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      producer.disconnect(discoCallback())
+    })
+  })
+
+  producerTests.test('Test Producer::connect - test KafkaProducer events: event.log, event.error, error, deliver-report, stats enabled', (assert) => {
+    assert.plan(8)
+    const modifiedConfig = { ...config }
+    modifiedConfig.rdkafkaConf['statistics.interval.ms'] = 1
+
+    const producer = new Producer(modifiedConfig)
+    const discoCallback = (err) => {
+      if (err) {
+        Logger.error(`Error received: ${err}`)
+      }
+    }
+    // consume 'message' event
+    producer.on('error', error => {
+      Logger.info(`onError: ${error}`)
+      assert.ok(Sinon.match(error, 'event.error') || Sinon.match(error, 'event'), 'on Error event received')
+    })
+
+    producer.on('ready', arg => {
+      Logger.info(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+
+    producer.on('event.throttle', arg => {
+      assert.ok(arg, 'event.throttle')
+    })
+
+    producer.on('event.stats', arg => {
+      assert.ok(arg, 'event.stats')
+    })
+
+    producer.on('delivery-report', arg => {
+      assert.ok(arg, 'delivery-report')
+    })
+
+    producer.on('disconnected', arg => {
+      assert.ok(arg, 'disconnected')
     })
 
     producer.connect().then(result => {
