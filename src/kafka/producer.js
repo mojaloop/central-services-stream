@@ -156,6 +156,9 @@ class Producer extends EventEmitter {
         messageCharset: 'utf8'
       }
     }
+    if (!config.options.messageCharset) {
+      config.options.messageCharset = 'utf8'
+    }
     if (!config.options.serializeFn) {
       const defaultSerializeFn = (message, opts) => {
         return Producer._createBuffer(message, opts.messageCharset)

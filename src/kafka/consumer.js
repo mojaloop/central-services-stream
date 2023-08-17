@@ -212,6 +212,9 @@ class Consumer extends EventEmitter {
     if (!config.options.syncConcurrency) {
       config.options.syncConcurrency = 1
     }
+    if (!config.options.messageCharset) {
+      config.options.messageCharset = 'utf8'
+    }
     if (!config.options.deserializeFn) {
       const defaultDeserializeFn = (message, opts) => {
         return Consumer._parseBuffer(message, opts.messageCharset, opts.messageAsJSON)
@@ -507,7 +510,7 @@ class Consumer extends EventEmitter {
           // lets transform the messages into the desired format
           messages.map(msg => {
             // const parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
-            const parsedValue = this._config.options.deserializeFn(msg.value)
+            const parsedValue = this._config.options.deserializeFn(msg.value, this._config.options)
             msg.value = parsedValue
             super.emit('message', msg)
             return msg
@@ -630,7 +633,7 @@ class Consumer extends EventEmitter {
         }
       } else {
         // const parsedValue = Protocol.parseValue(message.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
-        const parsedValue = this._config.options.deserializeFn(message.value)
+        const parsedValue = this._config.options.deserializeFn(message.value, this._config.options)
         message.value = parsedValue
         super.emit('message', message)
         if (this._config.options.messageAsJSON) {
