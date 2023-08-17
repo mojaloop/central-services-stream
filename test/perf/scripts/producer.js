@@ -8,7 +8,9 @@ class Test extends Sampler {
   constructor (opts) {
     super(opts)
 
-    const serializeFn = (message, opts) => {
+    // Example serializeFn override
+    // eslint-disable-next-line no-unused-vars
+    const overrideSerializeFn = (message, opts) => {
       return Buffer.from(JSON.stringify(message), opts.messageCharset)
     }
 
@@ -20,7 +22,8 @@ class Test extends Sampler {
         messageCharset: 'utf8',
         sync: true,
         // sync: false,
-        serializeFn
+        serializeFn: null // Use this if you want to use default serializeFn
+        // serializeFn: overrideSerializeFn
       },
       rdkafkaConf: {
         'metadata.broker.list': 'localhost:9092',

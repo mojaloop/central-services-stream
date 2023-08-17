@@ -10,7 +10,9 @@ class Test extends Sampler {
   constructor (opts) {
     super(opts)
 
-    const deserializeFn = (buffer, opts) => {
+    // Example deserializeFn override
+    // eslint-disable-next-line no-unused-vars
+    const overrideDeserializeFn = (buffer, opts) => {
       return Protocol.parseValue(buffer, opts.messageCharset, opts.messageAsJSON)
     }
 
@@ -25,7 +27,8 @@ class Test extends Sampler {
         sync: true,
         syncConcurrency: 1,
         consumeTimeout: 1000,
-        deserializeFn
+        deserializeFn: null // Use this if you want to use default deserializeFn
+        // deserializeFn: overrideDeserializeFn
       },
       rdkafkaConf: {
         'client.id': 'cl-test',

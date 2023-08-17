@@ -157,9 +157,10 @@ class Producer extends EventEmitter {
       }
     }
     if (!config.options.serializeFn) {
-      config.options.serializeFn = (message, opts) => {
+      const defaultSerializeFn = (message, opts) => {
         return Producer._createBuffer(message, opts.messageCharset)
       }
+      config.options.serializeFn = defaultSerializeFn
     }
     if (!config.options.pollIntervalMs) {
       config.options.pollIntervalMs = 50

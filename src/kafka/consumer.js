@@ -213,9 +213,10 @@ class Consumer extends EventEmitter {
       config.options.syncConcurrency = 1
     }
     if (!config.options.deserializeFn) {
-      config.options.deserializeFn = (message, opts) => {
+      const defaultDeserializeFn = (message, opts) => {
         return Consumer._parseBuffer(message, opts.messageCharset, opts.messageAsJSON)
       }
+      config.options.deserializeFn = defaultDeserializeFn
     }
     if (!config.rdkafkaConf) {
       config.rdkafkaConf = {
