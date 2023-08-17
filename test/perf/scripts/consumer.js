@@ -1,7 +1,9 @@
+const { inspect } = require('util')
 const Consumer = require('@mojaloop/central-services-stream').Kafka.Consumer
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
 const Protocol = require('@mojaloop/central-services-stream').Kafka.Protocol
 const Logger = require('@mojaloop/central-services-logger')
+
 const Sampler = require('#utils/sampler')
 
 class Test extends Sampler {
@@ -21,6 +23,7 @@ class Test extends Sampler {
         messageCharset: 'utf8',
         messageAsJSON: true,
         sync: true,
+        syncConcurrency: 1,
         consumeTimeout: 1000,
         deserializeFn
       },
@@ -41,6 +44,10 @@ class Test extends Sampler {
     this.topicList = opts?.topicList || [
       'test'
     ]
+
+    this.stat.labels = {
+      sync: this.consumerConf.options.sync
+    }
   }
 
   async beforeAll () {
@@ -75,11 +82,19 @@ class Test extends Sampler {
           if (Array.isArray(message) && message.length != null && message.length > 0) {
             message.forEach(msg => {
               this.opts.debug && console.log(`Message received[${msg.value.id}] - offset=${msg.offset}`)
-              this.client.commitMessage(msg)
+              if (this.consumerConf.sync) {
+                this.client.commitMessageSync(msg)
+              } else {
+                this.client.commitMessage(msg)
+              }
             })
           } else {
             this.opts.debug && console.log(`Message received[${message.value.id}] - offset=${message.offset}`)
-            this.client.commitMessage(message)
+            if (this.consumerConf.sync) {
+              this.client.commitMessageSync(message)
+            } else {
+              this.client.commitMessage(message)
+            }
           }
           resolve(true)
         } else {
@@ -101,6 +116,14 @@ class Test extends Sampler {
     console.log(`test:${this.opts.name}::afterAll`)
     super.afterAll()
     await this.client.disconnect()
+    console.log({
+      consumerConf: inspect({
+        options: this.consumerConf?.options,
+        rdkafkaConf: this.consumerConf?.rdkafkaConf,
+        topicConf: this.consumerConf?.topicConf
+      }),
+      topicList: inspect(this.topicList)
+    })
   }
 }
 

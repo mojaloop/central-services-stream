@@ -210,9 +210,12 @@ class Producer extends EventEmitter {
     const { logger } = this._config
     Logger.isSillyEnabled && logger.silly('Producer::connect() - start')
     return new Promise((resolve, reject) => {
-      // NOTE: this is the old way of creating a producer, we should use the new one
-      // this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
-      this._producer = new Kafka.HighLevelProducer(this._config.rdkafkaConf, this._config.topicConf)
+      if (this._config.options.sync) {
+        this._producer = new Kafka.HighLevelProducer(this._config.rdkafkaConf, this._config.topicConf)
+      } else {
+        // NOTE: this is the old way of creating a producer, we should use the new one
+        this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
+      }
 
       this._producer.on('event.log', log => {
         Logger.isSillyEnabled && logger.silly(log.message)
@@ -312,18 +315,23 @@ class Producer extends EventEmitter {
           key: topicConf.key
         }))
         const producedAt = Date.now()
-        // NOTE: this is the old way of producing a message, we should use the new one
-        // this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey)
-        this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, (err, offset) => {
-          // The offset if our acknowledgement level allows us to receive delivery offsets
-          if (err) {
-            Logger.isDebugEnabled && logger.debug(err)
-            reject(err)
-          } else {
-            Logger.isDebugEnabled && logger.debug(`Producer::send() - delivery-callback offset=${offset}`)
-            resolve(offset)
-          }
-        })
+
+        if (this._config.options.sync) {
+          this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, (err, offset) => {
+            // The offset if our acknowledgement level allows us to receive delivery offsets
+            if (err) {
+              Logger.isDebugEnabled && logger.debug(err)
+              reject(err)
+            } else {
+              Logger.isDebugEnabled && logger.debug(`Producer::send() - delivery-callback offset=${offset}`)
+              resolve(offset)
+            }
+          })
+        } else {
+          // NOTE: this is the old way of producing a message, we should use the new one
+          this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey)
+          resolve(true)
+        }
       } catch (err) {
         Logger.isDebugEnabled && logger.debug(err)
         reject(err)

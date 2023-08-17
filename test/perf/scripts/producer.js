@@ -1,3 +1,4 @@
+const { inspect } = require('util')
 const Producer = require('@mojaloop/central-services-stream').Kafka.Producer
 
 const Utils = require('#utils/index')
@@ -14,8 +15,11 @@ class Test extends Sampler {
     this.producerConf = opts?.producerConf || {
       options:
       {
-        pollIntervalMs: 100,
+        // pollIntervalMs: 100,
+        pollIntervalMs: 50,
         messageCharset: 'utf8',
+        sync: true,
+        // sync: false,
         serializeFn
       },
       rdkafkaConf: {
@@ -24,13 +28,14 @@ class Test extends Sampler {
         event_cb: true,
         dr_cb: true,
         dr_msg_cb: false,
-        'compression.codec': 'none',
+        // 'compression.codec': 'none', // none, gzip, snappy, lz4, zstd
+        'compression.codec': 'lz4',
         // 'retry.backoff.ms': 100,
         // 'message.send.max.retries': 2,
         'socket.keepalive.enable': true,
-        'queue.buffering.max.messages': 10
+        // 'queue.buffering.max.messages': 10
         // 'queue.buffering.max.messages': 10000,
-        // 'queue.buffering.max.messages': 10000000,
+        'queue.buffering.max.messages': 10000000
         // 'queue.buffering.max.ms': 50,
         // 'batch.num.messages': 10000,
         // 'api.version.request': true
@@ -44,6 +49,14 @@ class Test extends Sampler {
 
     this.topicConf = opts?.topicConf || {
       topicName: 'test'
+    }
+
+    this.stat.labels = {
+      sync: this.producerConf.options.sync,
+      compression: this.producerConf.rdkafkaConf['compression.codec'],
+      queueBufferingMaxMessages: this.producerConf.rdkafkaConf['queue.buffering.max.messages']
+      // producerConf: this.producerConf,
+      // topicConf: this.topicConf
     }
   }
 
@@ -95,6 +108,14 @@ class Test extends Sampler {
     console.log(`test:${this.opts.name}::afterAll`)
     super.afterAll()
     await this.client.disconnect()
+    console.log({
+      producerConf: inspect({
+        options: this.producerConf?.options,
+        rdkafkaConf: this.producerConf?.rdkafkaConf,
+        topicConf: this.producerConf?.topicConf
+      }),
+      topicConf: inspect(this.topicConf)
+    })
   }
 }
 

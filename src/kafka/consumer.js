@@ -205,8 +205,12 @@ class Consumer extends EventEmitter {
         messageCharset: 'utf8',
         messageAsJSON: true,
         sync: false,
+        syncConcurrency: 1,
         consumeTimeout: 1000
       }
+    }
+    if (!config.options.syncConcurrency) {
+      config.options.syncConcurrency = 1
     }
     if (!config.options.deserializeFn) {
       config.options.deserializeFn = (message, opts) => {
@@ -267,7 +271,6 @@ class Consumer extends EventEmitter {
       this._consumer = new Kafka.KafkaConsumer(this._config.rdkafkaConf, this._config.topicConf)
 
       this._consumer.setDefaultConsumeTimeout(this._config.options.consumeTimeout)
-      // this._setDefaultConsumeTimeout(this._config.options.consumeTimeout)
 
       this._consumer.on('event.log', log => {
         Logger.isSillyEnabled && logger.silly(log.message)
@@ -314,6 +317,8 @@ class Consumer extends EventEmitter {
       })
 
       Logger.isSillyEnabled && logger.silly('Registering data event..')
+
+      // Note: This is commented-out as a performance tweak, as we emit('message') directly from consumers avoiding the need to call deserializeFn twice for every message being consumed.
       // this._consumer.on('data', message => {
       //   Logger.isSillyEnabled && logger.silly(`Consumer::onData() - message: ${JSON.stringify(message)}`)
       //   const returnMessage = { ...message }
@@ -326,7 +331,7 @@ class Consumer extends EventEmitter {
       //   //   })
       //   // } else {
       //   // const parsedValue = Protocol.parseValue(returnMessage.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
-      //   const parsedValue = this._config.options.deserializeFn(returnMessage.value)
+      //   const parsedValue = this._config.options.deserializeFn(returnMessage.value, this._config.options)
       //   returnMessage.value = parsedValue
       //   // }
       //   super.emit('message', returnMessage)
@@ -417,7 +422,7 @@ class Consumer extends EventEmitter {
             super.emit('recursive', err, payload)
           }
         })
-      }, 1)
+      }, this._config.options.syncConcurrency)
 
       // a callback function, invoked when queue is empty.
       this._syncQueue.drain(() => {

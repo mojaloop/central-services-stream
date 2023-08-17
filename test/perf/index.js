@@ -33,10 +33,12 @@ const main = async () => {
     }
   }
 
-  const benchProducer = new Bench({
-    iterations: 1000, // This is how many messages we want to produce.
-    time: 0 // This is set to 0, to guarantee the number of iterations.
-  })
+  const benchProducerConf = {
+    // iterations: 100, // This is how many messages we want to produce.
+    // time: 0 // This is set to 0, to guarantee the number of iterations.
+    time: 30 * 1000 // This is the time in milliseconds we want to run the benchmark for.
+  }
+  const benchProducer = new Bench(benchProducerConf)
 
   benchProducer
     .add('produce', async () => {
@@ -49,10 +51,11 @@ const main = async () => {
   console.timeEnd('timer:benchmark::producer:run')
   // console.table(benchProducer.table())
 
-  const benchConsumer = new Bench({
+  const benchConsumerConf = {
     iterations: 1, // We only want 1 iteration since the consumer will run until the partition.eof event is reached.
     time: 0 // This is set to 0, to guarantee the number of iterations.
-  })
+  }
+  const benchConsumer = new Bench(benchConsumerConf)
 
   benchConsumer
     .add('consumer', async () => {
@@ -69,6 +72,8 @@ const main = async () => {
   // console.table(benchProducer.table())
   // console.table(benchConsumer.table())
 
+  console.log('benchProducerConf:', benchProducerConf)
+  console.log('benchConsumerConf:', benchConsumerConf)
   console.table(testProducer.getTable())
   console.table(testConsumer.getTable())
 }

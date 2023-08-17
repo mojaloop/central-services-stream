@@ -29,11 +29,13 @@ class Sampler {
   getTable () {
     const table = {
       name: this.stat.name,
+      date: new Date().toISOString(),
       count: this.stat.count,
       'start (ms)': this.stat.start,
       'end (ms)': this.stat.end,
       'duration (s)': this.stat.duration,
-      'ops /(s)': this.stat.ops
+      'ops /(s)': this.stat.ops,
+      labels: this.stat?.labels ? JSON.stringify(this.stat.labels) : ''
     }
     return [table]
   }
