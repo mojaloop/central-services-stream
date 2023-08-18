@@ -21,7 +21,7 @@ services:
       # blocks until kafka is reachable
       kafka-topics.sh --bootstrap-server kafka:29092 --list
       echo -e 'Creating kafka topics'
-      kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic test --replication-factor 1 --partitions $$KAFKA_PARTITIONS_NUM
+      kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic test --replication-factor $$KAFKA_REPLICATION_FACTOR --partitions $$KAFKA_PARTITIONS_NUM
       echo -e 'Successfully created the following topics:'
       kafka-topics.sh --bootstrap-server kafka:29092 --list
       "
