@@ -124,13 +124,13 @@ const
  *     'message.send.max.retries': 2,
  *     'socket.keepalive.enable': true,
  *     'queue.buffering.max.messages': 10,
- *     'queue.buffering.max.ms': 50,
+ *     'queue.buffering.max.ms': 5,
  *     'batch.num.messages': 10000,
  *     'api.version.request': true,
  *     'dr_cb': true
  *   },
  *   topicConf: {
- *    'request.required.acks': 1
+ *    'request.required.acks': -1
  *   }
  * })
  *
@@ -178,8 +178,8 @@ class Producer extends EventEmitter {
         'message.send.max.retries': 2,
         'statistics.interval.ms': 0, // Enable event.stats event if value is greater than 0
         'socket.keepalive.enable': true,
-        'queue.buffering.max.messages': 10,
-        'queue.buffering.max.ms': 50,
+        'queue.buffering.max.messages': 100000,
+        'queue.buffering.max.ms': 0, // 5 is default
         'batch.num.messages': 100,
         'api.version.request': true,
         dr_cb: true
@@ -187,7 +187,7 @@ class Producer extends EventEmitter {
     }
     if (!config.topicConf) {
       config.topicConf = {
-        'request.required.acks': 1
+        'request.required.acks': -1 // default for ALL brokers!
       }
     }
     if (!config.logger) {
@@ -261,7 +261,14 @@ class Producer extends EventEmitter {
           return reject(new Error('pollIntervalMs should be integer'))
         }
         this._producer.setPollInterval(this._config.options.pollIntervalMs)
-        super.emit('ready', args)
+        const readyResponse = {
+          ...args,
+          ...{
+            librdkafkaVersion: Kafka.librdkafkaVersion,
+            features: Kafka.features
+          }
+        }
+        super.emit('ready', readyResponse)
         resolve(true)
       })
 

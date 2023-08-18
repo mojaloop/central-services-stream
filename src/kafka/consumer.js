@@ -310,10 +310,17 @@ class Consumer extends EventEmitter {
         super.emit('disconnected', metrics)
       })
 
-      this._consumer.on('ready', arg => {
+      this._consumer.on('ready', args => {
         Logger.isDebugEnabled && logger.debug(`node-rdkafka v${Kafka.librdkafkaVersion} ready - ${JSON.stringify(arg)}`)
-        super.emit('ready', arg)
         this.subscribe()
+        const readyResponse = {
+          ...args,
+          ...{
+            librdkafkaVersion: Kafka.librdkafkaVersion,
+            features: Kafka.features
+          }
+        }
+        super.emit('ready', readyResponse)
         Logger.isSillyEnabled && logger.silly('Consumer::connect() - end')
         resolve(true)
       })
