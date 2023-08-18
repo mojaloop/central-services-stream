@@ -20,34 +20,42 @@ class Test extends Sampler {
         // pollIntervalMs: 100,
         pollIntervalMs: 50,
         messageCharset: 'utf8',
-        sync: true,
+        sync: true, // Recommended that 'queue.buffering.max.ms'= 0 if this is enabled
         // sync: false,
         serializeFn: null // Use this if you want to use default serializeFn
         // serializeFn: overrideSerializeFn // Use this if you want to override the default serializeFn
       },
-      rdkafkaConf: {
+      rdkafkaConf: { // Ref: https://developer.confluent.io/tutorials/optimize-producer-throughput/confluent.html
         'metadata.broker.list': 'localhost:9092',
-        'client.id': 'default-client',
+        'client.id': 'test',
         event_cb: true,
         dr_cb: true,
         dr_msg_cb: false,
         'statistics.interval.ms': 0, // Enable event.stats event if value is greater than 0
         // 'statistics.interval.ms': 100, // Enable event.stats event if value is greater than 0
-        // 'compression.codec': 'none', // none, gzip, snappy, lz4, zstd
-        'compression.codec': 'lz4',
+        'compression.codec': 'none', // none, gzip, snappy, lz4, zstd
+        // 'compression.codec': 'lz4', // Recommended compression algorithm
         // 'retry.backoff.ms': 100,
         // 'message.send.max.retries': 2,
         'socket.keepalive.enable': true,
         // 'queue.buffering.max.messages': 10
         // 'queue.buffering.max.messages': 10000,
-        'queue.buffering.max.messages': 10000000
+        'queue.buffering.max.messages': 100000,
+        // 'queue.buffering.max.messages': 10000000,
+        'queue.buffering.max.ms': 0, // This works very well when sync=true, since we are not "lingering" for the producer to wait for a queue build-up to dispatch
         // 'queue.buffering.max.ms': 50,
         // 'batch.num.messages': 10000,
         // 'api.version.request': true
+        // Enable this for idempotency
+        // 'enable.idempotence': true,
+        // 'transactional.id': '1234', // this doesn't work
+        // 'transactional.id': true, // this doesn't work
+        // 'max.in.flight.requests.per.connection': 5
+        // 'queuing.strategy': 'fifo' // Deprecated!!
       },
       topicConf: {
-        'request.required.acks': 1,
-        // "request.required.acks": 'all',
+        // 'request.required.acks': 1,
+        'request.required.acks': -1,
         partitioner: 'murmur2_random'
       }
     }
@@ -67,7 +75,10 @@ class Test extends Sampler {
 
   async beforeAll () {
     console.log(`test:${this.opts.name}::beforeAll`)
+
     this.client = new Producer(this.producerConf)
+
+    this.client.on('ready', args => console.log('ready:', args))
 
     const connectionResult = await this.client.connect()
 

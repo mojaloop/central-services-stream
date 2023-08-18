@@ -31,7 +31,7 @@ class Test extends Sampler {
         // deserializeFn: overrideDeserializeFn // Use this if you want to override the default deserializeFn
       },
       rdkafkaConf: {
-        'client.id': 'cl-test',
+        'client.id': 'test',
         'group.id': 'cl-group-test',
         'metadata.broker.list': 'localhost:9092',
         'statistics.interval.ms': 0, // Enable event.stats event if value is greater than 0
@@ -59,6 +59,8 @@ class Test extends Sampler {
     console.log(`test:${this.opts.name}::beforeAll`)
 
     this.client = new Consumer(this.topicList, this.consumerConf)
+
+    this.client.on('ready', args => console.log('ready:', args))
 
     const connectionResult = await this.client.connect()
 
