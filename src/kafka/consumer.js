@@ -261,6 +261,17 @@ class Consumer extends EventEmitter {
     Logger.isSillyEnabled && logger.silly('Consumer::constructor() - end')
   }
 
+    /**
+   * Returns the Kafka version library and features
+   * @returns object containing Kafka info on librdkafkaVersion, and features
+   */
+    version () {
+      return {
+        librdkafkaVersion: Kafka.librdkafkaVersion,
+        features: Kafka.features
+      }
+    }
+
   /**
    * Connect consumer
    *
@@ -311,14 +322,11 @@ class Consumer extends EventEmitter {
       })
 
       this._consumer.on('ready', args => {
-        Logger.isDebugEnabled && logger.debug(`node-rdkafka v${Kafka.librdkafkaVersion} ready - ${JSON.stringify(arg)}`)
+        Logger.isDebugEnabled && logger.debug(`node-rdkafka v${Kafka.librdkafkaVersion} ready - ${JSON.stringify(args)}`)
         this.subscribe()
         const readyResponse = {
           ...args,
-          ...{
-            librdkafkaVersion: Kafka.librdkafkaVersion,
-            features: Kafka.features
-          }
+          ...this.version()
         }
         super.emit('ready', readyResponse)
         Logger.isSillyEnabled && logger.silly('Consumer::connect() - end')

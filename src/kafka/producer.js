@@ -203,6 +203,17 @@ class Producer extends EventEmitter {
   }
 
   /**
+   * Returns the Kafka version library and features
+   * @returns object containing Kafka info on librdkafkaVersion, and features
+   */
+  version () {
+    return {
+      librdkafkaVersion: Kafka.librdkafkaVersion,
+      features: Kafka.features
+    }
+  }
+
+  /**
    * Connect Producer
    *
    * @fires Producer#ready
@@ -263,10 +274,7 @@ class Producer extends EventEmitter {
         this._producer.setPollInterval(this._config.options.pollIntervalMs)
         const readyResponse = {
           ...args,
-          ...{
-            librdkafkaVersion: Kafka.librdkafkaVersion,
-            features: Kafka.features
-          }
+          ...this.version()
         }
         super.emit('ready', readyResponse)
         resolve(true)
