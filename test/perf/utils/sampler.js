@@ -34,8 +34,8 @@ class Sampler {
       name: this.stat.name,
       date: new Date().toISOString(),
       count: this.stat.count,
-      'duration (s)': this.stat.duration,
       'ops /(s)': this.stat.ops,
+      'duration (s)': this.stat.duration,
       'start (ms)': this.stat.start,
       'end (ms)': this.stat.end,
       labels: this.stat?.labels ? JSON.stringify(this.stat.labels) : ''
