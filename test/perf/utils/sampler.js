@@ -12,6 +12,7 @@ class Sampler {
 
   async beforeAll () {
     this.stat.start = performance.now()
+    // console.debug(`Starting: ${this.stat.name}`)
   }
 
   async afterAll () {

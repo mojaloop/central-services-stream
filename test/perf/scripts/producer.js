@@ -42,7 +42,7 @@ class Test extends Sampler {
         // 'queue.buffering.max.messages': 10000,
         'queue.buffering.max.messages': 100000,
         // 'queue.buffering.max.messages': 10000000,
-        'queue.buffering.max.ms': 0, // This works very well when sync=true, since we are not "lingering" for the producer to wait for a queue build-up to dispatch
+        'queue.buffering.max.ms': 0 // This works very well when sync=true, since we are not "lingering" for the producer to wait for a queue build-up to dispatch
         // 'queue.buffering.max.ms': 50,
         // 'batch.num.messages': 10000,
         // 'api.version.request': true

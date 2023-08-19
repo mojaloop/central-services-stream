@@ -38,7 +38,15 @@ class Test extends Sampler {
         // 'statistics.interval.ms': 100, // Enable event.stats event if value is greater than 0
         'socket.keepalive.enable': true,
         'allow.auto.create.topics': true,
+        'partition.assignment.strategy': 'range,roundrobin', // range, roundrobin, cooperative-sticky. - Cooperative and non-cooperative (eager) strategies must not be mixed
         'enable.partition.eof': true
+        // offset_commit_cb: (err, topicPartitions) => {
+        //   if (err) {
+        //     // There was an error committing
+        //     console.error(err)
+        //   }
+        //   console.log(topicPartitions)
+        // }
       },
       topicConf: {
         'auto.offset.reset': 'earliest'
