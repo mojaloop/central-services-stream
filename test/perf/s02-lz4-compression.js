@@ -6,7 +6,8 @@ const TestConsumer = require('./scripts/consumer')
 
 const benchRunner = async () => {
   const envTime = parseInt(process.env.TIME) || 10
-  console.log(`Starting benchmark - ${module.filename.split(/[\\/]/).pop()}, env.TIME=${envTime}`)
+  const scenario = module.filename.split(/[\\/]/).pop()
+  console.log(`Starting benchmark - ${scenario}, env.TIME=${envTime}`)
   console.time('timer:benchmark::main')
 
   const producerOpts = {
@@ -41,6 +42,7 @@ const benchRunner = async () => {
   }
 
   const testProducer = new TestProducer({
+    scenario,
     name: 'Producer',
     debug: process.env.DEBUG || false,
     ...producerOpts
@@ -83,6 +85,7 @@ const benchRunner = async () => {
   }
 
   const testConsumer = new TestConsumer({
+    scenario,
     name: 'Consumer',
     debug: process.env.DEBUG || false,
     ...consumerOpts
