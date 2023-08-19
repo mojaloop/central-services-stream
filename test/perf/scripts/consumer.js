@@ -96,20 +96,20 @@ class Test extends Sampler {
         if (message) { // check if there is a valid message coming back
           this.stat.count++
           // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
-          if (Array.isArray(message) && message.length != null && message.length > 0) {
+          if (Array.isArray(message) && message?.length > 0) {
             message.forEach(msg => {
               this.opts.debug && console.log(`Message received[${msg.value.id}] - offset=${msg.offset}`)
-              if (this.consumerConf.sync) {
+              if (!this.consumerConf.rdkafkaConf['enable.auto.commit'] && this.consumerConf.options.sync) {
                 this.client.commitMessageSync(msg)
-              } else {
+              } else if (!this.consumerConf.rdkafkaConf['enable.auto.commit']) {
                 this.client.commitMessage(msg)
               }
             })
           } else {
             this.opts.debug && console.log(`Message received[${message.value.id}] - offset=${message.offset}`)
-            if (this.consumerConf.sync) {
+            if (!this.consumerConf.rdkafkaConf['enable.auto.commit'] && this.consumerConf.options.sync) {
               this.client.commitMessageSync(message)
-            } else {
+            } else if (!this.consumerConf.rdkafkaConf['enable.auto.commit']) {
               this.client.commitMessage(message)
             }
           }
