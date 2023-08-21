@@ -143,11 +143,17 @@ executors:
 jobs:
   setup:
     executor: default-docker
+    environment:
+      <<: *defaults_environment
     steps:
       - run:
           name: Install general dependencies
           command: *defaults_Dependencies
       - checkout
+      - run:
+          <<: *defaults_configure_nvm
+      - run:
+          <<: *defaults_display_versions
       - run:
           name: Update NPM install
           command: npm ci
@@ -158,11 +164,17 @@ jobs:
 
   test-dependencies:
     executor: default-docker
+    environment:
+      <<: *defaults_environment
     steps:
       - run:
           name: Install general dependencies
           command: *defaults_Dependencies
       - checkout
+      - run:
+          <<: *defaults_configure_nvm
+      - run:
+          <<: *defaults_display_versions
       - restore_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
@@ -171,11 +183,17 @@ jobs:
 
   test-lint:
     executor: default-docker
+    environment:
+      <<: *defaults_environment
     steps:
       - run:
           name: Install general dependencies
           command: *defaults_Dependencies
       - checkout
+      - run:
+          <<: *defaults_configure_nvm
+      - run:
+          <<: *defaults_display_versions
       - restore_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
@@ -184,11 +202,17 @@ jobs:
 
   test-unit:
     executor: default-docker
+    environment:
+      <<: *defaults_environment
     steps:
       - run:
           name: Install general dependencies
           command: *defaults_Dependencies
       - checkout
+      - run:
+          <<: *defaults_configure_nvm
+      - run:
+          <<: *defaults_display_versions
       - restore_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
@@ -209,6 +233,8 @@ jobs:
 
   test-coverage:
     executor: default-docker
+    environment:
+      <<: *defaults_environment
     steps:
       - run:
           name: Install general dependencies
@@ -217,6 +243,10 @@ jobs:
           name: Install AWS CLI dependencies
           command: *defaults_awsCliDependencies
       - checkout
+      - run:
+          <<: *defaults_configure_nvm
+      - run:
+          <<: *defaults_display_versions
       - restore_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
@@ -240,11 +270,17 @@ jobs:
 
   vulnerability-check:
     executor: default-docker
+    environment:
+      <<: *defaults_environment
     steps:
       - run:
           name: Install general dependencies
           command: *defaults_Dependencies
       - checkout
+      - run:
+          <<: *defaults_configure_nvm
+      - run:
+          <<: *defaults_display_versions
       - restore_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
