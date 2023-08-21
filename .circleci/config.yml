@@ -21,8 +21,8 @@ defaults_Dependencies: &defaults_Dependencies |
     apk --no-cache add ca-certificates
     apk --no-cache add curl
     apk --no-cache add openssh-client
-    apk add --no-cache -t build-dependencies make gcc g++ python3 libtool autoconf automake jq
-    npm config set unsafe-perm true
+    apk --no-cache add -t build-dependencies make gcc g++ python3 libtool autoconf automake jq bash
+    apk --no-cache add librdkafka-dev
     npm install -g node-gyp
 
 defaults_awsCliDependencies: &defaults_awsCliDependencies |
@@ -85,10 +85,6 @@ defaults_configure_nvm: &defaults_configure_nvm
 
       echo "3. Executing $NVM_DIR/nvm.sh"
       [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
-      # echo "4. Update $ENV_DOT_PROFILE"
-      # echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $ENV_DOT_PROFILE
-      # echo "export NVM_DIR=$NVM_DIR" >> $ENV_DOT_PROFILE
     fi
 
     ## Ref: https://github.com/nvm-sh/nvm/issues/1102#issuecomment-550572252
