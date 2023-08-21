@@ -49,6 +49,7 @@ const benchRunner = async () => {
   })
 
   const consumerOpts = {
+    maxMessages: null,
     consumerConf: {
       options: {
         mode: ConsumerEnums.CONSUMER_MODES.recursive,
@@ -102,7 +103,9 @@ const benchRunner = async () => {
 
   const fnConsumerOpts = {
     beforeAll: async () => {
-      return testConsumer.beforeAll()
+      return testConsumer.beforeAll({
+        maxMessages: testProducer.stat.count
+      })
     },
     afterAll: async () => {
       return testConsumer.afterAll()
@@ -152,6 +155,7 @@ const benchRunner = async () => {
   console.log('benchConsumerConf:', benchConsumerConf)
   console.table(testProducer.getTable())
   console.table(testConsumer.getTable())
+  return [].concat(testProducer.getTable(), testConsumer.getTable())
 }
 
 if (require.main === module) {

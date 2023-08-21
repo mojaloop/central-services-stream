@@ -11,17 +11,41 @@ const s10PartAssignmentCoopSticky = require('./s10-part-assignment-coop-sticky')
 
 const benchRunner = async () => {
   console.time('timer:benchRunner')
-  await s00defaultTest()
-  await s01AutoCommitEnabledTest()
-  await s02lz4CompressionTest()
-  await s03ProducerReducedPollInterval()
-  await s04ProducerIncreasedQueueBuffMax()
-  await s05ConsumerModePoll()
-  await s06ConsumerModeFlow()
-  await s07ConsumerModeRecursive()
-  // await s08ConsumerModeRecursiveWithBatch() // TODO: Fix issue with this test-case
-  await s10PartAssignmentCoopSticky() // NOTE: This should always be last otherwise it may cause an error for the partition assignment!
+  let statTables = []
+  let resultTable = []
+
+  resultTable = await s00defaultTest()
+  statTables = statTables.concat(resultTable)
+
+  resultTable = await s01AutoCommitEnabledTest()
+  statTables = statTables.concat(resultTable)
+
+  resultTable = await s02lz4CompressionTest()
+  statTables = statTables.concat(resultTable)
+
+  resultTable = await s03ProducerReducedPollInterval()
+  statTables = statTables.concat(resultTable)
+
+  resultTable = await s04ProducerIncreasedQueueBuffMax()
+  statTables = statTables.concat(resultTable)
+
+  resultTable = await s05ConsumerModePoll()
+  statTables = statTables.concat(resultTable)
+
+  resultTable = await s06ConsumerModeFlow()
+  statTables = statTables.concat(resultTable)
+
+  resultTable = await s07ConsumerModeRecursive()
+  statTables = statTables.concat(resultTable)
+
+  resultTable = await s08ConsumerModeRecursiveWithBatch()
+  statTables = statTables.concat(resultTable)
+
+  resultTable = await s10PartAssignmentCoopSticky() // NOTE: This should always be last otherwise it may cause an error for the partition assignment!
+  statTables = statTables.concat(resultTable)
+
   console.timeEnd('timer:benchRunner')
+  console.table(statTables)
 }
 
 if (require.main === module) {

@@ -152,6 +152,7 @@ const benchRunner = async () => {
   console.log('benchConsumerConf:', benchConsumerConf)
   console.table(testProducer.getTable())
   console.table(testConsumer.getTable())
+  return [].concat(testProducer.getTable(), testConsumer.getTable())
 }
 
 if (require.main === module) {

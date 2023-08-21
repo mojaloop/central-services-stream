@@ -6,6 +6,7 @@ class Sampler {
     this.opts = opts
     this.stat = {
       name: opts.name || 'Sampler',
+      date: new Date().toISOString(),
       scenario: opts.scenario || 'default',
       count: 0
     }
@@ -32,7 +33,7 @@ class Sampler {
     const table = {
       scenario: this.stat.scenario,
       name: this.stat.name,
-      date: new Date().toISOString(),
+      date: this.stat.date,
       count: this.stat.count,
       'ops /(s)': this.stat.ops,
       'duration (s)': this.stat.duration,
