@@ -30,9 +30,6 @@
     "dep:check",
     "test"
   ],
-  "engines": {
-    "node": "=16.x"
-  },
   "scripts": {
     "test": "npm run test:unit",
     "standard": "standard",
@@ -44,8 +41,8 @@
     "test:xunit": "npx tapes 'test/unit/**/**.test.js' | tap-xunit > ./test/results/xunit.xml",
     "test:coverage": "npx nyc --reporter=lcov --reporter=text-summary tapes -- 'test/unit/**/**.test.js'",
     "test:coverage-check": "npm run test:coverage && nyc check-coverage",
-    "audit:resolve": "npx resolve-audit --production",
-    "audit:check": "npx check-audit --production",
+    "audit:fix": "npm audit fix",
+    "audit:check": "npx audit-ci --config ./audit-ci.jsonc",
     "dep:check": "npx ncu -e 2",
     "dep:update": "npx ncu -u",
     "release": "npx standard-version --no-verify --releaseCommitMessageFormat 'chore(release): {{currentTag}} [skip ci]'",
@@ -57,7 +54,7 @@
     "node-rdkafka": "2.12.0"
   },
   "devDependencies": {
-    "npm-audit-resolver": "3.0.0-7",
+    "audit-ci": "^6.6.1",
     "npm-check-updates": "13.0.1",
     "nyc": "15.1.0",
     "pre-commit": "1.2.2",
