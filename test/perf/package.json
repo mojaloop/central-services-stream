@@ -21,6 +21,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@mojaloop/central-services-stream": "file:../..",
+    "protobufjs": "^7.2.4",
     "tinybench": "^2.5.0"
   }
 }

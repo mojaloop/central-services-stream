@@ -7,6 +7,7 @@ const s05ConsumerModePoll = require('./s05-consumer-mode-poll')
 const s06ConsumerModeFlow = require('./s06-consumer-mode-flow')
 const s07ConsumerModeRecursive = require('./s07-consumer-mode-recursive')
 const s08ConsumerModeRecursiveWithBatch = require('./s08-consumer-mode-recursive-with-batch')
+const s09ProtobufSerilization = require('./s09-protobuf-serilization')
 const s10PartAssignmentCoopSticky = require('./s10-part-assignment-coop-sticky')
 
 const benchRunner = async () => {
@@ -39,6 +40,9 @@ const benchRunner = async () => {
   statTables = statTables.concat(resultTable)
 
   resultTable = await s08ConsumerModeRecursiveWithBatch()
+  statTables = statTables.concat(resultTable)
+
+  resultTable = await s09ProtobufSerilization()
   statTables = statTables.concat(resultTable)
 
   resultTable = await s10PartAssignmentCoopSticky() // NOTE: This should always be last otherwise it may cause an error for the partition assignment!

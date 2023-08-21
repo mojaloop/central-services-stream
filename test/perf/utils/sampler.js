@@ -37,8 +37,8 @@ class Sampler {
       count: this.stat.count,
       'ops /(s)': this.stat.ops,
       'duration (s)': this.stat.duration,
-      'start (ms)': this.stat.start,
-      'end (ms)': this.stat.end,
+      start: this.stat.start,
+      end: this.stat.end,
       labels: this.stat?.labels ? JSON.stringify(this.stat.labels) : ''
     }
     return [table]

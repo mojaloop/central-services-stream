@@ -87,67 +87,6 @@ class Test extends Sampler {
     super.beforeAll()
   }
 
-  // async run () {
-  //   this.client.consume((error, message) => {
-  //     return new Promise((resolve, reject) => {
-  //       if (error) {
-  //         console.error(error)
-  //         // resolve(false)
-  //         reject(error)
-  //       }
-  //       if (message) { // check if there is a valid message coming back
-  //         // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
-  //         console.log(`this.maxMessages=${this.maxMessages} === this.stat.count=${this.stat.count}`)
-  //         if (Array.isArray(message) && message?.length > 0) {
-  //           console.log(`message.length=${message.length}`)
-  //           for (const msg of message) {
-  //           // message.forEach(msg => {
-  //             this.stat.count++
-  //             this.opts.debug && console.log(`Message received[${msg.value.id}] - offset=${msg.offset}`)
-  //             if (!this.consumerConf.rdkafkaConf['enable.auto.commit'] && this.consumerConf.options.sync) {
-  //               this.client.commitMessageSync(msg)
-  //             } else if (!this.consumerConf.rdkafkaConf['enable.auto.commit']) {
-  //               this.client.commitMessage(msg)
-  //             }
-  //           }
-  //         } else {
-  //           this.stat.count++
-  //           this.opts.debug && console.log(`Message received[${message.value.id}] - offset=${message.offset}`)
-  //           if (!this.consumerConf.rdkafkaConf['enable.auto.commit'] && this.consumerConf.options.sync) {
-  //             this.client.commitMessageSync(message)
-  //           } else if (!this.consumerConf.rdkafkaConf['enable.auto.commit']) {
-  //             this.client.commitMessage(message)
-  //           }
-  //         }
-  //         resolve(true)
-  //       } else {
-  //         resolve(false)
-  //       }
-  //     })
-  //   })
-
-  //   return new Promise(resolve => {
-  //     if (this.maxMessages) {
-  //       const cb = message => {
-  //         this.opts.debug && console.log(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
-  //         // console.log(`this.maxMessages=${this.maxMessages} === this.stat.count=${this.stat.count}`)
-  //         if (this.maxMessages === (this.stat.count - 1)) {
-  //           console.log('MAX MESSAGES REACHED!')
-  //           this.client.disconnect()
-  //           resolve(true)
-  //         }
-  //       }
-  //       this.client.on('message', cb.bind(this))
-  //     } else {
-  //       this.client.on('partition.eof', eof => {
-  //         this.opts.debug && console.log(`onEof: ${JSON.stringify(eof)}`)
-  //         this.client.disconnect()
-  //         resolve(true)
-  //       })
-  //     }
-  //   })
-  // }
-
   async run () {
     // eslint-disable-next-line
     return new Promise(runResolve => {
