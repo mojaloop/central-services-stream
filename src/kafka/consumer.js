@@ -216,8 +216,8 @@ class Consumer extends EventEmitter {
       config.options.messageCharset = 'utf8'
     }
     if (!config.options.deserializeFn) {
-      const defaultDeserializeFn = (message, opts) => {
-        return Consumer._parseBuffer(message, opts.messageCharset, opts.messageAsJSON)
+      const defaultDeserializeFn = (buffer, opts) => {
+        return Consumer._parseBuffer(buffer, opts.messageCharset, opts.messageAsJSON)
       }
       config.options.deserializeFn = defaultDeserializeFn
     }
