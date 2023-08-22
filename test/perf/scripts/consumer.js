@@ -77,7 +77,9 @@ class Test extends Sampler {
     this.opts.debug && console.log(`Connected result=${connectionResult}`)
 
     // consume 'ready' event
-    this.client.on('ready', arg => console.log(`onReady: ${JSON.stringify(arg)}`))
+    this.client.on('ready', arg => {
+      console.log(`onReady: ${JSON.stringify(arg)} - with start time: ${this.stat.start}`)
+    })
     // // consume 'message' event
     // this.client.on('message', message => console.log(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`))
     // // consume 'batch' event
@@ -85,6 +87,7 @@ class Test extends Sampler {
     this.client.on('event.stats', eventData => console.log('event.stats:', eventData))
     this.client.on('event.throttle', eventData => console.warn('event.throttle:', eventData))
     super.beforeAll()
+    this.stat.start = null
   }
 
   async run () {
@@ -92,14 +95,15 @@ class Test extends Sampler {
     return new Promise(runResolve => {
       this.client.consume((error, message) => {
         return new Promise((resolve, reject) => {
+          if (!this.stat.start) this.stat.start = performance.now()
           if (error) {
             console.error(error)
             // resolve(false)
             reject(error)
           }
+          this.opts.debug && console.log(`this.maxMessages=${this.maxMessages} === this.stat.count=${this.stat.count}`)
           if (message) { // check if there is a valid message coming back
             // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
-            this.opts.debug && console.log(`this.maxMessages=${this.maxMessages} === this.stat.count=${this.stat.count}`)
             if (Array.isArray(message) && message?.length > 0) {
               this.opts.debug && console.log(`message.length=${message.length}`)
               for (const msg of message) {
@@ -111,11 +115,6 @@ class Test extends Sampler {
                   this.client.commitMessage(msg)
                 }
               }
-
-              if (this.maxMessages === (this.stat.count)) {
-                console.log('MAX MESSAGES REACHED! Exiting Consumer...')
-                runResolve(true)
-              }
             } else {
               this.stat.count++
               this.opts.debug && console.log(`Message received[${message.value.id}] - offset=${message.offset}`)
@@ -125,6 +124,11 @@ class Test extends Sampler {
                 this.client.commitMessage(message)
               }
             }
+            if (this.maxMessages === (this.stat.count)) {
+              console.log('MAX MESSAGES REACHED! Exiting Consumer...')
+              // this.client.disconnect()
+              runResolve(true)
+            }
             resolve(true)
           } else {
             resolve(false)
@@ -132,13 +136,11 @@ class Test extends Sampler {
         })
       })
 
-      if (!this.maxMessages) {
-        this.client.on('partition.eof', eof => {
-          this.opts.debug && console.log(`onEof: ${JSON.stringify(eof)}`)
-          this.client.disconnect()
-          runResolve(true)
-        })
-      }
+      this.client.on('partition.eof', eof => {
+        this.opts.debug && console.log(`onEof: ${JSON.stringify(eof)}`)
+        // this.client.disconnect()
+        runResolve(true)
+      })
     })
   }
 
@@ -146,7 +148,7 @@ class Test extends Sampler {
     console.log(`test:${this.opts.name}::afterAll`)
     super.afterAll()
     console.log('Disconnecting Consumer!')
-    await this.client.disconnect()
+    this.client.disconnect()
     console.log({
       consumerConf: inspect({
         options: this.consumerConf?.options,

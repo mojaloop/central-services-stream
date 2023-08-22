@@ -52,14 +52,16 @@ const benchRunner = async () => {
     consumerConf: {
       options: {
         mode: ConsumerEnums.CONSUMER_MODES.recursive,
+        // mode: ConsumerEnums.CONSUMER_MODES.flow,
         batchSize: 1,
         pollFrequency: 10,
-        recursiveTimeout: 10,
+        recursiveTimeout: 100,
         messageCharset: 'utf8',
         messageAsJSON: true,
-        sync: true,
+        // sync: true,
+        sync: false,
         syncConcurrency: 1,
-        consumeTimeout: 10,
+        consumeTimeout: 1000,
         deserializeFn: null // Use this if you want to use default deserializeFn
       },
       rdkafkaConf: {
@@ -73,7 +75,8 @@ const benchRunner = async () => {
         'allow.auto.create.topics': true,
         'partition.assignment.strategy': 'range,roundrobin',
         'enable.partition.eof': true,
-        'api.version.request': true
+        'api.version.request': true,
+        'fetch.wait.max.ms': 0
       },
       topicConf: {
         'auto.offset.reset': 'earliest'
@@ -102,7 +105,9 @@ const benchRunner = async () => {
 
   const fnConsumerOpts = {
     beforeAll: async () => {
-      return testConsumer.beforeAll()
+      return testConsumer.beforeAll({
+        maxMessages: testProducer.stat.count
+      })
     },
     afterAll: async () => {
       return testConsumer.afterAll()
@@ -110,9 +115,14 @@ const benchRunner = async () => {
   }
 
   const benchProducerConf = {
+    // iterations: 2, // This is how many messages we want to produce.
     // iterations: 100, // This is how many messages we want to produce.
-    // time: 0 // This is set to 0, to guarantee the number of iterations.
-    time: envTime * 1000 // This is the time in milliseconds we want to run the benchmark for.
+    // iterations: 5000, // This is how many messages we want to produce.
+    iterations: 10000, // This is how many messages we want to produce.
+    // iterations: 10000, // This is how many messages we want to produce.
+    // iterations: 100000, // This is how many messages we want to produce.
+    time: 0 // This is set to 0, to guarantee the number of iterations.
+    // time: envTime * 1000 // This is the time in milliseconds we want to run the benchmark for.
   }
   const benchProducer = new Bench(benchProducerConf)
 

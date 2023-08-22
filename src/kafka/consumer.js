@@ -224,11 +224,15 @@ class Consumer extends EventEmitter {
     if (!config.rdkafkaConf) {
       config.rdkafkaConf = {
         'group.id': 'kafka',
+        'client.id': 'default-client',
         'metadata.broker.list': 'localhost:9092',
         'enable.auto.commit': true,
         'statistics.interval.ms': 0 // Enable event.stats event if value is greater than 0
         // 'debug': 'all'
       }
+    }
+    if (!config?.rdkafkaConf['client.id']) {
+      config.rdkafkaConf['client.id'] = 'default-client'
     }
     if (!config.topicConf) {
       config.topicConf = {}
@@ -317,7 +321,7 @@ class Consumer extends EventEmitter {
       })
 
       this._consumer.on('disconnected', (metrics) => {
-        Logger.isWarnEnabled && logger.warn('disconnected.')
+        Logger.isDebugEnabled && logger.debug('disconnected.', metrics)
         super.emit('disconnected', metrics)
       })
 
@@ -426,31 +430,25 @@ class Consumer extends EventEmitter {
     Logger.isSillyEnabled && logger.silly('Consumer::consume() - start')
 
     if (!workDoneCb || typeof workDoneCb !== 'function') {
-      workDoneCb = () => {}
+      workDoneCb = async () => {}
     }
 
     // setup queues to ensure sync processing of messages if options.sync is true
     if (this._config.options.sync) {
       this._syncQueue = async.queue((message, callbackDone) => {
-        Logger.isDebugEnabled && logger.debug(`Consumer::consume() - Sync Process - ${JSON.stringify(message)}`)
+        Logger.isDebugEnabled && logger.debug(`Consumer::consume()::syncQueue.queue - Sync Process - ${JSON.stringify(message)}`)
         let payload
         if (this._config.options.mode === ENUMS.CONSUMER_MODES.flow) {
           payload = message.message
         } else {
           payload = message.messages
         }
-        Promise.resolve(workDoneCb(message.error, payload)).then(() => {
-          callbackDone() // this marks the completion of the processing by the worker
-          if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
-            super.emit('recursive', message.error, payload)
-          }
+        Promise.resolve(workDoneCb(message?.error, payload)).then((result) => {
+          callbackDone(message?.error, result) // this marks the completion of the processing by the worker
         }).catch((err) => {
-          Logger.isErrorEnabled && logger.error(`Consumer::consume()::syncQueue.queue - error: ${err}`)
+          Logger.isErrorEnabled && logger.error(`Consumer::consume()::syncQueue.queue - workDoneCb - error: ${err}`)
           super.emit('error', err)
-          callbackDone()
-          if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
-            super.emit('recursive', err, payload)
-          }
+          callbackDone(err)
         })
       }, this._config.options.syncConcurrency)
 
@@ -472,12 +470,16 @@ class Consumer extends EventEmitter {
       case CONSUMER_MODES.recursive:
         if (this._config.options.batchSize && typeof this._config.options.batchSize === 'number') {
           super.on('recursive', (error) => {
+            Logger.isSillyEnabled && logger.silly('Consumer::consume() - onRecursive - start')
             if (error) {
-              Logger.isErrorEnabled && logger.error(`Consumer::consume() - error ${error}`)
+              Logger.isErrorEnabled && logger.error(`Consumer::consume() - onRecursive - error ${error}`)
             }
             if (this._status.running) {
               this._consumeRecursive(this._config.options.recursiveTimeout, this._config.options.batchSize, workDoneCb)
+            } else {
+              Logger.isDebugEnabled && logger.debug(`Consumer::consume() - onRecursive - status.running=${this._status.running}`)
             }
+            Logger.isSillyEnabled && logger.silly('Consumer::consume() - onRecursive - end')
           })
           this._consumeRecursive(this._config.options.recursiveTimeout, this._config.options.batchSize, workDoneCb)
         } else {
@@ -519,7 +521,7 @@ class Consumer extends EventEmitter {
             super.emit('error', error)
             Logger.isErrorEnabled && logger.error(`Consumer::_consumerPoller() - ERROR - ${error}`)
           } else {
-            // Logger.isDebugEnabled && logger.debug(`Consumer::_consumerPoller() - POLL EMPTY PING`)
+            Logger.isSillyEnabled && logger.silly('Consumer::_consumerPoller() - POLL EMPTY PING')
           }
         } else {
           // lets transform the messages into the desired format
@@ -585,7 +587,7 @@ class Consumer extends EventEmitter {
         }
         if (this._status.running) {
           return setTimeout(() => {
-            return this._consumeRecursive(recursiveTimeout, batchSize, workDoneCb)
+            super.emit('recursive', error, messages)
           }, recursiveTimeout)
         } else {
           return false
@@ -605,19 +607,22 @@ class Consumer extends EventEmitter {
         }
 
         if (this._config.options.sync) {
-          this._syncQueue.push({ error, messages }, (error) => {
+          this._syncQueue.push({ error, messages }, (error, result) => {
             if (error) {
               Logger.isErrorEnabled && logger.error(`Consumer::_consumerRecursive()::syncQueue.push - error: ${error}`)
             }
+            Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive()::syncQueue.push - result: ${result}`)
+            super.emit('recursive', error, messages)
           })
         } else {
           Promise.resolve(workDoneCb(error, messages)).then((response) => {
             Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
+            super.emit('recursive', error, messages)
           }).catch((err) => {
             Logger.isErrorEnabled && logger.error(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${err}`)
+            super.emit('recursive', error, messages)
             super.emit('error', err)
           })
-          super.emit('recursive', error, messages)
           super.emit('batch', messages)
         }
         return true

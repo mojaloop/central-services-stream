@@ -78,7 +78,9 @@ class Test extends Sampler {
 
     this.client = new Producer(this.producerConf)
 
-    this.client.on('ready', args => console.log('ready:', args))
+    this.client.on('ready', arg => {
+      console.log(`onReady: ${JSON.stringify(arg)} - with start time: ${this.stat.start}`)
+    })
 
     const connectionResult = await this.client.connect()
 

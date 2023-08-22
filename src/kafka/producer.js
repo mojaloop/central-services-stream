@@ -185,6 +185,9 @@ class Producer extends EventEmitter {
         dr_cb: true
       }
     }
+    if (!config?.rdkafkaConf['client.id']) {
+      config.rdkafkaConf['client.id'] = 'default-client'
+    }
     if (!config.topicConf) {
       config.topicConf = {
         'request.required.acks': -1 // default for ALL brokers!
@@ -261,7 +264,7 @@ class Producer extends EventEmitter {
       })
 
       this._producer.on('disconnected', (metrics) => {
-        Logger.isWarnEnabled && logger.warn('disconnected.')
+        Logger.isWarnEnabled && logger.debug('disconnected.', metrics)
         super.emit('disconnected', metrics)
       })
 
