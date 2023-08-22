@@ -104,9 +104,11 @@ class Test extends Sampler {
     //   console.log('DeliveryReport: ' + JSON.stringify(report))
     // })
     super.beforeAll()
+    // this.stat.start = null
   }
 
   async run (message) {
+    // if (!this.stat.start) this.stat.start = performance.now()
     const messageIndex = Utils.randomNumber(0, this.messages.length - 1)
 
     const messageProtocol = this.messages[messageIndex]

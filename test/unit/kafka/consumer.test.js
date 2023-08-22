@@ -75,6 +75,7 @@ Test('Consumer test', (consumerTests) => {
         consumeTimeout: 1000
       },
       rdkafkaConf: {
+        'client.id': 'default-client',
         'group.id': 'kafka-test',
         'metadata.broker.list': 'localhost:9092',
         'enable.auto.commit': false

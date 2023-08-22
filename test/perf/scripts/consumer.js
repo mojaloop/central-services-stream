@@ -148,7 +148,8 @@ class Test extends Sampler {
     console.log(`test:${this.opts.name}::afterAll`)
     super.afterAll()
     console.log('Disconnecting Consumer!')
-    this.client.disconnect()
+    await this.client.disconnect()
+    // this.client.disconnect()
     console.log({
       consumerConf: inspect({
         options: this.consumerConf?.options,

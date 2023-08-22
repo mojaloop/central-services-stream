@@ -206,6 +206,7 @@ class Consumer extends EventEmitter {
         messageAsJSON: true,
         sync: false,
         syncConcurrency: 1,
+        syncSingleMessage: false,
         consumeTimeout: 1000
       }
     }
@@ -344,10 +345,8 @@ class Consumer extends EventEmitter {
           Logger.isSillyEnabled && logger.silly('Consumer::connect() - end')
           return reject(error)
         }
-        // this.subscribe()
         Logger.isSillyEnabled && logger.silly('Consumer metadata:')
         Logger.isSillyEnabled && logger.silly(metadata)
-        // resolve(true)
       })
 
       Logger.isSillyEnabled && logger.silly('Registering data event..')
@@ -435,18 +434,18 @@ class Consumer extends EventEmitter {
 
     // setup queues to ensure sync processing of messages if options.sync is true
     if (this._config.options.sync) {
-      this._syncQueue = async.queue((message, callbackDone) => {
-        Logger.isDebugEnabled && logger.debug(`Consumer::consume()::syncQueue.queue - Sync Process - ${JSON.stringify(message)}`)
+      this._syncQueue = async.queue((task, callbackDone) => {
+        Logger.isDebugEnabled && logger.debug(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - Sync Process - ${JSON.stringify(task)}`)
         let payload
         if (this._config.options.mode === ENUMS.CONSUMER_MODES.flow) {
-          payload = message.message
+          payload = task.message
         } else {
-          payload = message.messages
+          payload = task.messages
         }
-        Promise.resolve(workDoneCb(message?.error, payload)).then((result) => {
-          callbackDone(message?.error, result) // this marks the completion of the processing by the worker
+        Promise.resolve(workDoneCb(task?.error, payload)).then((result) => {
+          callbackDone(task?.error, result) // this marks the completion of the processing by the worker
         }).catch((err) => {
-          Logger.isErrorEnabled && logger.error(`Consumer::consume()::syncQueue.queue - workDoneCb - error: ${err}`)
+          Logger.isErrorEnabled && logger.error(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - workDoneCb - error: ${err}`)
           super.emit('error', err)
           callbackDone(err)
         })
@@ -607,13 +606,30 @@ class Consumer extends EventEmitter {
         }
 
         if (this._config.options.sync) {
-          this._syncQueue.push({ error, messages }, (error, result) => {
-            if (error) {
-              Logger.isErrorEnabled && logger.error(`Consumer::_consumerRecursive()::syncQueue.push - error: ${error}`)
+          // lets process the messages in batches
+          if (!this._config.options.syncSingleMessage) {
+            this._syncQueue.push({ error, messages }, (error, result) => {
+              if (error) {
+                Logger.isErrorEnabled && logger.error(`Consumer::_consumerRecursive()::syncQueue.Batch.push - error: ${error}`)
+              }
+              Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive()::syncQueue.Batch.push - result: ${result}`)
+              super.emit('recursive', error, messages)
+            })
+          } else {
+            // lets process each message individually
+            for (const [index, msg] of messages.entries()) {
+              this._syncQueue.push({ error, messages: msg }, (error, result) => {
+                if (error) {
+                  Logger.isErrorEnabled && logger.error(`Consumer::_consumerRecursive()::syncQueue.Single.push - error: ${error}`)
+                }
+                Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive()::syncQueue.Single.push - result: ${result}`)
+                // lets only emit the recursive event once we have processed all the messages
+                if (index === messages.length - 1) {
+                  super.emit('recursive', error, messages)
+                }
+              })
             }
-            Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive()::syncQueue.push - result: ${result}`)
-            super.emit('recursive', error, messages)
-          })
+          }
         } else {
           Promise.resolve(workDoneCb(error, messages)).then((response) => {
             Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
