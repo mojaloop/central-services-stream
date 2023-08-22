@@ -114,7 +114,6 @@ Test('Producer test', (producerTests) => {
       },
       rdkafkaConf: {
         'metadata.broker.list': 'localhost:9092',
-        'client.id': 'default-client',
         event_cb: true,
         'compression.codec': 'none',
         'retry.backoff.ms': 100,
