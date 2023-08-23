@@ -667,8 +667,8 @@ class Consumer extends EventEmitter {
             super.emit('recursive', error, messages)
             super.emit('error', err)
           })
-          super.emit('batch', messages)
         }
+        super.emit('batch', messages)
         return true
       }
     })

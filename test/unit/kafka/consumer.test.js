@@ -1542,7 +1542,7 @@ Test('Consumer test', (consumerTests) => {
               }
               resolve(true)
               assert.ok(message, 'message processed')
-              assert.ok(Array.isArray(message), 'batch of messages received')
+              assert.ok(!Array.isArray(message), 'single message received')
               message.forEach(msg => {
                 assert.equals(typeof msg.value, 'object')
               })
