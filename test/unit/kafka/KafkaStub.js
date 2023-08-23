@@ -255,6 +255,7 @@ class KafkaConsumerForEventTests extends KafkaConsumer {
   connect (err, info) {
     super.connect(err, info)
 
+    this.emit('warning', 'warning')
     this.emit('event.error', 'event.error')
     this.emit('error', 'error')
     this.emit('event.log', 'event.log')
