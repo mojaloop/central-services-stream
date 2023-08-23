@@ -30,9 +30,6 @@
     "dep:check",
     "test"
   ],
-  "engines": {
-    "node": "=16.x"
-  },
   "scripts": {
     "test": "npm run test:unit",
     "standard": "standard",
@@ -44,33 +41,33 @@
     "test:xunit": "npx tapes 'test/unit/**/**.test.js' | tap-xunit > ./test/results/xunit.xml",
     "test:coverage": "npx nyc --reporter=lcov --reporter=text-summary tapes -- 'test/unit/**/**.test.js'",
     "test:coverage-check": "npm run test:coverage && nyc check-coverage",
-    "audit:resolve": "npx resolve-audit --production",
-    "audit:check": "npx check-audit --production",
+    "audit:fix": "npm audit fix",
+    "audit:check": "npx audit-ci --config ./audit-ci.jsonc",
     "dep:check": "npx ncu -e 2",
     "dep:update": "npx ncu -u",
     "release": "npx standard-version --no-verify --releaseCommitMessageFormat 'chore(release): {{currentTag}} [skip ci]'",
     "snapshot": "npx standard-version --no-verify --skip.changelog --prerelease snapshot --releaseCommitMessageFormat 'chore(snapshot): {{currentTag}}'"
   },
   "dependencies": {
-    "async": "3.2.3",
+    "async": "3.2.4",
     "events": "3.3.0",
-    "node-rdkafka": "2.12.0"
+    "node-rdkafka": "2.17.0"
   },
   "devDependencies": {
-    "npm-audit-resolver": "3.0.0-7",
-    "npm-check-updates": "13.0.1",
+    "audit-ci": "^6.6.1",
+    "npm-check-updates": "16.13.0",
     "nyc": "15.1.0",
     "pre-commit": "1.2.2",
-    "replace": "^1.2.1",
-    "rewire": "6.0.0",
-    "sinon": "14.0.0",
-    "standard": "17.0.0",
+    "replace": "^1.2.2",
+    "rewire": "7.0.0",
+    "sinon": "15.2.0",
+    "standard": "17.1.0",
     "standard-version": "^9.5.0",
     "tap-spec": "^5.0.0",
     "tap-xunit": "2.4.1",
     "tape": "4.13.3",
     "tapes": "4.1.0",
-    "uuid4": "2.0.2"
+    "uuid4": "2.0.3"
   },
   "peerDependencies": {
     "@mojaloop/central-services-error-handling": "12.x.x",
