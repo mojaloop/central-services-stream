@@ -257,39 +257,43 @@ class Producer extends EventEmitter {
       }
 
       this._producer.on('event.log', log => {
-        Logger.isSillyEnabled && logger.silly(log.message)
+        Logger.isSillyEnabled && logger.silly('onEventLog', log.message)
       })
 
       this._producer.on('event.error', error => {
+        Logger.isDebugEnabled && logger.debug('onEventError', error)
         super.emit('error', error)
       })
 
       this._producer.on('event.throttle', eventData => {
+        Logger.isDebugEnabled && logger.debug('onEventThrottle', eventData)
         super.emit('event.throttle', eventData)
       })
 
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
         this._producer.on('event.stats', (eventData) => {
+          Logger.isSillyEnabled && logger.silly('onEventStats', eventData)
           super.emit('event.stats', eventData)
         })
       }
 
       this._producer.on('error', error => {
+        Logger.isDebugEnabled && logger.debug('onError', error)
         super.emit('error', error)
       })
 
       this._producer.on('delivery-report', (err, report) => {
-        Logger.isDebugEnabled && logger.debug('DeliveryReport: ' + JSON.stringify(report))
+        Logger.isDebugEnabled && logger.debug('onDeliveryReport', JSON.stringify(report))
         super.emit('delivery-report', err, report)
       })
 
       this._producer.on('disconnected', (metrics) => {
-        Logger.isWarnEnabled && logger.debug('disconnected.', metrics)
+        Logger.isDebugEnabled && logger.debug('onDisconnected', metrics)
         super.emit('disconnected', metrics)
       })
 
       this._producer.on('ready', (args) => {
-        Logger.isDebugEnabled && logger.debug(`Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
+        Logger.isDebugEnabled && logger.debug('onReady', `Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
         // Passing non-integer (including "undefined") to setPollInterval() may cause unexpected behaviour, which is hard to trace.
         if (!Number.isInteger(this._config.options.pollIntervalMs)) {
           return reject(new Error('pollIntervalMs should be integer'))

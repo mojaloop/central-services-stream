@@ -137,7 +137,7 @@ class Test extends Sampler {
 
     const offset = await this.client.sendMessage(messageProtocol, newTopicConf)
 
-    this.opts.debug && console.log(`Message sent[${messageProtocol.id}] - offset=${offset}`)
+    this.opts.debug && console.log(`Message sent[${messageProtocol.id}] - offset=${offset}, ${this.stat.count + 1}/${this.maxMessages || '?'}`)
     this.stat.count++
   }
 

@@ -98,8 +98,8 @@ class Test extends Sampler {
     // this.client.on('message', message => console.log(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`))
     // // consume 'batch' event
     // this.client.on('batch', message => console.log(`onBatch: ${JSON.stringify(message)}`))
-    this.client.on('event.stats', eventData => console.log('event.stats:', eventData))
-    this.client.on('event.throttle', eventData => console.warn('event.throttle:', eventData))
+    // this.client.on('event.stats', eventData => console.log('event.stats:', eventData))
+    // this.client.on('event.throttle', eventData => console.warn('event.throttle:', eventData))
     super.beforeAll()
     this.stat.start = null
   }
@@ -115,14 +115,13 @@ class Test extends Sampler {
             // resolve(false)
             reject(error)
           }
-          this.opts.debug && console.log(`this.maxMessages=${this.maxMessages} === this.stat.count=${this.stat.count}`)
           if (message) { // check if there is a valid message coming back
             // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
             if (Array.isArray(message) && message?.length > 0) {
               this.opts.debug && console.log(`message.length=${message.length}`)
               for (const msg of message) {
                 this.stat.count++
-                this.opts.debug && console.log(`Message received[${msg.value.id}] - offset=${msg.offset}`)
+                this.opts.debug && console.log(`Message received[${msg.value.id}] - offset=${msg.offset}, ${this.stat.count}/${this.maxMessages}`)
                 if (!this.consumerConf.rdkafkaConf['enable.auto.commit'] && this.consumerConf.options.sync) {
                   this.client.commitMessageSync(msg)
                 } else if (!this.consumerConf.rdkafkaConf['enable.auto.commit']) {
@@ -131,7 +130,7 @@ class Test extends Sampler {
               }
             } else {
               this.stat.count++
-              this.opts.debug && console.log(`Message received[${message.value.id}] - offset=${message.offset}`)
+              this.opts.debug && console.log(`Message received[${message.value.id}] - offset=${message.offset}, ${this.stat.count}/${this.maxMessages}`)
               if (!this.consumerConf.rdkafkaConf['enable.auto.commit'] && this.consumerConf.options.sync) {
                 this.client.commitMessageSync(message)
               } else if (!this.consumerConf.rdkafkaConf['enable.auto.commit']) {

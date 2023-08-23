@@ -294,44 +294,47 @@ class Consumer extends EventEmitter {
       this._consumer.setDefaultConsumeTimeout(this._config.options.consumeTimeout)
 
       this._consumer.on('warning', warn => {
-        Logger.isSillyEnabled && logger.silly(warn)
+        Logger.isDebugEnabled && logger.debug('onWarning', warn)
       })
 
       this._consumer.on('event.log', log => {
-        Logger.isSillyEnabled && logger.silly(log.message)
+        Logger.isSillyEnabled && logger.silly('onEventLog', log.message)
       })
 
       this._consumer.on('event.error', error => {
-        Logger.isSillyEnabled && logger.silly('error from consumer')
-        Logger.isSillyEnabled && logger.silly(error)
+        Logger.isDebugEnabled && logger.debug('onEventError', error)
         super.emit('error', error)
       })
 
       this._consumer.on('event.throttle', eventData => {
+        Logger.isDebugEnabled && logger.debug('onEventThrottle', eventData)
         super.emit('event.throttle', eventData)
       })
 
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
         this._consumer.on('event.stats', (eventData) => {
+          Logger.isSillyEnabled && logger.silly('onEventStats', eventData)
           super.emit('event.stats', eventData)
         })
       }
 
       this._consumer.on('error', error => {
+        Logger.isDebugEnabled && logger.debug('onError', error)
         super.emit('error', error)
       })
 
       this._consumer.on('partition.eof', eof => {
+        Logger.isDebugEnabled && logger.debug('onPartitionEof', eof)
         super.emit('partition.eof', eof)
       })
 
       this._consumer.on('disconnected', (metrics) => {
-        Logger.isDebugEnabled && logger.debug('disconnected.', metrics)
+        Logger.isDebugEnabled && logger.debug('onDisconnected', metrics)
         super.emit('disconnected', metrics)
       })
 
       this._consumer.on('ready', args => {
-        Logger.isDebugEnabled && logger.debug(`node-rdkafka v${Kafka.librdkafkaVersion} ready - ${JSON.stringify(args)}`)
+        Logger.isDebugEnabled && logger.debug('onReady', `node-rdkafka v${Kafka.librdkafkaVersion} ready - ${JSON.stringify(args)}`)
         this.subscribe()
         const readyResponse = {
           ...args,
