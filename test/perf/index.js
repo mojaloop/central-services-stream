@@ -1,6 +1,5 @@
 const testCases = [
   require('./s00-default'),
-  require('./s00-default'),
   require('./s01-auto-commit-enabled'),
   require('./s02-lz4-compression'),
   require('./s03-producer-reduced-poll-interval'),

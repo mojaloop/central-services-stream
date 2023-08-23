@@ -18,7 +18,7 @@ Refer to documentation in [src/kafka/readme.md](./src/kafka/readme.md)
 
 Ensure that you install [Librdkafka](https://github.com/confluentinc/librdkafka).
 
-The configure the following env var before running `npm install`:
+Then configure the following env var before running `npm install`:
 
 ```env
 export BUILD_LIBRDKAFKA=0
