@@ -216,6 +216,26 @@ class Producer extends EventEmitter {
     }
   }
 
+/**
+ * Returns the current connection status of the consumer
+ *
+ * @returns boolean
+ */
+  isConnected () {
+    Logger.isSillyEnabled && this._config?.logger?.silly('Producer::isConnected()')
+    return this._producer.isConnected()
+  }
+
+  /**
+   * Returns the current connection time of the consumer
+   *
+   * @returns number
+   */
+  connectedTime () {
+    Logger.isSillyEnabled && this._config?.logger?.silly('Producer::connectedTime()')
+    return this._producer.connectedTime()
+  }
+
   /**
    * Connect Producer
    *
@@ -414,6 +434,31 @@ class Producer extends EventEmitter {
     Logger.isSillyEnabled && logger.silly('Producer::getMetadata() - start')
     this._producer.getMetadata(metadataOptions, metaDataCb)
     Logger.isSillyEnabled && logger.silly('Producer::getMetadata() - end')
+  }
+
+  /**
+   * Get client metadata synchronously.
+   * To avoid this side effect, the topic object can be created with the expected options before requesting metadata,
+   * or the metadata request can be performed for all topics (by omitting <code>metadataOptions.topic</code>).
+   *
+   * @typedef metadataOptions
+   * @property {string} topic - Topic string for which to fetch metadata
+   * @property {number} timeout - Max time, in ms, to try to fetch metadata before timing out. Defaults to 30,000 (30 seconds).
+   *
+   * @param {metadataOptions} metadataOptions - Metadata options to pass to the client.
+   * @returns {Promise<object>} - Returns the metadata object.
+   */
+  getMetadataSync (metadataOptions) {
+    return new Promise((resolve, reject) => {
+      const metaDatacCb = (error, metadata) => {
+        if (error) reject(error)
+        resolve(metadata)
+      }
+      const { logger } = this._config
+      Logger.isSillyEnabled && logger.silly('Producer::getMetadataSync() - start')
+      this._producer.getMetadata(metadataOptions, metaDatacCb)
+      Logger.isSillyEnabled && logger.silly('Producer::getMetadataSync() - end')
+    })
   }
 }
 

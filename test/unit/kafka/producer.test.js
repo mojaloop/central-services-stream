@@ -334,6 +334,41 @@ Test('Producer test', (producerTests) => {
     })
   })
 
+  producerTests.test('Test Producer::getMetadataSync', async (assert) => {
+    const p = new Producer(config)
+    p.connect().then(async result => {
+      assert.ok(result, 'connection result received')
+      p.getMetadataSync(null).then(metadata => {
+        assert.ok(metadata, 'metadata object exists')
+        assert.deepEqual(metadata, KafkaStubs.metadataSampleStub, 'metadata objects match')
+        assert.end()
+      }).catch(error => {
+        assert.fail(error)
+        assert.end()
+      })
+    })
+  })
+
+  producerTests.test('Test Consumer::isConnected', (assert) => {
+    const p = new Producer(config)
+    p.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      const isConnected = p.isConnected()
+      assert.ok(isConnected, 'isConnected result exists')
+      assert.end()
+    })
+  })
+
+  producerTests.test('Test Consumer::connectedTime', (assert) => {
+    const p = new Producer(config)
+    p.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      const connectedTime = p.connectedTime()
+      assert.equal(connectedTime, 0, 'connectedTime result exists')
+      assert.end()
+    })
+  })
+
   producerTests.end()
 })
 
