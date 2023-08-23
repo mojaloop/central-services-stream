@@ -293,6 +293,10 @@ class Consumer extends EventEmitter {
 
       this._consumer.setDefaultConsumeTimeout(this._config.options.consumeTimeout)
 
+      this._consumer.on('warning', warn => {
+        Logger.isSillyEnabled && logger.silly(warn)
+      })
+
       this._consumer.on('event.log', log => {
         Logger.isSillyEnabled && logger.silly(log.message)
       })
