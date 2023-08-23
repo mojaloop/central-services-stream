@@ -163,18 +163,21 @@ exports.ENUMS = ENUMS
  * let consumer = new Consumer(['test1'], {
  *   rdkafka: {
  *     'group.id': 'kafka',
+ *     'client.id': 'default-client',
  *     'metadata.broker.list': 'localhost:9092',
- *     'enable.auto.commit': false
+ *     'enable.auto.commit': false,
+ *     'auto.commit.interval.ms': 100,
  *   },
  *   options: {
- *     mode: CONSUMER_MODES.recursive,
- *     batchSize: 10,
- *     pollFrequency: 10, // only applicable for poll mode
- *     recursiveTimeout: 100,
+ *     batchSize: 1, // only applicable when mode=1, 2 (i.e. POLL, RECURSIVE)
+ *     pollFrequency: 10, // only applicable for poll mode=1 (i.e. POLL)
+ *     recursiveTimeout: 100, // only applicable when mode=2 (i.e. RECURSIVE)
  *     messageCharset: 'utf8',
- *     deserializeFn: (object, opts) => {} (optional)
  *     messageAsJSON: true,
- *     sync: true
+ *     sync: false,
+ *     syncConcurrency: 1, // only applicable when sync=true
+ *     syncSingleMessage: false, // only applicable when sync=true, and only applicable when mode=2 (i.e. RECURSIVE)
+ *     consumeTimeout: 1000
  *   },
  *   topic: {}
  * })
@@ -199,14 +202,14 @@ class Consumer extends EventEmitter {
     if (!config.options) {
       config.options = {
         mode: CONSUMER_MODES.recursive,
-        batchSize: 1,
-        pollFrequency: 10, // only applicable for poll mode
-        recursiveTimeout: 100,
+        batchSize: 1, // only applicable when mode=1, 2 (i.e. POLL, RECURSIVE)
+        pollFrequency: 10, // only applicable for poll mode=1 (i.e. POLL)
+        recursiveTimeout: 100, // only applicable when mode=2 (i.e. RECURSIVE)
         messageCharset: 'utf8',
         messageAsJSON: true,
         sync: false,
-        syncConcurrency: 1,
-        syncSingleMessage: false,
+        syncConcurrency: 1, // only applicable when sync=true
+        syncSingleMessage: false, // only applicable when sync=true, and only applicable when mode=2 (i.e. RECURSIVE)
         consumeTimeout: 1000
       }
     }
@@ -249,7 +252,7 @@ class Consumer extends EventEmitter {
     this._status = {}
     this._status.runningInConsumeOnceMode = false
     this._status.runningInConsumeMode = false
-    this._status.running = true
+    this._status.running = false
 
     // setup default onReady emit handler
     super.on('ready', arg => {
@@ -266,16 +269,16 @@ class Consumer extends EventEmitter {
     Logger.isSillyEnabled && logger.silly('Consumer::constructor() - end')
   }
 
-    /**
+  /**
    * Returns the Kafka version library and features
    * @returns object containing Kafka info on librdkafkaVersion, and features
    */
-    version () {
-      return {
-        librdkafkaVersion: Kafka.librdkafkaVersion,
-        features: Kafka.features
-      }
+  version () {
+    return {
+      librdkafkaVersion: Kafka.librdkafkaVersion,
+      features: Kafka.features
     }
+  }
 
   /**
    * Connect consumer
@@ -334,6 +337,7 @@ class Consumer extends EventEmitter {
           ...this.version()
         }
         super.emit('ready', readyResponse)
+        this._status.running = this.isConnected()
         Logger.isSillyEnabled && logger.silly('Consumer::connect() - end')
         resolve(true)
       })
@@ -370,6 +374,26 @@ class Consumer extends EventEmitter {
       //   super.emit('message', returnMessage)
       // })
     })
+  }
+
+  /**
+   * Returns the current connection status of the consumer
+   *
+   * @returns boolean
+   */
+  isConnected () {
+    Logger.isSillyEnabled && this._config?.logger?.silly('Consumer::isConnected()')
+    return this._consumer.isConnected()
+  }
+
+  /**
+   * Returns the current connection time of the consumer
+   *
+   * @returns number
+   */
+  connectedTime () {
+    Logger.isSillyEnabled && this._config?.logger?.silly('Consumer::connectedTime()')
+    return this._consumer.connectedTime()
   }
 
   /**
@@ -798,12 +822,12 @@ class Consumer extends EventEmitter {
    * To avoid this side effect, the topic object can be created with the expected options before requesting metadata,
    * or the metadata request can be performed for all topics (by omitting <code>metadataOptions.topic</code>).
    *
-   * @param {object} metadataOptions - Metadata options to pass to the client.
-   * @param {string} metadataOptions.topic - Topic string for which to fetch
-   * metadata
-   * @param {number} metadataOptions.timeout - Max time, in ms, to try to fetch
-   * metadata before timing out. Defaults to 30,000 (30 seconds).
-   * @param {Client~metadataCallback} metaDatacCb - Callback to fire with the metadata.
+   * @typedef metadataOptions
+   * @property {string} topic - Topic string for which to fetch metadata
+   * @property {number} timeout - Max time, in ms, to try to fetch metadata before timing out. Defaults to 30,000 (30 seconds).
+   *
+   * @param {metadataOptions} metadataOptions - Metadata options to pass to the client.
+   * @param {Client~metadataCallback} metaDatacCb - Callback to fire with the metadata, cb = (error, metadata) => {}.
    */
   getMetadata (metadataOptions, metaDatacCb) {
     if (!metaDatacCb || typeof metaDatacCb !== 'function') {
@@ -813,6 +837,31 @@ class Consumer extends EventEmitter {
     Logger.isSillyEnabled && logger.silly('Consumer::getMetadata() - start')
     this._consumer.getMetadata(metadataOptions, metaDatacCb)
     Logger.isSillyEnabled && logger.silly('Consumer::getMetadata() - end')
+  }
+
+  /**
+   * Get client metadata synchronously.
+   * To avoid this side effect, the topic object can be created with the expected options before requesting metadata,
+   * or the metadata request can be performed for all topics (by omitting <code>metadataOptions.topic</code>).
+   *
+   * @typedef metadataOptions
+   * @property {string} topic - Topic string for which to fetch metadata
+   * @property {number} timeout - Max time, in ms, to try to fetch metadata before timing out. Defaults to 30,000 (30 seconds).
+   *
+   * @param {metadataOptions} metadataOptions - Metadata options to pass to the client.
+   * @returns {Promise<object>} - Returns the metadata object.
+   */
+  getMetadataSync (metadataOptions) {
+    return new Promise((resolve, reject) => {
+      const metaDatacCb = (error, metadata) => {
+        if (error) reject(error)
+        resolve(metadata)
+      }
+      const { logger } = this._config
+      Logger.isSillyEnabled && logger.silly('Consumer::getMetadataSync() - start')
+      this._consumer.getMetadata(metadataOptions, metaDatacCb)
+      Logger.isSillyEnabled && logger.silly('Consumer::getMetadataSync() - end')
+    })
   }
 
   static _parseBuffer (buffer, encoding, asJson) {

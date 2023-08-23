@@ -238,6 +238,16 @@ class KafkaConsumer extends KafkaClient {
   pause () {
     this._dummyFunction()
   }
+
+  isConnected () {
+    this._dummyFunction()
+    return true
+  }
+
+  connectedTime () {
+    this._dummyFunction()
+    return 0
+  }
 }
 
 // KafkaConsumer Stub

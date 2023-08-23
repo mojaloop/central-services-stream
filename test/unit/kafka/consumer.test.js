@@ -271,6 +271,41 @@ Test('Consumer test', (consumerTests) => {
     })
   })
 
+  consumerTests.test('Test Consumer::getMetadataSync', async (assert) => {
+    const c = new Consumer(topicsList, config)
+    c.connect().then(async result => {
+      assert.ok(result, 'connection result received')
+      c.getMetadataSync(null).then(metadata => {
+        assert.ok(metadata, 'metadata object exists')
+        assert.deepEqual(metadata, KafkaStubs.metadataSampleStub, 'metadata objects match')
+        assert.end()
+      }).catch(error => {
+        assert.fail(error)
+        assert.end()
+      })
+    })
+  })
+
+  consumerTests.test('Test Consumer::isConnected', (assert) => {
+    const c = new Consumer(topicsList, config)
+    c.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      const isConnected = c.isConnected()
+      assert.ok(isConnected, 'isConnected result exists')
+      assert.end()
+    })
+  })
+
+  consumerTests.test('Test Consumer::connectedTime', (assert) => {
+    const c = new Consumer(topicsList, config)
+    c.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      const connectedTime = c.connectedTime()
+      assert.equal(connectedTime, 0, 'connectedTime result exists')
+      assert.end()
+    })
+  })
+
   consumerTests.test('Test Consumer::commit', (assert) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
