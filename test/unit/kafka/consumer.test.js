@@ -1473,6 +1473,89 @@ Test('Consumer test', (consumerTests) => {
     })
   })
 
+  consumerTests.test('Test Consumer::consume recursive sync=true, messageAsJson=true, syncSingleMessage=true', (assert) => {
+    config = {
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.recursive,
+        batchSize: 1,
+        recursiveTimeout: 100,
+        messageCharset: 'utf8',
+        messageAsJSON: true,
+        sync: true,
+        syncSingleMessage: true,
+        consumeTimeout: 1000
+      },
+      rdkafkaConf: {
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger: Logger
+    }
+
+    const c = new Consumer(topicsList, config)
+
+    // consume 'ready' event
+    c.on('ready', arg => {
+      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+    // consume 'message' event
+    c.on('message', message => {
+      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      assert.ok(message, 'on Message event received')
+    })
+
+    c.on('batch', messages => {
+      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      assert.ok(messages, 'on Batch event received')
+      assert.ok(Array.isArray(messages), 'batch of messages received')
+    })
+
+    let recursiveCount = 0
+
+    c.connect().then(result => {
+      assert.ok(result, 'connection result received')
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          recursiveCount = recursiveCount + 1
+          if (recursiveCount > 1) {
+            c.disconnect()
+            assert.ok(true, 'Message processed once by the recursive consumer')
+            assert.end()
+          } else {
+            if (error) {
+              Logger.error(error)
+              reject(error)
+            }
+            if (message) { // check if there is a valid message comming back
+              Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+              // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
+              if (Array.isArray(message) && message.length != null && message.length > 0) {
+                message.forEach(msg => {
+                  c.commitMessage(msg)
+                })
+              } else {
+                c.commitMessage(message)
+              }
+              resolve(true)
+              assert.ok(message, 'message processed')
+              assert.ok(Array.isArray(message), 'batch of messages received')
+              message.forEach(msg => {
+                assert.equals(typeof msg.value, 'object')
+              })
+            } else {
+              resolve(false)
+              assert.fail('message not processed')
+            }
+          }
+        })
+      })
+    })
+  })
+
   consumerTests.test('Test Consumer::consume recursive sync=true, messageAsJson=false', (assert) => {
     config = {
       options: {
