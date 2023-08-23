@@ -86,6 +86,20 @@ class Test extends Sampler {
 
     this.opts.debug && console.log(`Connected result=${connectionResult}`)
 
+    // this.client.getMetadata({ topic: this.topicList[0], timeout: 10000 }, (err, metadata) => {
+    //   console.log('getMetadata', err, metadata)
+    // })
+
+    // const metadataSync = await this.client.getMetadataSync({ topic: this.topicList[0], timeout: 10000 })
+    const metadataSync = await this.client.getMetadataSync({ timeout: 10000 })
+    console.log('metadataSync', metadataSync)
+
+    const isConnected = this.client.isConnected()
+    console.log('isConnected', isConnected)
+
+    const connectedTime = this.client.connectedTime()
+    console.log('connectedTime', connectedTime)
+
     const auditStartPrepareMsg = require('#samples/audit-start-prepare')
     const auditStartFulfilMsg = require('#samples/audit-start-fulfil')
 

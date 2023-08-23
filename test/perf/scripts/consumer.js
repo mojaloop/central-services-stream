@@ -76,6 +76,20 @@ class Test extends Sampler {
 
     this.opts.debug && console.log(`Connected result=${connectionResult}`)
 
+    // this.client.getMetadata({ topic: this.topicList[0], timeout: 10000 }, (err, metadata) => {
+    //   console.log('getMetadata', err, metadata)
+    // })
+
+    // const metadataSync = await this.client.getMetadataSync({ topic: this.topicList[0], timeout: 10000 })
+    const metadataSync = await this.client.getMetadataSync({ timeout: 10000 })
+    console.log('metadataSync', metadataSync)
+
+    const isConnected = this.client.isConnected()
+    console.log('isConnected', isConnected)
+
+    const connectedTime = this.client.connectedTime()
+    console.log('connectedTime', connectedTime)
+
     // consume 'ready' event
     this.client.on('ready', arg => {
       console.log(`onReady: ${JSON.stringify(arg)} - with start time: ${this.stat.start}`)
@@ -126,7 +140,6 @@ class Test extends Sampler {
             }
             if (this.maxMessages === (this.stat.count)) {
               console.log('MAX MESSAGES REACHED! Exiting Consumer...')
-              // this.client.disconnect()
               runResolve(true)
             }
             resolve(true)
@@ -138,7 +151,6 @@ class Test extends Sampler {
 
       this.client.on('partition.eof', eof => {
         this.opts.debug && console.log(`onEof: ${JSON.stringify(eof)}`)
-        // this.client.disconnect()
         runResolve(true)
       })
     })
