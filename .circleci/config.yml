@@ -7,9 +7,9 @@ version: 2.1
 # Orbs used in this pipeline
 ##
 orbs:
-  slack: circleci/slack@4.9.3 # Ref: https://github.com/mojaloop/ci-config/tree/master/slack-templates
+  slack: circleci/slack@4.12.5 # Ref: https://github.com/mojaloop/ci-config/tree/master/slack-templates
   pr-tools: mojaloop/pr-tools@0.1.10 # Ref: https://github.com/mojaloop/ci-config/
-  gh: circleci/github-cli@2.1.0
+  gh: circleci/github-cli@2.2.0
 
 ##
 # defaults
@@ -21,8 +21,8 @@ defaults_Dependencies: &defaults_Dependencies |
     apk --no-cache add ca-certificates
     apk --no-cache add curl
     apk --no-cache add openssh-client
-    apk add --no-cache -t build-dependencies make gcc g++ python3 libtool autoconf automake jq
-    npm config set unsafe-perm true
+    apk --no-cache add -t build-dependencies make gcc g++ python3 libtool autoconf automake jq bash
+    apk --no-cache add librdkafka-dev
     npm install -g node-gyp
 
 defaults_awsCliDependencies: &defaults_awsCliDependencies |
@@ -59,6 +59,62 @@ defaults_configure_git: &defaults_configure_git
     git config user.email ${GIT_CI_EMAIL}
     git config user.name ${GIT_CI_USER}
 
+defaults_configure_nvm: &defaults_configure_nvm
+  name: Configure NVM
+  command: |
+    cd $HOME
+
+    export ENV_DOT_PROFILE=$HOME/.profile
+    touch $ENV_DOT_PROFILE
+
+    echo "1. Export env variable"
+    export NVM_DIR="$HOME/.nvm"
+    if [ -z "$NVMRC_VERSION" ]; then
+      echo "==> Configuring NVMRC_VERSION!"
+      export NVMRC_VERSION=$(cat $CIRCLE_WORKING_DIRECTORY/.nvmrc)
+      echo "export NVMRC_VERSION=$NVMRC_VERSION" >> $ENV_DOT_PROFILE
+    fi
+
+    if [ -f "$NVM_DIR" ]; then
+      echo "==> $NVM_DIR exists. Skipping steps 2-4!"
+    else 
+      echo "==> $NVM_DIR does not exists. Executing steps 2-4!"
+
+      echo "2. Installing NVM"
+      curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+
+      echo "3. Executing $NVM_DIR/nvm.sh"
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    fi
+
+    ## Ref: https://github.com/nvm-sh/nvm/issues/1102#issuecomment-550572252
+    if [ ! -z "$NVM_ARCH_UNOFFICIAL_OVERRIDE" ]; then
+      echo "==> Handle NVM_ARCH_UNOFFICIAL_OVERRIDE=$NVM_ARCH_UNOFFICIAL_OVERRIDE!"
+      echo "nvm_get_arch() { nvm_echo \"${NVM_ARCH_UNOFFICIAL_OVERRIDE}\"; }" >> $ENV_DOT_PROFILE
+      echo "export NVM_NODEJS_ORG_MIRROR=https://unofficial-builds.nodejs.org/download/release" >> $ENV_DOT_PROFILE
+      source $ENV_DOT_PROFILE
+    fi
+
+    echo "4. Installing Node version: $NVMRC_VERSION"
+    nvm install $NVMRC_VERSION
+    nvm alias default $NVMRC_VERSION
+    nvm use $NVMRC_VERSION
+
+    cd $CIRCLE_WORKING_DIRECTORY
+
+defaults_display_versions: &defaults_display_versions
+  name: Display Versions
+  command: |
+    echo "What is the active version of Nodejs?"
+    echo "node: $(node --version)"
+    echo "yarn: $(yarn --version)"
+    echo "npm: $(npm --version)"
+    echo "nvm: $(nvm --version)"
+
+defaults_environment: &defaults_environment
+  ## Disable LIBRDKAFKA build since we install it via general dependencies
+  BUILD_LIBRDKAFKA: 0
+
 ##
 # Executors
 #
@@ -67,22 +123,33 @@ defaults_configure_git: &defaults_configure_git
 executors:
   default-docker:
     working_directory: &WORKING_DIR /home/circleci/project
+    shell: "/bin/sh -leo pipefail" ## Ref: https://circleci.com/docs/env-vars/#alpine-linux
+    environment:
+      BASH_ENV: /etc/profile ## Ref: https://circleci.com/docs/env-vars/#alpine-linux
+      NVM_ARCH_UNOFFICIAL_OVERRIDE: x64-musl ## Ref: https://github.com/nvm-sh/nvm/issues/1102#issuecomment-550572252
     docker:
-      - image: node:16.15.0-alpine
+      - image: node:lts-alpine
 
   default-machine:
     working_directory: *WORKING_DIR
+    shell: "/bin/bash -leo pipefail"
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:2023.04.2 # Ref: https://circleci.com/developer/machine/image/ubuntu-2204
 
 jobs:
   setup:
     executor: default-docker
+    environment:
+      <<: *defaults_environment
     steps:
       - run:
           name: Install general dependencies
           command: *defaults_Dependencies
       - checkout
+      - run:
+          <<: *defaults_configure_nvm
+      - run:
+          <<: *defaults_display_versions
       - run:
           name: Update NPM install
           command: npm ci
@@ -93,11 +160,17 @@ jobs:
 
   test-dependencies:
     executor: default-docker
+    environment:
+      <<: *defaults_environment
     steps:
       - run:
           name: Install general dependencies
           command: *defaults_Dependencies
       - checkout
+      - run:
+          <<: *defaults_configure_nvm
+      - run:
+          <<: *defaults_display_versions
       - restore_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
@@ -106,11 +179,17 @@ jobs:
 
   test-lint:
     executor: default-docker
+    environment:
+      <<: *defaults_environment
     steps:
       - run:
           name: Install general dependencies
           command: *defaults_Dependencies
       - checkout
+      - run:
+          <<: *defaults_configure_nvm
+      - run:
+          <<: *defaults_display_versions
       - restore_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
@@ -119,11 +198,17 @@ jobs:
 
   test-unit:
     executor: default-docker
+    environment:
+      <<: *defaults_environment
     steps:
       - run:
           name: Install general dependencies
           command: *defaults_Dependencies
       - checkout
+      - run:
+          <<: *defaults_configure_nvm
+      - run:
+          <<: *defaults_display_versions
       - restore_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
@@ -138,12 +223,14 @@ jobs:
           command: npm -s run test:xunit
       - store_artifacts:
           path: ./test/results
-          prefix: test
+          destination: test
       - store_test_results:
           path: ./test/results
 
   test-coverage:
     executor: default-docker
+    environment:
+      <<: *defaults_environment
     steps:
       - run:
           name: Install general dependencies
@@ -152,6 +239,10 @@ jobs:
           name: Install AWS CLI dependencies
           command: *defaults_awsCliDependencies
       - checkout
+      - run:
+          <<: *defaults_configure_nvm
+      - run:
+          <<: *defaults_display_versions
       - restore_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
@@ -159,7 +250,7 @@ jobs:
           command: npm -s run test:coverage-check
       - store_artifacts:
           path: coverage
-          prefix: test
+          destination: test
       - store_test_results:
           path: coverage
       - run:
@@ -175,11 +266,17 @@ jobs:
 
   vulnerability-check:
     executor: default-docker
+    environment:
+      <<: *defaults_environment
     steps:
       - run:
           name: Install general dependencies
           command: *defaults_Dependencies
       - checkout
+      - run:
+          <<: *defaults_configure_nvm
+      - run:
+          <<: *defaults_display_versions
       - restore_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
@@ -190,7 +287,7 @@ jobs:
           command: npm run audit:check -- -o json > ./audit/results/auditResults.json
       - store_artifacts:
           path: ./audit/results
-          prefix: audit
+          destination: audit
 
   audit-licenses:
     executor: default-docker
@@ -208,7 +305,7 @@ jobs:
           command: cd /tmp/license-scanner && pathToRepo=$CIRCLE_WORKING_DIRECTORY make run
       - store_artifacts:
           path: /tmp/license-scanner/results
-          prefix: licenses
+          destination: licenses
 
   release:
     executor: default-docker
@@ -242,6 +339,7 @@ jobs:
 
   github-release:
     executor: default-machine
+    shell: "/bin/bash -eo pipefail"
     steps:
       - run:
           name: Install git
@@ -362,7 +460,6 @@ jobs:
           template: SLACK_TEMP_RELEASE_FAILURE
 
 workflows:
-  version: 2
   build_and_test:
     jobs:
       - pr-tools/pr-title-check:

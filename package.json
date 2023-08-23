@@ -30,9 +30,6 @@
     "dep:check",
     "test"
   ],
-  "engines": {
-    "node": "=16.x"
-  },
   "scripts": {
     "test": "npm run test:unit",
     "standard": "standard",
