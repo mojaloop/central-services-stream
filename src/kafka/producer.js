@@ -216,7 +216,7 @@ class Producer extends EventEmitter {
     }
   }
 
-/**
+  /**
  * Returns the current connection status of the consumer
  *
  * @returns boolean
