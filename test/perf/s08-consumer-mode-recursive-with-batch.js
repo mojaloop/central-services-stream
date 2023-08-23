@@ -4,10 +4,16 @@ const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consume
 const TestProducer = require('./scripts/producer')
 const TestConsumer = require('./scripts/consumer')
 
-const benchRunner = async () => {
-  const envTime = parseInt(process.env.TIME) || 10
+const benchRunner = async (opts) => {
+  const benchProducerConf = opts?.benchProducerConf || {
+    // iterations: 100, // This is how many messages we want to produce.
+    // time: 0 // This is set to 0, to guarantee the number of iterations.
+    time: (process.env?.TIME || 30) * 1000 // This is the time in milliseconds we want to run the benchmark for.
+  }
+
   const scenario = module.filename.split(/[\\/]/).pop()
-  console.log(`Starting benchmark - ${scenario}, env.TIME=${envTime}`)
+  console.log(`Starting benchmark - ${scenario}`, benchProducerConf)
+
   console.time('timer:benchmark::main')
 
   const producerOpts = {
@@ -112,11 +118,6 @@ const benchRunner = async () => {
     }
   }
 
-  const benchProducerConf = {
-    // iterations: 100, // This is how many messages we want to produce.
-    // time: 0 // This is set to 0, to guarantee the number of iterations.
-    time: envTime * 1000 // This is the time in milliseconds we want to run the benchmark for.
-  }
   const benchProducer = new Bench(benchProducerConf)
 
   benchProducer

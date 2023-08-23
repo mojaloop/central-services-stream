@@ -1,18 +1,8 @@
 const { Bench } = require('tinybench')
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
-const Protocol = require('@mojaloop/central-services-stream').Kafka.Protocol
-const protobuf = require('protobufjs')
 
 const TestProducer = require('./scripts/producer')
 const TestConsumer = require('./scripts/consumer')
-
-const protoInit = async (file, type) => {
-  const root = await protobuf.load(file)
-
-  const message = root.lookupType(type)
-
-  return message
-}
 
 const benchRunner = async (opts) => {
   const benchProducerConf = opts?.benchProducerConf || {
@@ -26,56 +16,6 @@ const benchRunner = async (opts) => {
 
   console.time('timer:benchmark::main')
 
-  const TestMessage = await protoInit(process.cwd() + '/samples/message.proto', 'audit.Protocol')
-
-  // default serializeFn implementation
-  // eslint-disable-next-line
-  const defaultSerializeFn = (message, opts) => {
-    const bufferResponse = Buffer.from(JSON.stringify(message), opts.messageCharset)
-    return bufferResponse
-  }
-
-  // default deserializeFn implementation
-  // eslint-disable-next-line
-  const defaultDeserializeFn = (buffer, opts) => {
-    return Protocol.parseValue(buffer, opts.messageCharset, opts.messageAsJSON)
-  }
-
-  const serializeFn = (message, opts) => {
-    // console.log('serializeFn', JSON.stringify(message, null, 2))
-    // Verify the payload if necessary (i.e. when possibly incomplete or invalid)
-    // const errMsg = TestMessage.verify(message)
-    // if (errMsg) {
-    //   console.error('Error:', errMsg)
-    //   throw errMsg
-    // }
-
-    // Create a new message
-    const pmessage = TestMessage.create(message) // or use .fromObject if conversion is necessary
-
-    // // Encode a message to an Uint8Array (browser) or Buffer (node)
-    const buffer = TestMessage.encode(pmessage).finish()
-    return buffer
-  }
-
-  const deserializeFn = (buffer, opts) => {
-    // Encode a message to an Uint8Array (browser) or Buffer (node)
-    const message = TestMessage.decode(buffer)
-
-    // Maybe convert the message back to a plain object
-    const object = TestMessage.toObject(message, {
-      longs: String,
-      enums: String,
-      bytes: String,
-      keepCase: true,
-      defaults: false,
-      oneofs: true
-      // see ConversionOptions
-    })
-    // console.log('deserializeFn', JSON.stringify(object, null, 2))
-    return object
-  }
-
   const producerOpts = {
     producerConf: {
       options:
@@ -83,8 +23,7 @@ const benchRunner = async (opts) => {
         pollIntervalMs: 50,
         messageCharset: 'utf8',
         sync: true, // Recommended that 'queue.buffering.max.ms'= 0 if this is enabled
-        // serializeFn: null // Use this if you want to use default serializeFn
-        serializeFn
+        serializeFn: null // Use this if you want to use default serializeFn
       },
       rdkafkaConf: { // Ref: https://developer.confluent.io/tutorials/optimize-producer-throughput/confluent.html
         'metadata.broker.list': 'localhost:9092',
@@ -121,14 +60,14 @@ const benchRunner = async (opts) => {
         mode: ConsumerEnums.CONSUMER_MODES.recursive,
         batchSize: 1,
         pollFrequency: 10,
-        recursiveTimeout: 100,
+        recursiveTimeout: 10,
         messageCharset: 'utf8',
         messageAsJSON: true,
         sync: true,
         syncConcurrency: 1,
-        consumeTimeout: 1000,
-        // deserializeFn: null // Use this if you want to use default deserializeFn
-        deserializeFn
+        syncSingleMessage: true,
+        consumeTimeout: 10,
+        deserializeFn: null // Use this if you want to use default deserializeFn
       },
       rdkafkaConf: {
         'client.id': 'test',
@@ -141,7 +80,8 @@ const benchRunner = async (opts) => {
         'allow.auto.create.topics': true,
         'partition.assignment.strategy': 'range,roundrobin',
         'enable.partition.eof': true,
-        'api.version.request': true
+        'api.version.request': true,
+        'fetch.wait.max.ms': 0
       },
       topicConf: {
         'auto.offset.reset': 'earliest'

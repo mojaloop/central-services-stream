@@ -4,10 +4,16 @@ const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consume
 const TestProducer = require('./scripts/producer')
 const TestConsumer = require('./scripts/consumer')
 
-const benchRunner = async () => {
-  const envTime = parseInt(process.env.TIME) || 10
+const benchRunner = async (opts) => {
+  const benchProducerConf = opts?.benchProducerConf || {
+    // iterations: 100, // This is how many messages we want to produce.
+    // time: 0 // This is set to 0, to guarantee the number of iterations.
+    time: (process.env?.TIME || 30) * 1000 // This is the time in milliseconds we want to run the benchmark for.
+  }
+
   const scenario = module.filename.split(/[\\/]/).pop()
-  console.log(`Starting benchmark - ${scenario}, env.TIME=${envTime}`)
+  console.log(`Starting benchmark - ${scenario}`, benchProducerConf)
+
   console.time('timer:benchmark::main')
 
   const producerOpts = {
@@ -53,14 +59,18 @@ const benchRunner = async () => {
       options: {
         mode: ConsumerEnums.CONSUMER_MODES.recursive,
         // mode: ConsumerEnums.CONSUMER_MODES.flow,
-        batchSize: 1,
+        // batchSize: 1,
+        batchSize: 10,
         pollFrequency: 10,
         recursiveTimeout: 100,
         messageCharset: 'utf8',
         messageAsJSON: true,
-        // sync: true,
-        sync: false,
-        syncConcurrency: 1,
+        sync: true,
+        // sync: false,
+        // syncConcurrency: 1,
+        syncConcurrency: 10,
+        // syncSingleMessage: false,
+        syncSingleMessage: true,
         consumeTimeout: 1000,
         deserializeFn: null // Use this if you want to use default deserializeFn
       },
@@ -114,16 +124,6 @@ const benchRunner = async () => {
     }
   }
 
-  const benchProducerConf = {
-    // iterations: 2, // This is how many messages we want to produce.
-    // iterations: 100, // This is how many messages we want to produce.
-    // iterations: 5000, // This is how many messages we want to produce.
-    iterations: 10000, // This is how many messages we want to produce.
-    // iterations: 10000, // This is how many messages we want to produce.
-    // iterations: 100000, // This is how many messages we want to produce.
-    time: 0 // This is set to 0, to guarantee the number of iterations.
-    // time: envTime * 1000 // This is the time in milliseconds we want to run the benchmark for.
-  }
   const benchProducer = new Bench(benchProducerConf)
 
   benchProducer
