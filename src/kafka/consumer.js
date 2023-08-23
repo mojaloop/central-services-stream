@@ -263,9 +263,6 @@ class Consumer extends EventEmitter {
     super.on('error', error => {
       Logger.isErrorEnabled && logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
     })
-    // TODO: FIX THIS!!!
-    // super.setMaxListeners(super.getMaxListeners() + 1);
-    super.setMaxListeners(0) // Temporarily disable the max listener limit
     Logger.isSillyEnabled && logger.silly('Consumer::constructor() - end')
   }
 
