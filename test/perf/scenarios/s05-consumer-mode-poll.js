@@ -1,8 +1,8 @@
 const { Bench } = require('tinybench')
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
 
-const TestProducer = require('./scripts/producer')
-const TestConsumer = require('./scripts/consumer')
+const TestProducer = require('#scripts/producer')
+const TestConsumer = require('#scripts/consumer')
 
 const benchRunner = async (opts) => {
   const benchProducerConf = opts?.benchProducerConf || {
@@ -34,7 +34,7 @@ const benchRunner = async (opts) => {
         'compression.codec': 'none', // Recommended compression algorithm
         'socket.keepalive.enable': true,
         'queue.buffering.max.messages': 100000,
-        'queue.buffering.max.ms': 10, // This works very well when sync=true, since we are not "lingering" for the producer to wait for a queue build-up to dispatch
+        'queue.buffering.max.ms': 0, // This works very well when sync=true, since we are not "lingering" for the producer to wait for a queue build-up to dispatch
         'api.version.request': true
       },
       topicConf: {
@@ -57,7 +57,7 @@ const benchRunner = async (opts) => {
   const consumerOpts = {
     consumerConf: {
       options: {
-        mode: ConsumerEnums.CONSUMER_MODES.recursive,
+        mode: ConsumerEnums.CONSUMER_MODES.poll,
         batchSize: 1,
         pollFrequency: 10,
         recursiveTimeout: 100,

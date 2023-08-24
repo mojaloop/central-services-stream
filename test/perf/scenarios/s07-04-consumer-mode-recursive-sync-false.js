@@ -1,8 +1,8 @@
 const { Bench } = require('tinybench')
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
 
-const TestProducer = require('./scripts/producer')
-const TestConsumer = require('./scripts/consumer')
+const TestProducer = require('#scripts/producer')
+const TestConsumer = require('#scripts/consumer')
 
 const benchRunner = async (opts) => {
   const benchProducerConf = opts?.benchProducerConf || {
@@ -57,15 +57,16 @@ const benchRunner = async (opts) => {
   const consumerOpts = {
     consumerConf: {
       options: {
-        mode: ConsumerEnums.CONSUMER_MODES.poll,
+        mode: ConsumerEnums.CONSUMER_MODES.recursive,
         batchSize: 1,
         pollFrequency: 10,
-        recursiveTimeout: 100,
+        recursiveTimeout: 10,
         messageCharset: 'utf8',
         messageAsJSON: true,
         sync: true,
         syncConcurrency: 1,
-        consumeTimeout: 1000,
+        syncSingleMessage: true,
+        consumeTimeout: 10,
         deserializeFn: null // Use this if you want to use default deserializeFn
       },
       rdkafkaConf: {
@@ -79,7 +80,8 @@ const benchRunner = async (opts) => {
         'allow.auto.create.topics': true,
         'partition.assignment.strategy': 'range,roundrobin',
         'enable.partition.eof': true,
-        'api.version.request': true
+        'api.version.request': true,
+        'fetch.wait.max.ms': 0
       },
       topicConf: {
         'auto.offset.reset': 'earliest'

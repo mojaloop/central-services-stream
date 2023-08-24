@@ -1,8 +1,8 @@
 const { Bench } = require('tinybench')
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
 
-const TestProducer = require('./scripts/producer')
-const TestConsumer = require('./scripts/consumer')
+const TestProducer = require('#scripts/producer')
+const TestConsumer = require('#scripts/consumer')
 
 const benchRunner = async (opts) => {
   const benchProducerConf = opts?.benchProducerConf || {
@@ -22,7 +22,7 @@ const benchRunner = async (opts) => {
       {
         pollIntervalMs: 50,
         messageCharset: 'utf8',
-        sync: true, // Recommended that 'queue.buffering.max.ms'= 0 if this is enabled
+        sync: false, // Recommended that 'queue.buffering.max.ms'= 0 if this is enabled
         serializeFn: null // Use this if you want to use default serializeFn
       },
       rdkafkaConf: { // Ref: https://developer.confluent.io/tutorials/optimize-producer-throughput/confluent.html
@@ -34,7 +34,7 @@ const benchRunner = async (opts) => {
         'compression.codec': 'none', // Recommended compression algorithm
         'socket.keepalive.enable': true,
         'queue.buffering.max.messages': 100000,
-        'queue.buffering.max.ms': 0, // This works very well when sync=true, since we are not "lingering" for the producer to wait for a queue build-up to dispatch
+        // 'queue.buffering.max.ms': 0, // This works very well when sync=true, since we are not "lingering" for the producer to wait for a queue build-up to dispatch
         'api.version.request': true
       },
       topicConf: {
@@ -52,7 +52,6 @@ const benchRunner = async (opts) => {
     name: 'Producer',
     debug: process.env.DEBUG || false,
     ...producerOpts
-
   })
 
   const consumerOpts = {
@@ -75,11 +74,12 @@ const benchRunner = async (opts) => {
         'metadata.broker.list': 'localhost:9092',
         'statistics.interval.ms': 0, // Enable event.stats event if value is greater than 0
         'socket.keepalive.enable': true,
-        'enable.auto.commit': true,
+        'enable.auto.commit': false,
         'auto.commit.interval.ms': 100,
         'allow.auto.create.topics': true,
         'partition.assignment.strategy': 'range,roundrobin',
-        'enable.partition.eof': true
+        'enable.partition.eof': true,
+        'api.version.request': true
       },
       topicConf: {
         'auto.offset.reset': 'earliest'

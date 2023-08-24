@@ -1,8 +1,8 @@
 const { Bench } = require('tinybench')
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
 
-const TestProducer = require('./scripts/producer')
-const TestConsumer = require('./scripts/consumer')
+const TestProducer = require('#scripts/producer')
+const TestConsumer = require('#scripts/consumer')
 
 const benchRunner = async (opts) => {
   const benchProducerConf = opts?.benchProducerConf || {
@@ -55,15 +55,16 @@ const benchRunner = async (opts) => {
   })
 
   const consumerOpts = {
+    maxMessages: null,
     consumerConf: {
       options: {
-        mode: ConsumerEnums.CONSUMER_MODES.flow,
-        batchSize: 1,
+        mode: ConsumerEnums.CONSUMER_MODES.recursive,
+        batchSize: 10,
         pollFrequency: 10,
         recursiveTimeout: 100,
         messageCharset: 'utf8',
         messageAsJSON: true,
-        sync: false,
+        sync: true,
         syncConcurrency: 1,
         consumeTimeout: 1000,
         deserializeFn: null // Use this if you want to use default deserializeFn
@@ -108,7 +109,9 @@ const benchRunner = async (opts) => {
 
   const fnConsumerOpts = {
     beforeAll: async () => {
-      return testConsumer.beforeAll()
+      return testConsumer.beforeAll({
+        maxMessages: testProducer.stat.count
+      })
     },
     afterAll: async () => {
       return testConsumer.afterAll()

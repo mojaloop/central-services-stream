@@ -1,14 +1,14 @@
 const { Bench } = require('tinybench')
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
 
-const TestProducer = require('./scripts/producer')
-const TestConsumer = require('./scripts/consumer')
+const TestProducer = require('#scripts/producer')
+const TestConsumer = require('#scripts/consumer')
 
 const benchRunner = async (opts) => {
   const benchProducerConf = opts?.benchProducerConf || {
-    // iterations: 100, // This is how many messages we want to produce.
-    // time: 0 // This is set to 0, to guarantee the number of iterations.
-    time: (process.env?.TIME || 30) * 1000 // This is the time in milliseconds we want to run the benchmark for.
+    iterations: 1, // This is how many messages we want to produce.
+    time: 0 // This is set to 0, to guarantee the number of iterations.
+    // time: (process.env?.TIME || 30) * 1000 // This is the time in milliseconds we want to run the benchmark for.
   }
 
   const scenario = module.filename.split(/[\\/]/).pop()
@@ -60,13 +60,13 @@ const benchRunner = async (opts) => {
         mode: ConsumerEnums.CONSUMER_MODES.recursive,
         batchSize: 1,
         pollFrequency: 10,
-        recursiveTimeout: 100,
+        recursiveTimeout: 10,
         messageCharset: 'utf8',
         messageAsJSON: true,
         sync: true,
-        syncConcurrency: 10,
+        syncConcurrency: 1,
         syncSingleMessage: true,
-        consumeTimeout: 1000,
+        consumeTimeout: 10,
         deserializeFn: null // Use this if you want to use default deserializeFn
       },
       rdkafkaConf: {
@@ -110,9 +110,7 @@ const benchRunner = async (opts) => {
 
   const fnConsumerOpts = {
     beforeAll: async () => {
-      return testConsumer.beforeAll({
-        maxMessages: testProducer.stat.count
-      })
+      return testConsumer.beforeAll()
     },
     afterAll: async () => {
       return testConsumer.afterAll()

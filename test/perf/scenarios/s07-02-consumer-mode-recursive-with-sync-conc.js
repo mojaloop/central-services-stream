@@ -1,8 +1,8 @@
 const { Bench } = require('tinybench')
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
 
-const TestProducer = require('./scripts/producer')
-const TestConsumer = require('./scripts/consumer')
+const TestProducer = require('#scripts/producer')
+const TestConsumer = require('#scripts/consumer')
 
 const benchRunner = async (opts) => {
   const benchProducerConf = opts?.benchProducerConf || {
@@ -20,7 +20,7 @@ const benchRunner = async (opts) => {
     producerConf: {
       options:
       {
-        pollIntervalMs: 10,
+        pollIntervalMs: 50,
         messageCharset: 'utf8',
         sync: true, // Recommended that 'queue.buffering.max.ms'= 0 if this is enabled
         serializeFn: null // Use this if you want to use default serializeFn
@@ -64,7 +64,8 @@ const benchRunner = async (opts) => {
         messageCharset: 'utf8',
         messageAsJSON: true,
         sync: true,
-        syncConcurrency: 1,
+        syncConcurrency: 10,
+        syncSingleMessage: true,
         consumeTimeout: 1000,
         deserializeFn: null // Use this if you want to use default deserializeFn
       },
@@ -79,7 +80,8 @@ const benchRunner = async (opts) => {
         'allow.auto.create.topics': true,
         'partition.assignment.strategy': 'range,roundrobin',
         'enable.partition.eof': true,
-        'api.version.request': true
+        'api.version.request': true,
+        'fetch.wait.max.ms': 0
       },
       topicConf: {
         'auto.offset.reset': 'earliest'
@@ -108,7 +110,9 @@ const benchRunner = async (opts) => {
 
   const fnConsumerOpts = {
     beforeAll: async () => {
-      return testConsumer.beforeAll()
+      return testConsumer.beforeAll({
+        maxMessages: testProducer.stat.count
+      })
     },
     afterAll: async () => {
       return testConsumer.afterAll()

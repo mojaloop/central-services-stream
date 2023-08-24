@@ -1,8 +1,8 @@
 const { Bench } = require('tinybench')
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
 
-const TestProducer = require('./scripts/producer')
-const TestConsumer = require('./scripts/consumer')
+const TestProducer = require('#scripts/producer')
+const TestConsumer = require('#scripts/consumer')
 
 const benchRunner = async (opts) => {
   const benchProducerConf = opts?.benchProducerConf || {
@@ -52,25 +52,20 @@ const benchRunner = async (opts) => {
     name: 'Producer',
     debug: process.env.DEBUG || false,
     ...producerOpts
+
   })
 
   const consumerOpts = {
     consumerConf: {
       options: {
         mode: ConsumerEnums.CONSUMER_MODES.recursive,
-        // mode: ConsumerEnums.CONSUMER_MODES.flow,
-        // batchSize: 1,
-        batchSize: 10,
+        batchSize: 1,
         pollFrequency: 10,
         recursiveTimeout: 100,
         messageCharset: 'utf8',
         messageAsJSON: true,
         sync: true,
-        // sync: false,
-        // syncConcurrency: 1,
-        syncConcurrency: 10,
-        // syncSingleMessage: false,
-        syncSingleMessage: true,
+        syncConcurrency: 1,
         consumeTimeout: 1000,
         deserializeFn: null // Use this if you want to use default deserializeFn
       },
@@ -80,13 +75,11 @@ const benchRunner = async (opts) => {
         'metadata.broker.list': 'localhost:9092',
         'statistics.interval.ms': 0, // Enable event.stats event if value is greater than 0
         'socket.keepalive.enable': true,
-        'enable.auto.commit': false,
+        'enable.auto.commit': true,
         'auto.commit.interval.ms': 100,
         'allow.auto.create.topics': true,
         'partition.assignment.strategy': 'range,roundrobin',
-        'enable.partition.eof': true,
-        'api.version.request': true,
-        'fetch.wait.max.ms': 0
+        'enable.partition.eof': true
       },
       topicConf: {
         'auto.offset.reset': 'earliest'
@@ -115,9 +108,7 @@ const benchRunner = async (opts) => {
 
   const fnConsumerOpts = {
     beforeAll: async () => {
-      return testConsumer.beforeAll({
-        maxMessages: testProducer.stat.count
-      })
+      return testConsumer.beforeAll()
     },
     afterAll: async () => {
       return testConsumer.afterAll()

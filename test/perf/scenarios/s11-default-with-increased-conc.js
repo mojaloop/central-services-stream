@@ -1,8 +1,8 @@
 const { Bench } = require('tinybench')
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
 
-const TestProducer = require('./scripts/producer')
-const TestConsumer = require('./scripts/consumer')
+const TestProducer = require('#scripts/producer')
+const TestConsumer = require('#scripts/consumer')
 
 const benchRunner = async (opts) => {
   const benchProducerConf = opts?.benchProducerConf || {
@@ -31,7 +31,7 @@ const benchRunner = async (opts) => {
         event_cb: true,
         dr_cb: true,
         'statistics.interval.ms': 0, // Enable event.stats event if value is greater than 0
-        'compression.codec': 'lz4', // Recommended compression algorithm
+        'compression.codec': 'none', // Recommended compression algorithm
         'socket.keepalive.enable': true,
         'queue.buffering.max.messages': 100000,
         'queue.buffering.max.ms': 0, // This works very well when sync=true, since we are not "lingering" for the producer to wait for a queue build-up to dispatch
@@ -52,7 +52,6 @@ const benchRunner = async (opts) => {
     name: 'Producer',
     debug: process.env.DEBUG || false,
     ...producerOpts
-
   })
 
   const consumerOpts = {
@@ -65,7 +64,7 @@ const benchRunner = async (opts) => {
         messageCharset: 'utf8',
         messageAsJSON: true,
         sync: true,
-        syncConcurrency: 1,
+        syncConcurrency: 2,
         consumeTimeout: 1000,
         deserializeFn: null // Use this if you want to use default deserializeFn
       },
@@ -79,7 +78,8 @@ const benchRunner = async (opts) => {
         'auto.commit.interval.ms': 100,
         'allow.auto.create.topics': true,
         'partition.assignment.strategy': 'range,roundrobin',
-        'enable.partition.eof': true
+        'enable.partition.eof': true,
+        'api.version.request': true
       },
       topicConf: {
         'auto.offset.reset': 'earliest'

@@ -1,8 +1,8 @@
 const { Bench } = require('tinybench')
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
 
-const TestProducer = require('./scripts/producer')
-const TestConsumer = require('./scripts/consumer')
+const TestProducer = require('#scripts/producer')
+const TestConsumer = require('#scripts/consumer')
 
 const benchRunner = async (opts) => {
   const benchProducerConf = opts?.benchProducerConf || {
@@ -20,7 +20,7 @@ const benchRunner = async (opts) => {
     producerConf: {
       options:
       {
-        pollIntervalMs: 50,
+        pollIntervalMs: 10,
         messageCharset: 'utf8',
         sync: true, // Recommended that 'queue.buffering.max.ms'= 0 if this is enabled
         serializeFn: null // Use this if you want to use default serializeFn

@@ -16,7 +16,8 @@
   "imports": {
     "#samples/*": "./samples/*.json",
     "#utils/*": "./utils/*.js",
-    "#scripts/*": "./scripts/*.js"
+    "#scripts/*": "./scripts/*.js",
+    "#scenarios/*": "./scenarios/*.js"
   },
   "license": "Apache-2.0",
   "dependencies": {
