@@ -256,44 +256,44 @@ class Producer extends EventEmitter {
         this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
       }
 
-      this._producer.on('event.log', log => {
-        Logger.isSillyEnabled && logger.silly('onEventLog', log.message)
+      Logger.isSillyEnabled && this._producer.on('event.log', log => {
+        Logger.isSillyEnabled && logger.silly(`Producer::onEventLog - ${JSON.stringify(log.message)}`)
       })
 
       this._producer.on('event.error', error => {
-        Logger.isDebugEnabled && logger.debug('onEventError', error)
+        Logger.isDebugEnabled && logger.debug(`Producer::onEventError - ${JSON.stringify(error)}`)
         super.emit('error', error)
       })
 
       this._producer.on('event.throttle', eventData => {
-        Logger.isDebugEnabled && logger.debug('onEventThrottle', eventData)
+        Logger.isDebugEnabled && logger.debug(`Producer::onEventThrottle - ${JSON.stringify(eventData)}`)
         super.emit('event.throttle', eventData)
       })
 
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
         this._producer.on('event.stats', (eventData) => {
-          Logger.isSillyEnabled && logger.silly('onEventStats', eventData)
+          Logger.isSillyEnabled && logger.silly(`Producer::onEventStats - ${JSON.stringify(eventData)}`)
           super.emit('event.stats', eventData)
         })
       }
 
       this._producer.on('error', error => {
-        Logger.isDebugEnabled && logger.debug('onError', error)
+        Logger.isDebugEnabled && logger.debug(`Producer::onError - ${JSON.stringify(error)}`)
         super.emit('error', error)
       })
 
-      this._producer.on('delivery-report', (err, report) => {
-        Logger.isDebugEnabled && logger.debug('onDeliveryReport', JSON.stringify(report))
+      this._config.rdkafkaConf.dr_cb && this._producer.on('delivery-report', (err, report) => {
+        Logger.isDebugEnabled && logger.debug(`Producer::onDeliveryReport - ${JSON.stringify(report)}`)
         super.emit('delivery-report', err, report)
       })
 
       this._producer.on('disconnected', (metrics) => {
-        Logger.isDebugEnabled && logger.debug('onDisconnected', metrics)
+        Logger.isDebugEnabled && logger.debug(`Producer::onDisconnected - ${JSON.stringify(metrics)}`)
         super.emit('disconnected', metrics)
       })
 
       this._producer.on('ready', (args) => {
-        Logger.isDebugEnabled && logger.debug('onReady', `Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
+        Logger.isDebugEnabled && logger.debug(`Producer::onReady - Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
         // Passing non-integer (including "undefined") to setPollInterval() may cause unexpected behaviour, which is hard to trace.
         if (!Number.isInteger(this._config.options.pollIntervalMs)) {
           return reject(new Error('pollIntervalMs should be integer'))
@@ -307,15 +307,14 @@ class Producer extends EventEmitter {
         resolve(true)
       })
 
-      Logger.isSillyEnabled && logger.silly('Connecting..')
+      Logger.isSillyEnabled && logger.silly('Producer Connecting..')
       this._producer.connect(null, (error, metadata) => {
         if (error) {
           super.emit('error', error)
-          Logger.isSillyEnabled && logger.silly('Consumer::connect() - end')
+          Logger.isSillyEnabled && logger.silly('Producer::connect() - end')
           return reject(error)
         }
-        // this.subscribe()
-        Logger.isSillyEnabled && logger.silly('Consumer metadata:')
+        Logger.isSillyEnabled && logger.silly('Producer::connect() - metadata:')
         Logger.isSillyEnabled && logger.silly(metadata)
         resolve(true)
       })
@@ -359,19 +358,26 @@ class Producer extends EventEmitter {
           throw new Error('You must call and await .connect() before trying to produce messages.')
         }
         if (this._producer._isConnecting) {
-          Logger.isDebugEnabled && logger.debug('still connecting')
+          Logger.isDebugEnabled && logger.debug('Producer::sendMessage() - still connecting')
         }
+        const producedAt = Date.now()
+
+        // Parse Message into Protocol format
         const parsedMessage = Protocol.parseMessage(messageProtocol)
-        const parsedMessageBuffer = this._config.options.serializeFn(parsedMessage, this._config.options) // this._createBuffer(parsedMessage, this._config.options.messageCharset)
+        // Serialize Message
+        const parsedMessageBuffer = this._config.options.serializeFn(parsedMessage, this._config.options)
+        // Validate Serialized Message
         if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
           throw new Error('message must be a string or an instance of Buffer.')
         }
-        Logger.isDebugEnabled && logger.debug('Producer::send() - start %s', JSON.stringify({
+
+        Logger.isDebugEnabled && logger.debug(`Producer::send() - start: ${JSON.stringify({
           topicName: topicConf.topicName,
           partition: topicConf.partition,
           key: topicConf.key
-        }))
-        const producedAt = Date.now()
+        })}`)
+
+        Logger.isSillyEnabled && logger.silly(`Producer::send() - message: ${JSON.stringify(parsedMessage)}`)
 
         if (this._config.options.sync) {
           this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, (err, offset) => {

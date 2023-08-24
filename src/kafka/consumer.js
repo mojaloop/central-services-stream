@@ -178,6 +178,7 @@ exports.ENUMS = ENUMS
  *     syncConcurrency: 1, // only applicable when sync=true
  *     syncSingleMessage: false, // only applicable when sync=true, and only applicable when mode=2 (i.e. RECURSIVE)
  *     consumeTimeout: 1000
+ *     deserializeFn: (object, opts) => {}, (optional)
  *   },
  *   topic: {}
  * })
@@ -255,12 +256,12 @@ class Consumer extends EventEmitter {
     this._status.running = false
 
     // setup default onReady emit handler
-    super.on('ready', arg => {
+    Logger.isDebugEnabled && super.on('ready', arg => {
       Logger.isDebugEnabled && logger.debug(`Consumer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
     })
 
     // setup default onError emit handler
-    super.on('error', error => {
+    Logger.isErrorEnabled && super.on('error', error => {
       Logger.isErrorEnabled && logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
     })
     Logger.isSillyEnabled && logger.silly('Consumer::constructor() - end')
@@ -293,48 +294,48 @@ class Consumer extends EventEmitter {
 
       this._consumer.setDefaultConsumeTimeout(this._config.options.consumeTimeout)
 
-      this._consumer.on('warning', warn => {
-        Logger.isDebugEnabled && logger.debug('onWarning', warn)
+      Logger.isDebugEnabled && this._consumer.on('warning', warn => {
+        Logger.isDebugEnabled && logger.debug(`Consumer::onWarning - ${JSON.stringify(warn)}`)
       })
 
       this._consumer.on('event.log', log => {
-        Logger.isSillyEnabled && logger.silly('onEventLog', log.message)
+        Logger.isSillyEnabled && logger.silly(`Consumer::onEventLog - ${JSON.stringify(log.message)})`)
       })
 
       this._consumer.on('event.error', error => {
-        Logger.isDebugEnabled && logger.debug('onEventError', error)
+        Logger.isDebugEnabled && logger.debug(`Consumer::onEventError  - ${JSON.stringify(error)}`)
         super.emit('error', error)
       })
 
       this._consumer.on('event.throttle', eventData => {
-        Logger.isDebugEnabled && logger.debug('onEventThrottle', eventData)
+        Logger.isDebugEnabled && logger.debug(`Consumer::onEventThrottle - ${JSON.stringify(eventData)}`)
         super.emit('event.throttle', eventData)
       })
 
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
         this._consumer.on('event.stats', (eventData) => {
-          Logger.isSillyEnabled && logger.silly('onEventStats', eventData)
+          Logger.isSillyEnabled && logger.silly(`Consumer::onEventStats - ${JSON.stringify(eventData)}`)
           super.emit('event.stats', eventData)
         })
       }
 
       this._consumer.on('error', error => {
-        Logger.isDebugEnabled && logger.debug('onError', error)
+        Logger.isDebugEnabled && logger.debug(`Consumer::onError - ${JSON.stringify(error)}`)
         super.emit('error', error)
       })
 
       this._consumer.on('partition.eof', eof => {
-        Logger.isDebugEnabled && logger.debug('onPartitionEof', eof)
+        Logger.isDebugEnabled && logger.debug(`Consumer::onPartitionEof - ${JSON.stringify(eof)}`)
         super.emit('partition.eof', eof)
       })
 
       this._consumer.on('disconnected', (metrics) => {
-        Logger.isDebugEnabled && logger.debug('onDisconnected', metrics)
+        Logger.isDebugEnabled && logger.debug(`Consumer::onDisconnected - ${JSON.stringify(metrics)}`)
         super.emit('disconnected', metrics)
       })
 
       this._consumer.on('ready', args => {
-        Logger.isDebugEnabled && logger.debug('onReady', `node-rdkafka v${Kafka.librdkafkaVersion} ready - ${JSON.stringify(args)}`)
+        Logger.isDebugEnabled && logger.debug(`Consumer::onReady - node-rdkafka v${Kafka.librdkafkaVersion} ready - ${JSON.stringify(args)}`)
         this.subscribe()
         const readyResponse = {
           ...args,
@@ -346,37 +347,16 @@ class Consumer extends EventEmitter {
         resolve(true)
       })
 
-      Logger.isSillyEnabled && logger.silly('Connecting..')
+      Logger.isSillyEnabled && logger.silly('Consumer::connect() - Connecting...')
       this._consumer.connect(null, (error, metadata) => {
         if (error) {
           super.emit('error', error)
           Logger.isSillyEnabled && logger.silly('Consumer::connect() - end')
           return reject(error)
         }
-        Logger.isSillyEnabled && logger.silly('Consumer metadata:')
+        Logger.isSillyEnabled && logger.silly('Consumer::connect() - metadata:')
         Logger.isSillyEnabled && logger.silly(metadata)
       })
-
-      Logger.isSillyEnabled && logger.silly('Registering data event..')
-
-      // Note: This is commented-out as a performance tweak, as we emit('message') directly from consumers avoiding the need to call deserializeFn twice for every message being consumed.
-      // this._consumer.on('data', message => {
-      //   Logger.isSillyEnabled && logger.silly(`Consumer::onData() - message: ${JSON.stringify(message)}`)
-      //   const returnMessage = { ...message }
-      //   // let returnMessage = {}
-      //   // Object.assign(returnMessage, message)
-      //   // if (message instanceof Array) {
-      //   //   returnMessage.map(msg => {
-      //   //     let parsedValue = Protocol.parseValue(msg.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
-      //   //     msg.value = parsedValue
-      //   //   })
-      //   // } else {
-      //   // const parsedValue = Protocol.parseValue(returnMessage.value, this._config.options.messageCharset, this._config.options.messageAsJSON)
-      //   const parsedValue = this._config.options.deserializeFn(returnMessage.value, this._config.options)
-      //   returnMessage.value = parsedValue
-      //   // }
-      //   super.emit('message', returnMessage)
-      // })
     })
   }
 
@@ -463,7 +443,7 @@ class Consumer extends EventEmitter {
     // setup queues to ensure sync processing of messages if options.sync is true
     if (this._config.options.sync) {
       this._syncQueue = async.queue((task, callbackDone) => {
-        Logger.isDebugEnabled && logger.debug(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - Sync Process - ${JSON.stringify(task)}`)
+        Logger.isSillyEnabled && logger.silly(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - Sync Process - ${JSON.stringify(task)}`)
         let payload
         if (this._config.options.mode === ENUMS.CONSUMER_MODES.flow) {
           payload = task.message
@@ -558,11 +538,15 @@ class Consumer extends EventEmitter {
             super.emit('message', msg)
             return msg
           })
-          if (this._config.options.messageAsJSON) {
-            Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
-          } else {
-            Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${messages}}`)
+
+          if (Logger.isSillyEnabled) {
+            if (this._config.options.messageAsJSON) {
+              Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
+            } else {
+              Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${messages}}`)
+            }
           }
+
           if (this._config.options.sync) {
             this._syncQueue.push({ error, messages }, function (err) {
               if (err) {
@@ -627,10 +611,13 @@ class Consumer extends EventEmitter {
           super.emit('message', msg)
           return msg
         })
-        if (this._config.options.messageAsJSON) {
-          Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
-        } else {
-          Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive() - messages[${messages.length}]: ${messages}}`)
+
+        if (Logger.isSillyEnabled) {
+          if (this._config.options.messageAsJSON) {
+            logger.silly(`Consumer::_consumerRecursive() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
+          } else {
+            logger.silly(`Consumer::_consumerRecursive() - messages[${messages.length}]: ${messages}}`)
+          }
         }
 
         if (this._config.options.sync) {
@@ -697,11 +684,15 @@ class Consumer extends EventEmitter {
         const parsedValue = this._config.options.deserializeFn(message.value, this._config.options)
         message.value = parsedValue
         super.emit('message', message)
-        if (this._config.options.messageAsJSON) {
-          Logger.isDebugEnabled && logger.debug(`Consumer::_consumerFlow() - message: ${JSON.stringify(message)}`)
-        } else {
-          Logger.isDebugEnabled && logger.debug(`Consumer::_consumerFlow() - message: ${message}`)
+
+        if (Logger.isSillyEnabled) {
+          if (this._config.options.messageAsJSON) {
+            Logger.isDebugEnabled && logger.debug(`Consumer::_consumerFlow() - message: ${JSON.stringify(message)}`)
+          } else {
+            Logger.isDebugEnabled && logger.debug(`Consumer::_consumerFlow() - message: ${message}`)
+          }
         }
+
         if (this._config.options.sync) {
           this._syncQueue.push({ error, message }, function (err) {
             if (err) { Logger.isErrorEnabled && logger.error(err) }
