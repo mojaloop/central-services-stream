@@ -1,0 +1,28 @@
+{
+  "name": "perf",
+  "version": "1.0.0",
+  "description": "## Docker Compose",
+  "main": "index.js",
+  "scripts": {
+    "postinstall": "npm link ../../",
+    "postupdate": "npm link ../../",
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Infitx",
+  "contributors": [
+    "Miguel de Barros <miguel.debarros@infitx.com>"
+  ],
+  "imports": {
+    "#samples/*": "./samples/*.json",
+    "#utils/*": "./utils/*.js",
+    "#scripts/*": "./scripts/*.js",
+    "#scenarios/*": "./scenarios/*.js"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@mojaloop/central-services-stream": "file:../..",
+    "protobufjs": "^7.2.4",
+    "tinybench": "^2.5.0"
+  }
+}

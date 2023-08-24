@@ -82,6 +82,12 @@ Test('Producer test', (producerTests) => {
         return new KafkaStubs.KafkaProducer()
       }
     )
+
+    sandbox.stub(Kafka, 'HighLevelProducer').callsFake(
+      () => {
+        return new KafkaStubs.KafkaSyncProducer()
+      }
+    )
     test.end()
   })
 
@@ -92,6 +98,38 @@ Test('Producer test', (producerTests) => {
   })
 
   producerTests.test('Test Producer::constructor', (assert) => {
+    const ProducerSpy = Sinon.spy(Producer.prototype, 'constructor')
+    const producer = new ProducerSpy(config)
+    assert.ok(producer, 'Producer instance created')
+    assert.ok(ProducerSpy.calledOnce, 'Producer constructor called once')
+    ProducerSpy.restore()
+    assert.end()
+  })
+
+  producerTests.test('Test Producer::constructor - defaults', (assert) => {
+    const config = {
+      options: {
+        pollIntervalMs: 100,
+        serializeFn: 123
+      },
+      rdkafkaConf: {
+        'metadata.broker.list': 'localhost:9092',
+        event_cb: true,
+        'compression.codec': 'none',
+        'retry.backoff.ms': 100,
+        'message.send.max.retries': 2,
+        'socket.keepalive.enable': true,
+        'queue.buffering.max.messages': 10,
+        'queue.buffering.max.ms': 50,
+        'batch.num.messages': 100,
+        'api.version.request': true,
+        dr_cb: true
+      },
+      topicConf: {
+        'request.required.acks': 1
+      },
+      logger: Logger
+    }
     const ProducerSpy = Sinon.spy(Producer.prototype, 'constructor')
     const producer = new ProducerSpy(config)
     assert.ok(producer, 'Producer instance created')
@@ -211,6 +249,34 @@ Test('Producer test', (producerTests) => {
     })
   })
 
+  producerTests.test('Test sync Producer::sendMessage', (assert) => {
+    assert.plan(4)
+    const syncConfig = { ...config }
+    syncConfig.options.sync = true
+    const producer = new Producer(syncConfig)
+    const discoCallback = (err, metrics) => {
+      if (err) {
+        Logger.error(err)
+      }
+      assert.equal(typeof metrics.connectionOpened, 'number')
+      assert.end()
+    }
+    // produce 'ready' event
+    producer.on('ready', arg => {
+      Logger.info(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+
+    producer.connect().then(result => {
+      assert.ok(result, 'connection result received')
+
+      producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'test', key: '1234' }).then((resolve) => {
+        assert.equal(resolve, 1)
+        producer.disconnect(discoCallback)
+      })
+    })
+  })
+
   producerTests.test('Test Producer::sendMessage producer null', (assert) => {
     const producer = new Producer(config)
     producer.sendMessage({
@@ -264,6 +330,41 @@ Test('Producer test', (producerTests) => {
     p.connect().then(result => {
       assert.ok(result, 'connection result received')
       p.getMetadata(null)
+      assert.end()
+    })
+  })
+
+  producerTests.test('Test Producer::getMetadataSync', async (assert) => {
+    const p = new Producer(config)
+    p.connect().then(async result => {
+      assert.ok(result, 'connection result received')
+      p.getMetadataSync(null).then(metadata => {
+        assert.ok(metadata, 'metadata object exists')
+        assert.deepEqual(metadata, KafkaStubs.metadataSampleStub, 'metadata objects match')
+        assert.end()
+      }).catch(error => {
+        assert.fail(error)
+        assert.end()
+      })
+    })
+  })
+
+  producerTests.test('Test Consumer::isConnected', (assert) => {
+    const p = new Producer(config)
+    p.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      const isConnected = p.isConnected()
+      assert.ok(isConnected, 'isConnected result exists')
+      assert.end()
+    })
+  })
+
+  producerTests.test('Test Consumer::connectedTime', (assert) => {
+    const p = new Producer(config)
+    p.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      const connectedTime = p.connectedTime()
+      assert.equal(connectedTime, 0, 'connectedTime result exists')
       assert.end()
     })
   })
@@ -324,13 +425,12 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
   })
 
   producerTests.test('Test Producer::connect - test KafkaProducer events: event.log, event.error, error, deliver-report', (assert) => {
-    assert.plan(4)
+    assert.plan(7)
     const producer = new Producer(config)
     const discoCallback = (err) => {
       if (err) {
         Logger.error(`Error received: ${err}`)
       }
-      assert.end()
     }
     // consume 'message' event
     producer.on('error', error => {
@@ -341,6 +441,67 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
     producer.on('ready', arg => {
       Logger.info(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
+    })
+
+    producer.on('event.throttle', arg => {
+      assert.ok(arg, 'event.throttle')
+    })
+
+    // this should never be hit
+    producer.on('event.stats', arg => {
+      assert.fail(arg, 'event.stats')
+    })
+
+    producer.on('delivery-report', arg => {
+      assert.ok(arg, 'delivery-report')
+    })
+
+    producer.on('disconnected', arg => {
+      assert.ok(arg, 'disconnected')
+    })
+
+    producer.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      producer.disconnect(discoCallback())
+    })
+  })
+
+  producerTests.test('Test Producer::connect - test KafkaProducer events: event.log, event.error, error, deliver-report, stats enabled', (assert) => {
+    assert.plan(8)
+    const modifiedConfig = { ...config }
+    modifiedConfig.rdkafkaConf['statistics.interval.ms'] = 1
+
+    const producer = new Producer(modifiedConfig)
+    const discoCallback = (err) => {
+      if (err) {
+        Logger.error(`Error received: ${err}`)
+      }
+    }
+    // consume 'message' event
+    producer.on('error', error => {
+      Logger.info(`onError: ${error}`)
+      assert.ok(Sinon.match(error, 'event.error') || Sinon.match(error, 'event'), 'on Error event received')
+    })
+
+    producer.on('ready', arg => {
+      Logger.info(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+
+    producer.on('event.throttle', arg => {
+      assert.ok(arg, 'event.throttle')
+    })
+
+    producer.on('event.stats', arg => {
+      assert.ok(arg, 'event.stats')
+    })
+
+    producer.on('delivery-report', arg => {
+      assert.ok(arg, 'delivery-report')
+    })
+
+    producer.on('disconnected', arg => {
+      assert.ok(arg, 'disconnected')
     })
 
     producer.connect().then(result => {

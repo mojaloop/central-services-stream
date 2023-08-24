@@ -113,6 +113,7 @@ const
  *   {
  *     pollIntervalMs: 50,
  *     messageCharset: 'utf8'
+ *     serializeFn: (object, opts) => {}, (optional)
  *   },
  *   rdkafkaConf: {
  *     'metadata.broker.list': 'localhost:9092',
@@ -123,13 +124,13 @@ const
  *     'message.send.max.retries': 2,
  *     'socket.keepalive.enable': true,
  *     'queue.buffering.max.messages': 10,
- *     'queue.buffering.max.ms': 50,
+ *     'queue.buffering.max.ms': 5,
  *     'batch.num.messages': 10000,
  *     'api.version.request': true,
  *     'dr_cb': true
  *   },
  *   topicConf: {
- *    'request.required.acks': 1
+ *    'request.required.acks': -1
  *   }
  * })
  *
@@ -155,6 +156,15 @@ class Producer extends EventEmitter {
         messageCharset: 'utf8'
       }
     }
+    if (!config.options.messageCharset) {
+      config.options.messageCharset = 'utf8'
+    }
+    if (!config.options.serializeFn) {
+      const defaultSerializeFn = (message, opts) => {
+        return Producer._createBuffer(message, opts.messageCharset)
+      }
+      config.options.serializeFn = defaultSerializeFn
+    }
     if (!config.options.pollIntervalMs) {
       config.options.pollIntervalMs = 50
     }
@@ -166,17 +176,21 @@ class Producer extends EventEmitter {
         'compression.codec': 'none',
         'retry.backoff.ms': 100,
         'message.send.max.retries': 2,
+        'statistics.interval.ms': 0, // Enable event.stats event if value is greater than 0
         'socket.keepalive.enable': true,
-        'queue.buffering.max.messages': 10,
-        'queue.buffering.max.ms': 50,
+        'queue.buffering.max.messages': 100000,
+        'queue.buffering.max.ms': 0, // 5 is default
         'batch.num.messages': 100,
         'api.version.request': true,
         dr_cb: true
       }
     }
+    if (!config?.rdkafkaConf['client.id']) {
+      config.rdkafkaConf['client.id'] = 'default-client'
+    }
     if (!config.topicConf) {
       config.topicConf = {
-        'request.required.acks': 1
+        'request.required.acks': -1 // default for ALL brokers!
       }
     }
     if (!config.logger) {
@@ -192,6 +206,37 @@ class Producer extends EventEmitter {
   }
 
   /**
+   * Returns the Kafka version library and features
+   * @returns object containing Kafka info on librdkafkaVersion, and features
+   */
+  version () {
+    return {
+      librdkafkaVersion: Kafka.librdkafkaVersion,
+      features: Kafka.features
+    }
+  }
+
+  /**
+ * Returns the current connection status of the consumer
+ *
+ * @returns boolean
+ */
+  isConnected () {
+    Logger.isSillyEnabled && this._config?.logger?.silly('Producer::isConnected()')
+    return this._producer.isConnected()
+  }
+
+  /**
+   * Returns the current connection time of the consumer
+   *
+   * @returns number
+   */
+  connectedTime () {
+    Logger.isSillyEnabled && this._config?.logger?.silly('Producer::connectedTime()')
+    return this._producer.connectedTime()
+  }
+
+  /**
    * Connect Producer
    *
    * @fires Producer#ready
@@ -204,56 +249,79 @@ class Producer extends EventEmitter {
     const { logger } = this._config
     Logger.isSillyEnabled && logger.silly('Producer::connect() - start')
     return new Promise((resolve, reject) => {
-      this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
+      if (this._config.options.sync) {
+        this._producer = new Kafka.HighLevelProducer(this._config.rdkafkaConf, this._config.topicConf)
+      } else {
+        // NOTE: this is the old way of creating a producer, we should use the new one
+        this._producer = new Kafka.Producer(this._config.rdkafkaConf, this._config.topicConf)
+      }
 
-      this._producer.on('event.log', log => {
-        Logger.isSillyEnabled && logger.silly(log.message)
+      Logger.isSillyEnabled && this._producer.on('event.log', log => {
+        Logger.isSillyEnabled && logger.silly(`Producer::onEventLog - ${JSON.stringify(log.message)}`)
       })
 
       this._producer.on('event.error', error => {
+        Logger.isDebugEnabled && logger.debug(`Producer::onEventError - ${JSON.stringify(error)}`)
         super.emit('error', error)
       })
+
+      this._producer.on('event.throttle', eventData => {
+        Logger.isDebugEnabled && logger.debug(`Producer::onEventThrottle - ${JSON.stringify(eventData)}`)
+        super.emit('event.throttle', eventData)
+      })
+
+      if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
+        this._producer.on('event.stats', (eventData) => {
+          Logger.isSillyEnabled && logger.silly(`Producer::onEventStats - ${JSON.stringify(eventData)}`)
+          super.emit('event.stats', eventData)
+        })
+      }
 
       this._producer.on('error', error => {
+        Logger.isDebugEnabled && logger.debug(`Producer::onError - ${JSON.stringify(error)}`)
         super.emit('error', error)
       })
 
-      this._producer.on('delivery-report', (report) => {
-        Logger.isDebugEnabled && logger.debug('DeliveryReport: ' + JSON.stringify(report))
+      this._config.rdkafkaConf.dr_cb && this._producer.on('delivery-report', (err, report) => {
+        Logger.isDebugEnabled && logger.debug(`Producer::onDeliveryReport - ${JSON.stringify(report)}`)
+        super.emit('delivery-report', err, report)
       })
 
       this._producer.on('disconnected', (metrics) => {
-        Logger.isWarnEnabled && logger.warn('disconnected.')
+        Logger.isDebugEnabled && logger.debug(`Producer::onDisconnected - ${JSON.stringify(metrics)}`)
         super.emit('disconnected', metrics)
       })
 
       this._producer.on('ready', (args) => {
-        Logger.isDebugEnabled && logger.debug(`Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
+        Logger.isDebugEnabled && logger.debug(`Producer::onReady - Native producer ready v. ${Kafka.librdkafkaVersion}, e. ${Kafka.features.join(', ')}.`)
         // Passing non-integer (including "undefined") to setPollInterval() may cause unexpected behaviour, which is hard to trace.
         if (!Number.isInteger(this._config.options.pollIntervalMs)) {
           return reject(new Error('pollIntervalMs should be integer'))
         }
         this._producer.setPollInterval(this._config.options.pollIntervalMs)
-        super.emit('ready', args)
+        const readyResponse = {
+          ...args,
+          ...this.version()
+        }
+        super.emit('ready', readyResponse)
         resolve(true)
       })
 
-      Logger.isSillyEnabled && logger.silly('Connecting..')
+      Logger.isSillyEnabled && logger.silly('Producer Connecting..')
       this._producer.connect(null, (error, metadata) => {
         if (error) {
           super.emit('error', error)
-          Logger.isSillyEnabled && logger.silly('Consumer::connect() - end')
+          Logger.isSillyEnabled && logger.silly('Producer::connect() - end')
           return reject(error)
         }
-        // this.subscribe()
-        Logger.isSillyEnabled && logger.silly('Consumer metadata:')
+        Logger.isSillyEnabled && logger.silly('Producer::connect() - metadata:')
         Logger.isSillyEnabled && logger.silly(metadata)
         resolve(true)
       })
     })
   }
 
-  _createBuffer (str, encoding) {
+  static _createBuffer (str, encoding) {
     const bufferResponse = Buffer.from(JSON.stringify(str), encoding)
     return bufferResponse
   }
@@ -283,31 +351,55 @@ class Producer extends EventEmitter {
    * @returns {boolean} or if failed {Error}
    */
   async sendMessage (messageProtocol, topicConf) {
-    const { logger } = this._config
-    try {
-      if (!this._producer) {
-        throw new Error('You must call and await .connect() before trying to produce messages.')
+    return new Promise((resolve, reject) => {
+      const { logger } = this._config
+      try {
+        if (!this._producer) {
+          throw new Error('You must call and await .connect() before trying to produce messages.')
+        }
+        if (this._producer._isConnecting) {
+          Logger.isDebugEnabled && logger.debug('Producer::sendMessage() - still connecting')
+        }
+        const producedAt = Date.now()
+
+        // Parse Message into Protocol format
+        const parsedMessage = Protocol.parseMessage(messageProtocol)
+        // Serialize Message
+        const parsedMessageBuffer = this._config.options.serializeFn(parsedMessage, this._config.options)
+        // Validate Serialized Message
+        if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
+          throw new Error('message must be a string or an instance of Buffer.')
+        }
+
+        Logger.isDebugEnabled && logger.debug(`Producer::send() - start: ${JSON.stringify({
+          topicName: topicConf.topicName,
+          partition: topicConf.partition,
+          key: topicConf.key
+        })}`)
+
+        Logger.isSillyEnabled && logger.silly(`Producer::send() - message: ${JSON.stringify(parsedMessage)}`)
+
+        if (this._config.options.sync) {
+          this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, (err, offset) => {
+            // The offset if our acknowledgement level allows us to receive delivery offsets
+            if (err) {
+              Logger.isDebugEnabled && logger.debug(err)
+              reject(err)
+            } else {
+              Logger.isDebugEnabled && logger.debug(`Producer::send() - delivery-callback offset=${offset}`)
+              resolve(offset)
+            }
+          })
+        } else {
+          // NOTE: this is the old way of producing a message, we should use the new one
+          this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey)
+          resolve(true)
+        }
+      } catch (err) {
+        Logger.isDebugEnabled && logger.debug(err)
+        reject(err)
       }
-      if (this._producer._isConnecting) {
-        Logger.isDebugEnabled && logger.debug('still connecting')
-      }
-      const parsedMessage = Protocol.parseMessage(messageProtocol)
-      const parsedMessageBuffer = this._createBuffer(parsedMessage, this._config.options.messageCharset)
-      if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
-        throw new Error('message must be a string or an instance of Buffer.')
-      }
-      Logger.isDebugEnabled && logger.debug('Producer::send() - start %s', JSON.stringify({
-        topicName: topicConf.topicName,
-        partition: topicConf.partition,
-        key: topicConf.key
-      }))
-      const producedAt = Date.now()
-      await this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey)
-      return true
-    } catch (e) {
-      Logger.isDebugEnabled && logger.debug(e)
-      throw e
-    }
+    })
   }
 
   /**
@@ -352,6 +444,31 @@ class Producer extends EventEmitter {
     Logger.isSillyEnabled && logger.silly('Producer::getMetadata() - start')
     this._producer.getMetadata(metadataOptions, metaDataCb)
     Logger.isSillyEnabled && logger.silly('Producer::getMetadata() - end')
+  }
+
+  /**
+   * Get client metadata synchronously.
+   * To avoid this side effect, the topic object can be created with the expected options before requesting metadata,
+   * or the metadata request can be performed for all topics (by omitting <code>metadataOptions.topic</code>).
+   *
+   * @typedef metadataOptions
+   * @property {string} topic - Topic string for which to fetch metadata
+   * @property {number} timeout - Max time, in ms, to try to fetch metadata before timing out. Defaults to 30,000 (30 seconds).
+   *
+   * @param {metadataOptions} metadataOptions - Metadata options to pass to the client.
+   * @returns {Promise<object>} - Returns the metadata object.
+   */
+  getMetadataSync (metadataOptions) {
+    return new Promise((resolve, reject) => {
+      const metaDatacCb = (error, metadata) => {
+        if (error) reject(error)
+        resolve(metadata)
+      }
+      const { logger } = this._config
+      Logger.isSillyEnabled && logger.silly('Producer::getMetadataSync() - start')
+      this._producer.getMetadata(metadataOptions, metaDatacCb)
+      Logger.isSillyEnabled && logger.silly('Producer::getMetadataSync() - end')
+    })
   }
 }
 

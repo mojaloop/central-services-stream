@@ -1,0 +1,66 @@
+{
+  "type": "application/json",
+  "content": {
+    "headers": {
+      "host": "ml-api-adapter:3000",
+      "content_length": 1314,
+      "accept": "application/vnd.interoperability.transfers+json;version=1.1",
+      "content_type": "application/vnd.interoperability.transfers+json;version=1.1",
+      "date": "2023-08-09T17:29:39.000Z",
+      "fspiop_destination": "perffsp5",
+      "fspiop_source": "perffsp3",
+      "traceparent": "00-8f3d2c6adaa5a2940e0d0e100ea79846-83599662d0fb5f6c-01",
+      "tracestate": "tx_end2end_start_ts=1691602179044"
+    },
+    "dataUri": "data:application/vnd.interoperability.transfers+json;version=1.1;base64,eyJ0cmFuc2ZlcklkIjoiMDk5ODBmNTMtZDA3NS00MTQxLTgwZGYtYzNiOTdmMTdlN2ZmIiwicGF5ZXJGc3AiOiJwZXJmZnNwMyIsInBheWVlRnNwIjoicGVyZmZzcDUiLCJhbW91bnQiOnsiYW1vdW50IjoiMiIsImN1cnJlbmN5IjoiVVNEIn0sImV4cGlyYXRpb24iOiIyMDMwLTAxLTAxVDAwOjAwOjAwLjAwMFoiLCJpbHBQYWNrZXQiOiJBWUlER1FBQUFBQUFBQ2NRSVdjdVozSmxaVzVpWVc1clpuTndMbTF6YVhOa2JpNHlOemN4TXpnd016a3hNb0lDNjJWNVNqQmpiVVoxWXpKR2FtUkhiSFppYTJ4clNXcHZhVTFFUlhoYVIxRXlUbGRaZEU1VVFYcE5lVEF3VFZkTk1reFVhekZhUjFsMFQxUkZlRmw2V1RSUFZGRXhXV3BvYlVscGQybGpXRloyWkVkV1NscERTVFpKYlZGM1RYcEpNVTFFVlRKTVZFMHhUbGRGZEU1RVVteE5VekZwVDFSbk1FeFhXWGRaVkZFeFRtcEZNRmt5UlhwUFEwbHpTVzVDYUdWWFZteEphbkEzU1c1Q2FHTnVValZUVjFKS1ltMWFka2xxY0RkSmJrSm9ZMjVTTlZOWFVsVmxXRUpzU1dwdmFWUldUa3BWTUZKUFNXbDNhV05IUm5sa1NHeEtXa2RXZFdSSGJHMWhWMVo1U1dwdmFVMXFZek5OVkUwMFRVUk5OVTFVU1dsTVEwcHRZek5DU2xwRFNUWkpiV1I1V2xkV2RWbHRSblZoTWxwNlkwTktPV1pUZDJsalIwWTFXbGhKYVU5dWMybGpSMFo1WkVoc1NscEZiSFZhYlRocFQyNXphV05IUm5sa1NHeEtXa1pTTldOSFZXbFBhVXBPVlRCc1ZGSkZOR2xNUTBwM1dWaEtNR1ZWYkd0YVZ6VXdZVmRhY0ZwWVNXbFBhVWt3VGtSRmVVMTZVVEZPYW1NMFQxTkpjMGx0V25walJXeHJTV3B2YVdOSGJIVmhNa3BvWW0xMGJXTXpRV2xtVTNkcFkwZFdlV015T1hWWlYzaEtZbTFhZGtscWNEZEpiVTUyWWxoQ2MxcFlhRTlaVnpGc1NXcHdOMGx0V25CamJrNHdWRzFHZEZwVFNUWkphMXB3WTI1T01HSnRSblJhVXpGVldsaE9NRWxwZDJsaVIwWjZaRVUxYUdKWFZXbFBhVXBOV1ZoT01HSnRSblJhVXpGVldsaE9NRWx1TUhOSmJWSm9aRWRXVUZwclNuQmpibEp2U1dwdmFVMVVhelJPUXpCM1RWTXdkMDFUU2psbVUzZHBXVmN4ZG1SWE5UQkphbkEzU1cxT01XTnVTbXhpYlU0MVNXcHZhVlpXVGtWSmFYZHBXVmN4ZG1SWE5UQkphbTlwVFZSQmQwbHVNSE5KYmxKNVdWYzFlbGxYVGpCaFZ6bDFWa2hzZDFwVFNUWmxlVXA2V1RKV2RWbFlTbkJpZVVrMlNXeFNVMUZWTlZSU2ExWlRTV2wzYVdGWE5YQmtSMnhvWkVjNWVVbHFiMmxWUlVaYVVsWkphVXhEU25CaWJXd3dZVmRHTUdJelNsVmxXRUpzU1dwdmFWRXdPVTlWTVZaT1VsWkphV1pZTUFBIiwiY29uZGl0aW9uIjoiNW0wZ3FfNWRMUWxUU1NSS1FtTHBqME1aMU10V0xXZ1N1MW9MR1ZUSnlZcyJ9",
+    "payload": {
+      "transferId": "09980f53-d075-4141-80df-c3b97f17e7ff",
+      "payerFsp": "perffsp3",
+      "payeeFsp": "perffsp5",
+      "amount": {
+        "amount": "2",
+        "currency": "USD"
+      },
+      "expiration": "2030-01-01T00:00:00.000Z",
+      "ilpPacket": "AYIDGQAAAAAAACcQIWcuZ3JlZW5iYW5rZnNwLm1zaXNkbi4yNzcxMzgwMzkxMoIC62V5SjBjbUZ1YzJGamRHbHZia2xrSWpvaU1ERXhaR1EyTldZdE5UQXpNeTAwTVdNMkxUazFaR1l0T1RFeFl6WTRPVFExWWpobUlpd2ljWFZ2ZEdWSlpDSTZJbVF3TXpJMU1EVTJMVE0xTldFdE5EUmxNUzFpT1RnMExXWXdZVFExTmpFMFkyRXpPQ0lzSW5CaGVXVmxJanA3SW5CaGNuUjVTV1JKYm1adklqcDdJbkJoY25SNVNXUlVlWEJsSWpvaVRWTkpVMFJPSWl3aWNHRnlkSGxKWkdWdWRHbG1hV1Z5SWpvaU1qYzNNVE00TURNNU1USWlMQ0ptYzNCSlpDSTZJbWR5WldWdVltRnVhMlp6Y0NKOWZTd2ljR0Y1WlhJaU9uc2ljR0Z5ZEhsSlpFbHVabThpT25zaWNHRnlkSGxKWkZSNWNHVWlPaUpOVTBsVFJFNGlMQ0p3WVhKMGVVbGtaVzUwYVdacFpYSWlPaUkwTkRFeU16UTFOamM0T1NJc0ltWnpjRWxrSWpvaWNHbHVhMkpoYm10bWMzQWlmU3dpY0dWeWMyOXVZV3hKYm1adklqcDdJbU52YlhCc1pYaE9ZVzFsSWpwN0ltWnBjbk4wVG1GdFpTSTZJa1pwY25OMGJtRnRaUzFVWlhOMElpd2liR0Z6ZEU1aGJXVWlPaUpNWVhOMGJtRnRaUzFVWlhOMEluMHNJbVJoZEdWUFprSnBjblJvSWpvaU1UazROQzB3TVMwd01TSjlmU3dpWVcxdmRXNTBJanA3SW1OMWNuSmxibU41SWpvaVZWTkVJaXdpWVcxdmRXNTBJam9pTVRBd0luMHNJblJ5WVc1ellXTjBhVzl1Vkhsd1pTSTZleUp6WTJWdVlYSnBieUk2SWxSU1FVNVRSa1ZTSWl3aWFXNXBkR2xoZEc5eUlqb2lVRUZaUlZJaUxDSnBibWwwYVdGMGIzSlVlWEJsSWpvaVEwOU9VMVZOUlZJaWZYMAA",
+      "condition": "5m0gq_5dLQlTSSRKQmLpj0MZ1MtWLWgSu1oLGVTJyYs"
+    }
+  },
+  "id": "ffdaf108-f4ab-478b-bffa-6f2f75f1884e",
+  "metadata": {
+    "event": {
+      "id": "e0c3b68a-7fda-4e96-b343-e6e71fe650f4",
+      "type": "audit",
+      "action": "start",
+      "createdAt": "2023-08-09T17:29:39.047Z",
+      "state": {
+        "status": "success"
+      }
+    },
+    "trace": {
+      "service": "ml_transfer_prepare",
+      "traceId": "8f3d2c6adaa5a2940e0d0e100ea79846",
+      "spanId": "631a1e54cead4ae0",
+      "sampled": 1,
+      "flags": "01",
+      "startTimestamp": "2023-08-09T17:29:39.047Z",
+      "tags": {
+        "tracestate": "acmevendor=eyJzcGFuSWQiOiI2MzFhMWU1NGNlYWQ0YWUwIiwidGltZUFwaVByZXBhcmUiOiIxNjkxNjAyMTc5MDQ3In0=,tx_end2end_start_ts=1691602179044",
+        "transactionType": "transfer",
+        "transactionAction": "prepare",
+        "transactionId": "09980f53-d075-4141-80df-c3b97f17e7ff",
+        "source": "perffsp3",
+        "destination": "perffsp5",
+        "payerFsp": "perffsp3",
+        "payeeFsp": "perffsp5"
+      },
+      "tracestates": {
+        "tx_end2end_start_ts": "1691602179044",
+        "acmevendor": {
+          "spanId": "631a1e54cead4ae0",
+          "timeApiPrepare": "1691602179047"
+        }
+      }
+    }
+  }
+}

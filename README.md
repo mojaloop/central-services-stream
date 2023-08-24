@@ -11,16 +11,29 @@ Streaming library for central services
 ## Usage
 
 ### Kafka
+
 Refer to documentation in [src/kafka/readme.md](./src/kafka/readme.md)
+
+### Manually installing Librdkafka lib dependency
+
+You can optionally install [Librdkafka](https://github.com/confluentinc/librdkafka).
+
+> Recommended that if you choose to install it manually, ensure that the version being installed matches the version in the [Node-Rdkafka](https://github.com/Blizzard/node-rdkafka/releases) release notes. You are most likely better off (or if you have any doubts) using `npm install` to build the library natively.
+
+Then configure the following env var before running `npm install`:
+
+```env
+export BUILD_LIBRDKAFKA=0
+```
 
 ## Auditing Dependencies
 
-We use `npm-audit-resolver` along with `npm audit` to check dependencies for node vulnerabilities, and keep track of resolved dependencies with an `audit-resolve.json` file.
+We use `audit-ci` along with `npm audit` to check dependencies for node vulnerabilities, and keep track of resolved dependencies with an `audit-resolve.json` file.
 
 To start a new resolution process, run:
 
 ```bash
-npm run audit:resolve
+npm run audit:fix
 ```
 
 You can then check to see if the CI will pass based on the current dependencies with:
@@ -29,7 +42,7 @@ You can then check to see if the CI will pass based on the current dependencies 
 npm run audit:check
 ```
 
-And commit the changed `audit-resolve.json` to ensure that CircleCI will build correctly.
+The [audit-ci.jsonc](./audit-ci.jsonc) contains any audit-exceptions that cannot be fixed to ensure that CircleCI will build correctly.
 
 ## Automated Releases
 
