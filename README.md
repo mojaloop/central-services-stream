@@ -16,7 +16,9 @@ Refer to documentation in [src/kafka/readme.md](./src/kafka/readme.md)
 
 ### Manually installing Librdkafka lib dependency
 
-Ensure that you install [Librdkafka](https://github.com/confluentinc/librdkafka).
+You can optionally install [Librdkafka](https://github.com/confluentinc/librdkafka).
+
+> Recommended that if you choose to install it manually, ensure that the version being installed matches the version in the [Node-Rdkafka](https://github.com/Blizzard/node-rdkafka/releases) release notes. You are most likely better off (or if you have any doubts) using `npm install` to build the library natively.
 
 Then configure the following env var before running `npm install`:
 

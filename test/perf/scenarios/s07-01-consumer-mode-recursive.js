@@ -6,9 +6,9 @@ const TestConsumer = require('#scripts/consumer')
 
 const benchRunner = async (opts) => {
   const benchProducerConf = opts?.benchProducerConf || {
-    iterations: 1, // This is how many messages we want to produce.
-    time: 0 // This is set to 0, to guarantee the number of iterations.
-    // time: (process.env?.TIME || 30) * 1000 // This is the time in milliseconds we want to run the benchmark for.
+    // iterations: 1, // This is how many messages we want to produce.
+    // time: 0 // This is set to 0, to guarantee the number of iterations.
+    time: (process.env?.TIME || 30) * 1000 // This is the time in milliseconds we want to run the benchmark for.
   }
 
   const scenario = module.filename.split(/[\\/]/).pop()
