@@ -28,7 +28,7 @@ export BUILD_LIBRDKAFKA=0
 
 ## Auditing Dependencies
 
-We use `audit-ci` along with `npm audit` to check dependencies for node vulnerabilities, and keep track of resolved dependencies with an `audit-resolve.json` file.
+We use `audit-ci` along with `npm audit` to check dependencies for node vulnerabilities, and keep track of resolved dependencies with an `audit-ci.jsonc` file.
 
 To start a new resolution process, run:
 
