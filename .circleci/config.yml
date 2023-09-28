@@ -16,13 +16,14 @@ orbs:
 #
 # YAML defaults templates, in alphabetical order
 ##
+# apk --no-cache add librdkafka-dev
+
 defaults_Dependencies: &defaults_Dependencies |
     apk --no-cache add git
     apk --no-cache add ca-certificates
     apk --no-cache add curl
     apk --no-cache add openssh-client
     apk --no-cache add -t build-dependencies make gcc g++ python3 libtool autoconf automake jq bash
-    apk --no-cache add librdkafka-dev
     npm install -g node-gyp
 
 defaults_awsCliDependencies: &defaults_awsCliDependencies |
@@ -113,7 +114,7 @@ defaults_display_versions: &defaults_display_versions
 
 defaults_environment: &defaults_environment
   ## Disable LIBRDKAFKA build since we install it via general dependencies
-  BUILD_LIBRDKAFKA: 0
+  BUILD_LIBRDKAFKA: 1
 
 ##
 # Executors
