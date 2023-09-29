@@ -242,16 +242,57 @@ Test('Consumer', ConsumerTest => {
   })
 
   ConsumerTest.test('isConnected should', isConnectedTest => {
-    isConnectedTest.test('reject with an error if client.getMetadata fails', async test => {
+    isConnectedTest.test('Should return true if consumer.isConnected passes', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      ConsumerProxy.__set__('listOfConsumers', {
+        admin: {
+          consumer: {
+            isConnected: () => true
+          }
+        }
+      })
+      // Act
+      try {
+        const response = await ConsumerProxy.isConnected('admin')
+        test.equal(response, true, 'Response should be boolean true')
+      } catch (err) {
+        // Assert
+        test.fail('Error not thrown!')
+      }
+      test.end()
+    })
+
+    isConnectedTest.test('reject with an error if consumer.isConnected passes, but topicName not supplied', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      ConsumerProxy.__set__('listOfConsumers', {
+        admin: {
+          consumer: {
+            isConnected: () => true
+          }
+        }
+      })
+      // Act
+      try {
+        await ConsumerProxy.isConnected()
+        test.fail('Error not thrown!')
+      } catch (err) {
+        // Assert
+        test.equal(err.message, 'topicName is undefined.', 'Error message does not match')
+      }
+      test.end()
+    })
+
+    isConnectedTest.test('reject with an error if consumer.isConnected fails', async test => {
       // Arrange
       const ConsumerProxy = rewire(`${src}/util/consumer`)
       ConsumerProxy.__set__('listOfConsumers', {
         admin: {
           consumer: {
             // Callback with error
-            getMetadata: (options, cb) => {
-              const error = new Error('test err message')
-              cb(error, null)
+            isConnected: () => {
+              throw new Error('test err message.')
             }
           }
         }
@@ -263,37 +304,7 @@ Test('Consumer', ConsumerTest => {
         test.fail('Error not thrown!')
       } catch (err) {
         // Assert
-        test.equal(err.message, 'Error connecting to consumer: test err message', 'Error message does not match')
-        test.pass()
-      }
-      test.end()
-    })
-
-    isConnectedTest.test('reject with an error if client.getMetadata passes, but metadata is mising topic', async test => {
-      // Arrange
-      const ConsumerProxy = rewire(`${src}/util/consumer`)
-      const metadata = {
-        orig_broker_id: 0,
-        orig_broker_name: 'kafka:9092/0',
-        topics: [],
-        brokers: [{ id: 0, host: 'kafka', port: 9092 }]
-      }
-      ConsumerProxy.__set__('listOfConsumers', {
-        admin: {
-          consumer: {
-            // Callback with error
-            getMetadata: (options, cb) => cb(null, metadata)
-          }
-        }
-      })
-
-      // Act
-      try {
-        await ConsumerProxy.isConnected('admin')
-        test.fail('Error not thrown!')
-      } catch (err) {
-        // Assert
-        test.equal(err.message, 'Connected to consumer, but admin not found.', 'Error message does not match')
+        test.equal(err.message, 'test err message.', 'Error message does not match')
         test.pass()
       }
       test.end()
@@ -302,7 +313,13 @@ Test('Consumer', ConsumerTest => {
     isConnectedTest.test('reject with an error if consumer does not exist', async test => {
       // Arrange
       const ConsumerProxy = rewire(`${src}/util/consumer`)
-      ConsumerProxy.__set__('listOfConsumers', {})
+      ConsumerProxy.__set__('listOfConsumers', {
+        someOtherTopic: {
+          consumer: {
+            isConnected: () => true
+          }
+        }
+      })
 
       // Act
       try {
@@ -313,39 +330,6 @@ Test('Consumer', ConsumerTest => {
         test.equal(err.message, 'No consumer found for topic admin', 'Error message does not match')
         test.pass()
       }
-      test.end()
-    })
-
-    isConnectedTest.test('pass if the topic can be found', async test => {
-      // Arrange
-      const ConsumerProxy = rewire(`${src}/util/consumer`)
-      const metadata = {
-        orig_broker_id: 0,
-        orig_broker_name: 'kafka:9092/0',
-        topics: [
-          { name: 'admin', partitions: [] }
-        ],
-        brokers: [{ id: 0, host: 'kafka', port: 9092 }]
-      }
-      ConsumerProxy.__set__('listOfConsumers', {
-        admin: {
-          consumer: {
-            // Callback with error
-            getMetadata: (options, cb) => cb(null, metadata)
-          }
-        }
-      })
-
-      // Act
-      let result
-      try {
-        result = await ConsumerProxy.isConnected('admin')
-      } catch (err) {
-        test.fail(err.message)
-      }
-
-      // Assert
-      test.equal(result, true, 'isConnected should return true')
       test.end()
     })
 

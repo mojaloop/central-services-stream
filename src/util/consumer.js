@@ -133,31 +133,6 @@ const getListOfTopics = () => {
 }
 
 /**
- * @function getMetadataPromise
- *
- * @param {object} consumer - the consumer class
- * @param {string} topic - the topic name of the consumer to check
- *
- * @description Use this to determine whether or not we are connected to the broker. Internally, it calls `getMetadata` to determine
- * if the broker client is connected.
- *
- * @returns object - resolve metadata object
- * @throws {Error} - if consumer can't be found or the consumer is not connected
- */
-const getMetadataPromise = (consumer, topic) => {
-  return new Promise((resolve, reject) => {
-    const cb = (err, metadata) => {
-      if (err) {
-        return reject(new Error(`Error connecting to consumer: ${err.message}`))
-      }
-
-      return resolve(metadata)
-    }
-    consumer.getMetadata({ topic, timeout: 6000 }, cb)
-  })
-}
-
-/**
  * @function isConnected
  *
  * @param {string} topicName - the topic name of the consumer to check
@@ -168,16 +143,13 @@ const getMetadataPromise = (consumer, topic) => {
  * @returns boolean - if connected
  * @throws {Error} - if consumer can't be found or the consumer is not connected
  */
-const isConnected = async topicName => {
-  const consumer = getConsumer(topicName)
-
-  const metadata = await getMetadataPromise(consumer, topicName)
-  const foundTopics = metadata.topics.map(topic => topic.name)
-  if (foundTopics.indexOf(topicName) === -1) {
-    Logger.isDebugEnabled && Logger.debug(`Connected to consumer, but ${topicName} not found.`)
-    throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to consumer, but ${topicName} not found.`)
+const isConnected = async (topicName = undefined) => {
+  if (!topicName) {
+    Logger.isDebugEnabled && Logger.debug('topicName is undefined.')
+    throw ErrorHandler.Factory.createInternalServerFSPIOPError('topicName is undefined.')
   }
-  return true
+  const consumer = getConsumer(topicName)
+  return consumer.isConnected()
 }
 
 module.exports = {

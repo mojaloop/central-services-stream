@@ -164,30 +164,6 @@ const getProducer = (topicName) => {
 }
 
 /**
- * @function getMetadataPromise
- *
- * @param {object} producer - the producer class
- * @param {string} topic - the topic name of the producer to check
- *
- * @description Use this to determine whether or not we are connected to the broker. Internally, it calls `getMetadata` to determine
- * if the broker client is connected.
- *
- * @returns object - resolve metadata object
- * @throws {Error} - if Producer can't be found or the producer is not connected
- */
-const getMetadataPromise = async (producer, topic) => {
-  return new Promise((resolve, reject) => {
-    const cb = async (err, metadata) => {
-      if (err) {
-        return reject(new Error(`Error connecting to producer: ${err.message}`))
-      }
-      return resolve(metadata)
-    }
-    producer.getMetadata({ topic, timeout: 6000 }, cb)
-  })
-}
-
-/**
  * @function isConnected
  *
  * @param {string} topicName - the topic name of the consumer to check
@@ -199,28 +175,12 @@ const getMetadataPromise = async (producer, topic) => {
  * @throws {Error} - if consumer can't be found or the consumer is not connected
  */
 const isConnected = async (topicName = undefined) => {
-  let status = stateList.PENDING
-  if (topicName) {
-    const producer = getProducer(topicName)
-    const metadata = await getMetadataPromise(producer, topicName)
-    const foundTopics = metadata.topics.map(topic => topic.name)
-    if (foundTopics.indexOf(topicName) === -1) {
-      Logger.isDebugEnabled && Logger.debug(`Connected to producer, but ${topicName} not found.`)
-      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to producer, but ${topicName} not found.`)
-    }
-    status = stateList.OK
-  } else {
-    await Object.entries(listOfProducers).forEach(async ([key, value]) => {
-      status = stateList.OK
-      const metadata = await getMetadataPromise(value._producer, key)
-      const foundTopics = metadata.topics.map(topic => topic.name)
-      if (foundTopics.indexOf(key) === -1) {
-        Logger.isDebugEnabled && Logger.debug(`Connected to producer, but ${key} not found.`)
-        throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to producer, but ${key} not found.`)
-      }
-    })
+  if (!topicName) {
+    Logger.isDebugEnabled && Logger.debug('topicName is undefined.')
+    throw ErrorHandler.Factory.createInternalServerFSPIOPError('topicName is undefined.')
   }
-  return status
+  const producer = getProducer(topicName)
+  return producer.isConnected()
 }
 
 module.exports = {

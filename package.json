@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "11.1.1",
+  "version": "11.1.2-snapshot.4",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -55,12 +55,12 @@
   },
   "devDependencies": {
     "audit-ci": "^6.6.1",
-    "npm-check-updates": "16.13.2",
+    "npm-check-updates": "16.14.4",
     "nyc": "15.1.0",
     "pre-commit": "1.2.2",
     "replace": "^1.2.2",
     "rewire": "7.0.0",
-    "sinon": "15.2.0",
+    "sinon": "16.0.0",
     "standard": "17.1.0",
     "standard-version": "^9.5.0",
     "tap-spec": "^5.0.0",
