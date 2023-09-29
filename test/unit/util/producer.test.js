@@ -330,15 +330,14 @@ Test('Producer', producerTest => {
   })
 
   producerTest.test('isConnected should', isConnectedTest => {
-    isConnectedTest.test('reject with an error if client.getMetadata fails', async test => {
+    isConnectedTest.test('reject with an error if producer.isConnected fails', async test => {
       // Arrange
       const ProducerProxy = rewire(`${src}/util/producer`)
       ProducerProxy.__set__('listOfProducers', {
         admin: {
           // Callback with error
-          getMetadata: (options, cb) => {
-            const error = new Error('test err message')
-            cb(error, null)
+          isConnected: () => {
+            throw new Error('test err message.')
           }
         }
       })
@@ -349,36 +348,28 @@ Test('Producer', producerTest => {
         test.fail('Error not thrown!')
       } catch (err) {
         // Assert
-        test.equal(err.message, 'Error connecting to producer: test err message', 'Error message does not match')
+        test.equal(err.message, 'test err message.', 'Error message does not match')
         test.pass()
       }
       test.end()
     })
 
-    isConnectedTest.test('reject with an error if client.getMetadata passes, but metadata is missing topic', async test => {
+    isConnectedTest.test('reject with an error if producer.isConnected passes, but metadata is missing topic', async test => {
       // Arrange
       const ProducerProxy = rewire(`${src}/util/producer`)
-      const metadata = {
-        orig_broker_id: 0,
-        orig_broker_name: 'kafka:9092/0',
-        topics: [],
-        brokers: [{ id: 0, host: 'kafka', port: 9092 }]
-      }
       ProducerProxy.__set__('listOfProducers', {
         admin: {
           // Callback with error
-          getMetadata: (options, cb) => cb(null, metadata)
+          isConnected: () => true
         }
       })
-
       // Act
       try {
-        await ProducerProxy.isConnected('admin')
-        test.fail('Error not thrown!')
+        const response = await ProducerProxy.isConnected()
+        test.equal(response, true, 'Response should be boolean true')
       } catch (err) {
         // Assert
-        test.equal(err.message, 'Connected to producer, but admin not found.', 'Error message does not match')
-        test.pass()
+        test.fail('Error not thrown!')
       }
       test.end()
     })
