@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.2.0](https://github.com/mojaloop/central-services-stream/compare/v11.1.1...v11.2.0) (2023-09-29)
+
+
+### Features
+
+* **mojaloop/#3529:** update isConnected function for consumers/producers ([#133](https://github.com/mojaloop/central-services-stream/issues/133)) ([5f6e3fc](https://github.com/mojaloop/central-services-stream/commit/5f6e3fc20da51f790a18d5122987fca2a8489752)), closes [mojaloop/#3529](https://github.com/mojaloop/project/issues/3529)
+
 ### [11.1.1](https://github.com/mojaloop/central-services-stream/compare/v11.1.0...v11.1.1) (2023-08-29)
 
 ## [11.1.0](https://github.com/mojaloop/central-services-stream/compare/v11.0.0...v11.1.0) (2023-08-24)
