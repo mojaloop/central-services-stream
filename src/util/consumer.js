@@ -168,16 +168,12 @@ const getMetadataPromise = (consumer, topic) => {
  * @returns boolean - if connected
  * @throws {Error} - if consumer can't be found or the consumer is not connected
  */
-const isConnected = async topicName => {
-  const consumer = getConsumer(topicName)
-
-  const metadata = await getMetadataPromise(consumer, topicName)
-  const foundTopics = metadata.topics.map(topic => topic.name)
-  if (foundTopics.indexOf(topicName) === -1) {
-    Logger.isDebugEnabled && Logger.debug(`Connected to consumer, but ${topicName} not found.`)
-    throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to consumer, but ${topicName} not found.`)
+const isConnected = async (topicName = undefined) => {
+  if (topicName) {
+    const consumer = getConsumer(topicName)
+    return consumer.isConnected()
   }
-  return true
+  throw error
 }
 
 module.exports = {
