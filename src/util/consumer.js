@@ -145,8 +145,8 @@ const getListOfTopics = () => {
  */
 const isConnected = async (topicName = undefined) => {
   if (!topicName) {
-    Logger.isDebugEnabled && Logger.debug('TopicName is undefined.')
-    throw ErrorHandler.Factory.createInternalServerFSPIOPError('TopicName is undefined.')
+    Logger.isDebugEnabled && Logger.debug('topicName is undefined.')
+    throw ErrorHandler.Factory.createInternalServerFSPIOPError('topicName is undefined.')
   }
   const consumer = getConsumer(topicName)
   return consumer.isConnected()
