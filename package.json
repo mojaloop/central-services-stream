@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "11.2.0",
+  "version": "11.2.1",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -49,18 +49,19 @@
     "snapshot": "npx standard-version --no-verify --skip.changelog --prerelease snapshot --releaseCommitMessageFormat 'chore(snapshot): {{currentTag}}'"
   },
   "dependencies": {
-    "async": "3.2.4",
+    "async": "3.2.5",
+    "async-exit-hook": "2.0.1",
     "events": "3.3.0",
-    "node-rdkafka": "2.17.0"
+    "node-rdkafka": "2.18.0"
   },
   "devDependencies": {
     "audit-ci": "^6.6.1",
-    "npm-check-updates": "16.14.4",
+    "npm-check-updates": "16.14.15",
     "nyc": "15.1.0",
     "pre-commit": "1.2.2",
     "replace": "^1.2.2",
     "rewire": "7.0.0",
-    "sinon": "16.0.0",
+    "sinon": "17.0.1",
     "standard": "17.1.0",
     "standard-version": "^9.5.0",
     "tap-spec": "^5.0.0",

@@ -44,6 +44,11 @@ const Kafka = require('node-rdkafka')
 
 const Protocol = require('./protocol')
 
+const connectedClients = new Set()
+require('async-exit-hook')(callback => Promise.allSettled(
+  Array.from(connectedClients).map(client => new Promise(resolve => client.disconnect(resolve)))
+).finally(callback))
+
 /**
  * Consumer ENUMs
  *
@@ -330,6 +335,7 @@ class Consumer extends EventEmitter {
       })
 
       this._consumer.on('disconnected', (metrics) => {
+        connectedClients.delete(this._consumer)
         Logger.isDebugEnabled && logger.debug(`Consumer::onDisconnected - ${JSON.stringify(metrics)}`)
         super.emit('disconnected', metrics)
       })
@@ -354,6 +360,7 @@ class Consumer extends EventEmitter {
           Logger.isSillyEnabled && logger.silly('Consumer::connect() - end')
           return reject(error)
         }
+        connectedClients.add(this._consumer)
         Logger.isSillyEnabled && logger.silly('Consumer::connect() - metadata:')
         Logger.isSillyEnabled && logger.silly(metadata)
       })
