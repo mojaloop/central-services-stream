@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [11.2.2](https://github.com/mojaloop/central-services-stream/compare/v11.2.0...v11.2.2) (2024-03-15)
+
+
+### Bug Fixes
+
+* disconnect from Kafka on process exit ([#134](https://github.com/mojaloop/central-services-stream/issues/134)) ([21f9119](https://github.com/mojaloop/central-services-stream/commit/21f911902439e78d466f948411fc53d80dddfa83))
+
 ## [11.2.0](https://github.com/mojaloop/central-services-stream/compare/v11.1.1...v11.2.0) (2023-09-29)
 
 
