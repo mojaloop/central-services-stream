@@ -335,7 +335,7 @@ class Consumer extends EventEmitter {
       })
 
       this._consumer.on('disconnected', (metrics) => {
-        connectedClients.delete(this._consumer)
+        connectedClients.delete(this)
         Logger.isDebugEnabled && logger.debug(`Consumer::onDisconnected - ${JSON.stringify(metrics)}`)
         super.emit('disconnected', metrics)
       })
@@ -360,7 +360,7 @@ class Consumer extends EventEmitter {
           Logger.isSillyEnabled && logger.silly('Consumer::connect() - end')
           return reject(error)
         }
-        connectedClients.add(this._consumer)
+        connectedClients.add(this)
         Logger.isSillyEnabled && logger.silly('Consumer::connect() - metadata:')
         Logger.isSillyEnabled && logger.silly(metadata)
       })

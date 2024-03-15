@@ -293,7 +293,7 @@ class Producer extends EventEmitter {
       })
 
       this._producer.on('disconnected', (metrics) => {
-        connectedClients.delete(this._producer)
+        connectedClients.delete(this)
         Logger.isDebugEnabled && logger.debug(`Producer::onDisconnected - ${JSON.stringify(metrics)}`)
         super.emit('disconnected', metrics)
       })
@@ -320,7 +320,7 @@ class Producer extends EventEmitter {
           Logger.isSillyEnabled && logger.silly('Producer::connect() - end')
           return reject(error)
         }
-        connectedClients.add(this._producer)
+        connectedClients.add(this)
         Logger.isSillyEnabled && logger.silly('Producer::connect() - metadata:')
         Logger.isSillyEnabled && logger.silly(metadata)
         resolve(true)
