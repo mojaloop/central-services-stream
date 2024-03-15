@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [11.2.3](https://github.com/mojaloop/central-services-stream/compare/v11.2.2...v11.2.3) (2024-03-15)
+
+
+### Bug Fixes
+
+* disconnect the EventEmitter ([#136](https://github.com/mojaloop/central-services-stream/issues/136)) ([d1cdab6](https://github.com/mojaloop/central-services-stream/commit/d1cdab6e3098bea3e00728fa4471c4e9e0537e9d))
+
 ### [11.2.2](https://github.com/mojaloop/central-services-stream/compare/v11.2.0...v11.2.2) (2024-03-15)
 
 
