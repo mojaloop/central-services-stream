@@ -56,7 +56,7 @@
   },
   "devDependencies": {
     "audit-ci": "^6.6.1",
-    "npm-check-updates": "16.14.16",
+    "npm-check-updates": "16.14.17",
     "nyc": "15.1.0",
     "pre-commit": "1.2.2",
     "replace": "^1.2.2",
@@ -75,8 +75,8 @@
     "#test/*": "./test/*.js"
   },
   "peerDependencies": {
-    "@mojaloop/central-services-error-handling": "12.x.x",
-    "@mojaloop/central-services-logger": "11.x.x"
+    "@mojaloop/central-services-error-handling": ">=12.x.x",
+    "@mojaloop/central-services-logger": ">=11.x.x"
   },
   "peerDependenciesMeta": {
     "@mojaloop/central-services-error-handling": {

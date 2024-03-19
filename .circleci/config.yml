@@ -474,6 +474,7 @@ workflows:
               ignore:
                 - /feature*/
                 - /bugfix*/
+                - master
       - test-lint:
           context: org-global
           requires:
