@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [11.2.4](https://github.com/mojaloop/central-services-stream/compare/v11.2.3...v11.2.4) (2024-03-19)
+
+
+### Bug Fixes
+
+* fix peer deps version matercher, update deps and ci config ([#137](https://github.com/mojaloop/central-services-stream/issues/137)) ([11b83ae](https://github.com/mojaloop/central-services-stream/commit/11b83ae7f0d640dbc29a11ae731ca5632db14ce0))
+
 ### [11.2.3](https://github.com/mojaloop/central-services-stream/compare/v11.2.2...v11.2.3) (2024-03-15)
 
 
