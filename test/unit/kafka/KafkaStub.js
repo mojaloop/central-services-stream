@@ -82,6 +82,7 @@ class KafkaClient extends EventEmitter {
 
   constructor () {
     super()
+    super.setMaxListeners(0) // Temporarily disable the max listener limit
     this._dummyFunction()
   }
 
@@ -120,6 +121,16 @@ class KafkaClient extends EventEmitter {
       cb(null, metadataSample)
     }
     this._dummyFunction()
+  }
+
+  isConnected () {
+    this._dummyFunction()
+    return true
+  }
+
+  connectedTime () {
+    this._dummyFunction()
+    return 0
   }
 }
 
@@ -244,9 +255,14 @@ class KafkaConsumerForEventTests extends KafkaConsumer {
   connect (err, info) {
     super.connect(err, info)
 
+    this.emit('warning', 'warning')
     this.emit('event.error', 'event.error')
-    this.emit('event.log', 'event.log')
     this.emit('error', 'error')
+    this.emit('event.log', 'event.log')
+    this.emit('event.throttle', 'event.throttle')
+    this.emit('event.stats', 'event.stats')
+    this.emit('data', 'data') // currently commented out due to performance reasons!
+    this.emit('partition.eof', 'partition.eof')
 
     info(null, this.metrics)
     this._dummyFunction()
@@ -265,6 +281,20 @@ class KafkaProducer extends KafkaClient {
   }
 }
 
+class KafkaSyncProducer extends KafkaClient {
+  setPollInterval () {
+  }
+
+  flush () {
+  }
+
+  produce (arg1, arg2, arg3, arg4, arg5, arg6) {
+    const err = null
+    const offset = 1
+    arg6(err, offset) // callback for deliver-report
+  }
+}
+
 // KafkaProducerForEventTests Stub
 class KafkaProducerForEventTests extends KafkaProducer {
   connect (err, info) {
@@ -273,7 +303,10 @@ class KafkaProducerForEventTests extends KafkaProducer {
     this.emit('event.error', 'event.error')
     this.emit('error', 'error')
     this.emit('event.log', 'event.log')
+    this.emit('event.throttle', 'event.throttle')
+    this.emit('event.stats', 'event.stats')
     this.emit('delivery-report', 'delivery-report')
+
     info(null, this.metrics)
     this._dummyFunction()
   }
@@ -285,5 +318,6 @@ exports.messageSampleStub = messageSampleStub
 exports.KafkaClient = KafkaClient
 exports.KafkaConsumer = KafkaConsumer
 exports.KafkaProducer = KafkaProducer
+exports.KafkaSyncProducer = KafkaSyncProducer
 exports.KafkaConsumerForEventTests = KafkaConsumerForEventTests
 exports.KafkaProducerForEventTests = KafkaProducerForEventTests

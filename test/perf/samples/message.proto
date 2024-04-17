@@ -1,0 +1,118 @@
+// ## Ref: https://protobuf.dev/programming-guides/proto3/
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+
+
+option optimize_for = SPEED;
+
+package audit;
+
+message Protocol {
+
+    message Headers {
+        string host = 1;
+        // string user-agent = 2;
+        string user_agent = 2;
+        // uint32 content-length = 3;
+        uint32 content_length = 3;
+        string accept = 4;
+        // string content-type = 5;
+        string content_type = 5;
+        // google.protobuf.Timestamp date = 6;
+        string date = 6;
+        // string fspiop-destination = 7;
+        string fspiop_destination = 7;
+        // string fspiop-source = 8;
+        string fspiop_source = 8;
+        string traceparent = 9;
+        string tracestate = 10;
+    }
+
+    message Amount {
+        string amount = 1;
+        string currency = 2;
+    }
+
+    message Payload {
+        // Prepare
+        string transferId = 1;
+        string payerFsp = 2;
+        string payeeFsp = 3;
+        Amount amount = 4;
+        // google.protobuf.Timestamp expiration = 5;
+        string expiration = 5;
+        string ilpPacket = 6;
+        string condition = 7;
+
+        // Fulfilment
+        string transferState = 8;
+        string fulfilment = 9;
+        string completedTimestamp = 10;
+    }
+
+    message Content {
+        Headers headers = 1;
+        string dataUri = 2;
+        Payload payload = 3;
+    }
+
+    message State {
+        string status = 1;
+    }
+
+    message Event {
+        string id = 1;
+        string type = 2;
+        string action = 3;
+        // google.protobuf.Timestamp createdAt = 4;
+        string createdAt = 4;
+        State state = 5;
+    }
+
+    message Tags {
+        string tracestate = 1;
+        string transactionType = 2;
+        string transactionAction = 3;
+        string transactionId = 4;
+        string source = 5;
+        string destination = 6;
+        string payerFsp = 7;
+        string payeeFsp = 8;
+    }
+
+    message Acmevendor {
+        string spanId = 1;
+        string timeApiPrepare = 2;
+    }
+
+    message Tracestates {
+        string tx_end2end_start_ts = 1;
+        Acmevendor acmevendor = 2;
+    }
+
+    message Trace {
+        string service = 1;
+        string traceId = 2;
+        string spanId = 3;
+        uint32 sampled = 4;
+        string flags = 5;
+        // google.protobuf.Timestamp startTimestamp = 6;
+        string startTimestamp = 6;
+        Tags tags = 7;
+        Tracestates tracestates = 8;
+    }
+
+    message Metadata {
+        Event event = 1;
+        Trace trace = 2;
+    }
+
+    string type = 1;
+    Content content = 2;
+    // google.protobuf.Any content = 2;
+    string id = 3;
+    Metadata metadata = 4;
+    // google.protobuf.Any metadata = 4;
+}

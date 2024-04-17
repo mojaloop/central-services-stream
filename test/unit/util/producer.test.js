@@ -214,7 +214,7 @@ Test('Producer', producerTest => {
     disconnectTest.test('disconnect specific topic correctly', async test => {
       try {
         const topicName = 'someTopic'
-        test.ok(await Producer.produceMessage({}, { topicName: topicName }, {}))
+        test.ok(await Producer.produceMessage({}, { topicName }, {}))
         await Producer.disconnect(topicName)
         test.pass('Disconnect specific topic successfully')
         test.end()
@@ -227,10 +227,10 @@ Test('Producer', producerTest => {
     disconnectTest.test('disconnect all topics correctly', async test => {
       try {
         let topicName = 'someTopic1'
-        test.ok(await Producer.produceMessage({}, { topicName: topicName }, {}))
+        test.ok(await Producer.produceMessage({}, { topicName }, {}))
         await Producer.disconnect(topicName)
         topicName = 'someTopic2'
-        test.ok(await Producer.produceMessage({}, { topicName: topicName }, {}))
+        test.ok(await Producer.produceMessage({}, { topicName }, {}))
         await Producer.disconnect()
         test.pass('Disconnected all topics successfully')
         test.end()
@@ -265,7 +265,6 @@ Test('Producer', producerTest => {
         test.end()
       } catch (e) {
         test.ok(e instanceof Error)
-        test.ok(e.message === `The following Producers could not be disconnected: [{"topic":"${topicNameFailure}","error":"No producer found for topic ${topicNameFailure}"}]`)
         test.end()
       }
       getProducerStub.restore()
@@ -274,7 +273,7 @@ Test('Producer', producerTest => {
     disconnectTest.test('throw error if failure to disconnect from kafka if topic does not exist', async test => {
       try {
         const topicName = 'someTopic'
-        await Producer.produceMessage({}, { topicName: topicName }, {})
+        await Producer.produceMessage({}, { topicName }, {})
         await Producer.disconnect('undefined')
       } catch (e) {
         test.ok(e instanceof Error)
@@ -330,15 +329,54 @@ Test('Producer', producerTest => {
   })
 
   producerTest.test('isConnected should', isConnectedTest => {
-    isConnectedTest.test('reject with an error if client.getMetadata fails', async test => {
+    isConnectedTest.test('Should return true if producer.isConnected passes', async test => {
       // Arrange
       const ProducerProxy = rewire(`${src}/util/producer`)
       ProducerProxy.__set__('listOfProducers', {
         admin: {
           // Callback with error
-          getMetadata: (options, cb) => {
-            const error = new Error('test err message')
-            cb(error, null)
+          isConnected: () => true
+        }
+      })
+      // Act
+      try {
+        const response = await ProducerProxy.isConnected('admin')
+        test.equal(response, true, 'Response should be boolean true')
+      } catch (err) {
+        // Assert
+        test.fail('Error not thrown!')
+      }
+      test.end()
+    })
+
+    isConnectedTest.test('reject with an error if producer.isConnected passes, but topicName not supplied', async test => {
+      // Arrange
+      const ProducerProxy = rewire(`${src}/util/producer`)
+      ProducerProxy.__set__('listOfProducers', {
+        admin: {
+          // Callback with error
+          isConnected: () => true
+        }
+      })
+      // Act
+      try {
+        await ProducerProxy.isConnected()
+        test.fail('Error not thrown!')
+      } catch (err) {
+        // Assert
+        test.equal(err.message, 'topicName is undefined.', 'Error message does not match')
+      }
+      test.end()
+    })
+
+    isConnectedTest.test('reject with an error if producer.isConnected fails', async test => {
+      // Arrange
+      const ProducerProxy = rewire(`${src}/util/producer`)
+      ProducerProxy.__set__('listOfProducers', {
+        admin: {
+          // Callback with error
+          isConnected: () => {
+            throw new Error('test err message.')
           }
         }
       })
@@ -349,44 +387,21 @@ Test('Producer', producerTest => {
         test.fail('Error not thrown!')
       } catch (err) {
         // Assert
-        test.equal(err.message, 'Error connecting to producer: test err message', 'Error message does not match')
+        test.equal(err.message, 'test err message.', 'Error message does not match')
         test.pass()
       }
       test.end()
     })
 
-    isConnectedTest.test('reject with an error if client.getMetadata passes, but metadata is missing topic', async test => {
+    isConnectedTest.test('reject with an error if producer does not exist', async test => {
       // Arrange
       const ProducerProxy = rewire(`${src}/util/producer`)
-      const metadata = {
-        orig_broker_id: 0,
-        orig_broker_name: 'kafka:9092/0',
-        topics: [],
-        brokers: [{ id: 0, host: 'kafka', port: 9092 }]
-      }
       ProducerProxy.__set__('listOfProducers', {
-        admin: {
+        someOtherTopic: {
           // Callback with error
-          getMetadata: (options, cb) => cb(null, metadata)
+          isConnected: () => true
         }
       })
-
-      // Act
-      try {
-        await ProducerProxy.isConnected('admin')
-        test.fail('Error not thrown!')
-      } catch (err) {
-        // Assert
-        test.equal(err.message, 'Connected to producer, but admin not found.', 'Error message does not match')
-        test.pass()
-      }
-      test.end()
-    })
-
-    isConnectedTest.test('reject with an error if consumer does not exist', async test => {
-      // Arrange
-      const ProducerProxy = rewire(`${src}/util/producer`)
-      ProducerProxy.__set__('listOfProducers', {})
 
       // Act
       try {
@@ -399,101 +414,6 @@ Test('Producer', producerTest => {
       }
       test.end()
     })
-
-    isConnectedTest.test('pass if the topic can be found', async test => {
-      // Arrange
-      const ProducerProxy = rewire(`${src}/util/producer`)
-      const metadata = {
-        orig_broker_id: 0,
-        orig_broker_name: 'kafka:9092/0',
-        topics: [
-          { name: 'admin', partitions: [] }
-        ],
-        brokers: [{ id: 0, host: 'kafka', port: 9092 }]
-      }
-      ProducerProxy.__set__('listOfProducers', {
-        admin: {
-          // Callback with error
-          getMetadata: (options, cb) => cb(null, metadata)
-        }
-      })
-
-      // Act
-      let result
-      try {
-        result = await ProducerProxy.isConnected('admin')
-      } catch (err) {
-        test.fail(err.message)
-      }
-
-      // Assert
-      test.equal(result, Producer.stateList.OK, 'isConnected should return true')
-      test.end()
-    })
-
-    isConnectedTest.test('pass if the topicName is not supplied', async test => {
-      // Arrange
-      const ProducerProxy = rewire(`${src}/util/producer`)
-      const metadata = {
-        orig_broker_id: 0,
-        orig_broker_name: 'kafka:9092/0',
-        topics: [
-          { name: 'admin', partitions: [] }
-        ],
-        brokers: [{ id: 0, host: 'kafka', port: 9092 }]
-      }
-      ProducerProxy.__set__('listOfProducers', {
-        admin: {
-          _producer: {
-            // Callback with error
-            getMetadata: (options, cb) => cb(null, metadata)
-          }
-        }
-      })
-
-      // Act
-      let result
-      try {
-        result = await ProducerProxy.isConnected()
-      } catch (err) {
-        test.fail(err.message)
-      }
-
-      // Assert
-      test.equal(result, Producer.stateList.OK, 'isConnected should return true')
-      test.end()
-    })
-
-    // isConnectedTest.test('reject with an error if client.getMetadata passes, but metadata is missing topic without topic name', async test => {
-    //   // Arrange
-    //   const ProducerProxy = rewire(`${src}/util/producer`)
-    //   const metadata = {
-    //     orig_broker_id: 0,
-    //     orig_broker_name: 'kafka:9092/0',
-    //     topics: [],
-    //     brokers: [{ id: 0, host: 'kafka', port: 9092 }]
-    //   }
-    //   ProducerProxy.__set__('listOfProducers', {
-    //     admin: {
-    //       _producer: {
-    //         // Callback with error
-    //         getMetadata: async (options, cb) => cb(null, metadata)
-    //       }
-    //     }
-    //   })
-    //   ProducerProxy.__set__('getMetadataPromise', () => { return metadata })
-    //   // Act
-    //   try {
-    //     await ProducerProxy.isConnected()
-    //     test.fail('Error not thrown!')
-    //     test.end()
-    //   } catch (err) {
-    //     // Assert
-    //     test.equal(err.message, 'Connected to producer, but admin not found.', 'Error message does not match')
-    //     test.pass()
-    //     test.end()
-    //   }
-    // })
 
     isConnectedTest.end()
   })

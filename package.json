@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "10.6.0",
+  "version": "11.2.4",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -21,49 +21,77 @@
   "keywords": [
     "shared",
     "central",
-    "services"
+    "services",
+    "mojaloop"
   ],
   "main": "src/index.js",
   "pre-commit": [
-    "standard",
+    "lint",
     "dep:check",
     "test"
   ],
   "scripts": {
-    "test": "npm run test:unit | faucet",
+    "test": "npm run test:unit",
     "standard": "standard",
-    "pretest": "standard",
-    "test:unit": "tapes 'test/unit/**/**.test.js'",
-    "test:xunit": "npm run test:unit | tap-xunit",
-    "test:coverage": "nyc --reporter=lcov --reporter=text-summary tapes -- 'test/unit/**/**.test.js'",
+    "standard:fix": "standard --fix",
+    "pretest": "npm run lint",
+    "lint": "npm run standard",
+    "lint:fix": "npm run standard:fix",
+    "test:unit": "npx tapes 'test/unit/**/**.test.js' | tap-spec",
+    "test:xunit": "npx tapes 'test/unit/**/**.test.js' | tap-xunit > ./test/results/xunit.xml",
+    "test:coverage": "npx nyc --reporter=lcov --reporter=text-summary tapes -- 'test/unit/**/**.test.js'",
     "test:coverage-check": "npm run test:coverage && nyc check-coverage",
-    "audit:resolve": "SHELL=sh resolve-audit --production",
-    "audit:check": "SHELL=sh check-audit --production",
+    "audit:fix": "npm audit fix",
+    "audit:check": "npx audit-ci --config ./audit-ci.jsonc",
     "dep:check": "npx ncu -e 2",
-    "dep:update": "npx ncu -u"
+    "dep:update": "npx ncu -u",
+    "release": "npx standard-version --no-verify --releaseCommitMessageFormat 'chore(release): {{currentTag}} [skip ci]'",
+    "snapshot": "npx standard-version --no-verify --skip.changelog --prerelease snapshot --releaseCommitMessageFormat 'chore(snapshot): {{currentTag}}'"
   },
   "dependencies": {
-    "@mojaloop/central-services-error-handling": "10.6.0",
-    "@mojaloop/central-services-logger": "10.6.0",
-    "async": "3.2.0",
-    "events": "3.1.0",
-    "node-rdkafka": "2.9.0"
+    "async": "3.2.5",
+    "async-exit-hook": "2.0.1",
+    "events": "3.3.0",
+    "node-rdkafka": "2.18.0"
   },
   "devDependencies": {
-    "faucet": "0.0.1",
-    "npm-audit-resolver": "2.2.0",
-    "npm-check-updates": "7.0.1",
+    "audit-ci": "^6.6.1",
+    "npm-check-updates": "16.14.17",
     "nyc": "15.1.0",
     "pre-commit": "1.2.2",
-    "rewire": "5.0.0",
-    "sinon": "9.0.2",
-    "standard": "14.3.4",
+    "replace": "^1.2.2",
+    "rewire": "7.0.0",
+    "sinon": "17.0.1",
+    "standard": "17.1.0",
+    "standard-version": "^9.5.0",
+    "tap-spec": "^5.0.0",
     "tap-xunit": "2.4.1",
     "tape": "4.13.3",
     "tapes": "4.1.0",
-    "uuid4": "2.0.2"
+    "uuid4": "2.0.3"
+  },
+  "imports": {
+    "#src/*": "./src/*.js",
+    "#test/*": "./test/*.js"
+  },
+  "peerDependencies": {
+    "@mojaloop/central-services-error-handling": ">=12.x.x",
+    "@mojaloop/central-services-logger": ">=11.x.x"
+  },
+  "peerDependenciesMeta": {
+    "@mojaloop/central-services-error-handling": {
+      "optional": false
+    },
+    "@mojaloop/central-services-logger": {
+      "optional": false
+    }
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
+  },
+  "standard-version": {
+    "scripts": {
+      "postchangelog": "replace '\\[mojaloop/#(\\d+)\\]\\(https://github.com/mojaloop/(.*)/issues/(\\d+)\\)' '[mojaloop/#$1](https://github.com/mojaloop/project/issues/$1)' CHANGELOG.md"
+    }
   }
 }

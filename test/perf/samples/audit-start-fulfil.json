@@ -1,0 +1,66 @@
+{
+  "type": "application/json",
+  "content": {
+      "headers": {
+          "accept": "application/vnd.interoperability.transfers+json;version=1.1",
+          "content-type": "application/vnd.interoperability.transfers+json;version=1.1",
+          "date": "2023-08-09T17:29:39.000Z",
+          "fspiop-source": "perffsp6",
+          "fspiop-destination": "perffsp8",
+          "traceparent": "00-8d62d7e62cd5245e4337ebfbf2bb7f98-38f4a046bcc3292f-01",
+          "tracestate": "acmevendor=eyJzcGFuSWQiOiIzOGY0YTA0NmJjYzMyOTJmIiwidGltZUFwaVByZXBhcmUiOiIxNjkxNjAyMTc5MDIxIn0=,tx_end2end_start_ts=1691602179019,tx_callback_start_ts=1691602179063",
+          "user-agent": "axios/1.4.0",
+          "content-length": "136",
+          "accept-encoding": "gzip, compress, deflate, br",
+          "host": "ml-api-adapter:3000",
+          "connection": "keep-alive"
+      },
+      "dataUri": "data:application/vnd.interoperability.transfers+json;version=1.1;base64,eyJ0cmFuc2ZlclN0YXRlIjoiQ09NTUlUVEVEIiwiZnVsZmlsbWVudCI6ImxuWWU0cll3THRoV2J6aFZ5WDVjQXVEZkwxVWx3NFdkYVRneUdEUkV5c3ciLCJjb21wbGV0ZWRUaW1lc3RhbXAiOiIyMDIzLTA4LTA5VDE3OjI5OjM5LjA2M1oifQ==",
+      "payload": {
+          "transferState": "COMMITTED",
+          "fulfilment": "lnYe4rYwLthWbzhVyX5cAuDfL1Ulw4WdaTgyGDREysw",
+          "completedTimestamp": "2023-08-09T17:29:39.063Z"
+      },
+      "params": {
+          "id": "5ca3d782-3869-493c-b6fb-057a566761a2"
+      }
+  },
+  "id": "276dc5eb-9ddd-4c36-ba54-20becc3a2a5a",
+  "metadata": {
+      "event": {
+          "id": "d0efda42-722a-41df-8761-a999ae4a2312",
+          "type": "audit",
+          "action": "start",
+          "createdAt": "2023-08-09T17:29:39.065Z",
+          "state": {
+              "status": "success"
+          }
+      },
+      "trace": {
+          "service": "ml_transfer_fulfil",
+          "traceId": "8d62d7e62cd5245e4337ebfbf2bb7f98",
+          "spanId": "7c395a88147833d2",
+          "sampled": 1,
+          "flags": "01",
+          "parentSpanId": "38f4a046bcc3292f",
+          "startTimestamp": "2023-08-09T17:29:39.065Z",
+          "tags": {
+              "tracestate": "acmevendor=eyJzcGFuSWQiOiI3YzM5NWE4ODE0NzgzM2QyIiwidGltZUFwaVByZXBhcmUiOiIxNjkxNjAyMTc5MDIxIiwidGltZUFwaUZ1bGZpbCI6IjE2OTE2MDIxNzkwNjUifQ==,tx_end2end_start_ts=1691602179019,tx_callback_start_ts=1691602179063",
+              "transactionType": "transfer",
+              "transactionAction": "fulfil",
+              "transactionId": "5ca3d782-3869-493c-b6fb-057a566761a2",
+              "source": "perffsp6",
+              "destination": "perffsp8"
+          },
+          "tracestates": {
+              "acmevendor": {
+                  "spanId": "7c395a88147833d2",
+                  "timeApiPrepare": "1691602179021",
+                  "timeApiFulfil": "1691602179065"
+              },
+              "tx_end2end_start_ts": "1691602179019",
+              "tx_callback_start_ts": "1691602179063"
+          }
+      }
+  }
+}
