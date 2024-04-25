@@ -8,6 +8,7 @@
         "GHSA-8cf7-32gw-wr33",
         "GHSA-hjrf-2m68-5959",
         "GHSA-qwph-4952-7xr6",
-        "GHSA-w5p7-h5w8-2hfq"
+        "GHSA-w5p7-h5w8-2hfq",
+        "GHSA-f5x3-32g6-xq36" // https://github.com/advisories/GHSA-f5x3-32g6-xq36
     ]
 }
