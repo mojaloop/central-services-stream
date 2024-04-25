@@ -94,6 +94,15 @@ const topicConf = {
   opaqueKey: 0
 }
 
+const getProducerWithoutThrowError = (topicName) => {
+  try {
+    return Producer.getProducer(topicName)
+  } catch (err) {
+    Logger.warn(`getProducer error: ${err?.message}`)
+    return null
+  }
+}
+
 Test('Producer', producerTest => {
   let sandbox
   const config = {}
@@ -205,6 +214,7 @@ Test('Producer', producerTest => {
       sandbox.restore()
       t.end()
     })
+
     disconnectTest.test('disconnect from kafka', async test => {
       await Producer.produceMessage({}, { topicName: 'test' }, {})
       test.ok(Producer.disconnect('test'))
@@ -217,9 +227,14 @@ Test('Producer', producerTest => {
         test.ok(await Producer.produceMessage({}, { topicName }, {}))
         await Producer.disconnect(topicName)
         test.pass('Disconnect specific topic successfully')
+        const producer = getProducerWithoutThrowError(topicName)
+        test.equal(producer, null, 'No disconnected producer')
+        await Producer.produceMessage({}, { topicName }, {})
+        test.pass('created a new producer for the same topic')
+        test.ok(Producer.getProducer(topicName))
         test.end()
       } catch (e) {
-        test.fail('Error thrown')
+        test.fail(`Error thrown: ${e.message}`)
         test.end()
       }
     })
@@ -233,9 +248,11 @@ Test('Producer', producerTest => {
         test.ok(await Producer.produceMessage({}, { topicName }, {}))
         await Producer.disconnect()
         test.pass('Disconnected all topics successfully')
+        const producer = getProducerWithoutThrowError(topicName)
+        test.equal(producer, null, 'No disconnected producer')
         test.end()
       } catch (e) {
-        test.fail('Error thrown')
+        test.fail(`Error thrown: ${e.message}`)
         test.end()
       }
     })
@@ -530,5 +547,6 @@ Test('Producer', producerTest => {
 
     connectAllTest.end()
   })
+
   producerTest.end()
 })

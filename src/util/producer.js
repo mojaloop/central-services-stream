@@ -108,6 +108,11 @@ const connectAll = async (configs) => {
   }
 }
 
+const disconnectAndRemoveProducer = async (topicName) => {
+  await getProducer(topicName).disconnect()
+  delete listOfProducers[topicName]
+}
+
 /**
  * @function Disconnect
  *
@@ -120,7 +125,7 @@ const connectAll = async (configs) => {
 const disconnect = async (topicName = null) => {
   if (topicName && typeof topicName === 'string') {
     try {
-      await getProducer(topicName).disconnect()
+      await disconnectAndRemoveProducer(topicName)
     } catch (err) {
       Logger.isErrorEnabled && Logger.error(err)
       throw ErrorHandler.Factory.reformatFSPIOPError(err)
@@ -131,7 +136,7 @@ const disconnect = async (topicName = null) => {
     let tpName
     for (tpName in listOfProducers) {
       try {
-        await getProducer(tpName).disconnect()
+        await disconnectAndRemoveProducer(tpName)
       } catch (e) {
         isError = true
         errorTopicList.push({ topic: tpName, error: e.toString() })
@@ -160,6 +165,7 @@ const getProducer = (topicName) => {
     return listOfProducers[topicName]
   } else {
     throw ErrorHandler.Factory.createInternalServerFSPIOPError(`No producer found for topic ${topicName}`)
+    // clarify, why we throw an error here and not just return null?
   }
 }
 
