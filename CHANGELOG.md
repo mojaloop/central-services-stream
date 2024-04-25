@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [11.2.5](https://github.com/mojaloop/central-services-stream/compare/v11.2.4...v11.2.5) (2024-04-25)
+
+
+### Bug Fixes
+
+* **mojaloop/#3067:** removed disconnected producers from listOfProducers map ([#139](https://github.com/mojaloop/central-services-stream/issues/139)) ([352fc28](https://github.com/mojaloop/central-services-stream/commit/352fc28b3de7c62732510b10649f450802347889)), closes [mojaloop/#3067](https://github.com/mojaloop/project/issues/3067)
+
 ### [11.2.4](https://github.com/mojaloop/central-services-stream/compare/v11.2.3...v11.2.4) (2024-03-19)
 
 
