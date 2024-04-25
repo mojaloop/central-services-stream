@@ -229,6 +229,9 @@ Test('Producer', producerTest => {
         test.pass('Disconnect specific topic successfully')
         const producer = getProducerWithoutThrowError(topicName)
         test.equal(producer, null, 'No disconnected producer')
+        await Producer.produceMessage({}, { topicName }, {})
+        test.pass('created a new producer for the same topic')
+        test.ok(Producer.getProducer(topicName))
         test.end()
       } catch (e) {
         test.fail(`Error thrown: ${e.message}`)
