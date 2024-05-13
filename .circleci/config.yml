@@ -463,14 +463,14 @@ jobs:
           name: Setup for pre-release
           command: |
             if [[ $CIRCLE_BRANCH =~ ^(major|minor|patch)/(.*)$ ]]; then
+              echo "export RELEASE_TAG=${BASH_REMATCH[2]}" >> $BASH_ENV
+              echo "RELEASE_TAG=${BASH_REMATCH[2]}"
               echo "Pre-releasing ${BASH_REMATCH[1]} version ${BASH_REMATCH[2]}"
               npx standard-version --prerelease "${BASH_REMATCH[2]}" --release-as "${BASH_REMATCH[1]}" --message "chore(release): [ci-skip] %s" --skip.changelog --no-verify
 
               PACKAGE_VERSION=$(cat package-lock.json | jq -r .version)
               echo "export PACKAGE_VERSION=${PACKAGE_VERSION}" >> $BASH_ENV
               echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
-              echo "export RELEASE_TAG=v${PACKAGE_VERSION}" >> $BASH_ENV
-              echo "RELEASE_TAG=${PACKAGE_VERSION}"
             else
               echo "unsupported branch $CIRCLE_BRANCH for pre-release"
               exit 1
