@@ -464,7 +464,7 @@ jobs:
           command: |
             if [[ $CIRCLE_BRANCH =~ ^(major|minor|patch)/(.*)$ ]]; then
               echo "Pre-releasing ${BASH_REMATCH[1]} version ${BASH_REMATCH[2]}"
-              npx standard-version --prerelease ${BASH_REMATCH[2]} --release-as ${BASH_REMATCH[1]} --message "chore(release): [ci-skip] %s" --skip.changelog --no-verify
+              npx standard-version --prerelease "${BASH_REMATCH[2]}" --release-as "${BASH_REMATCH[1]}" --message "chore(release): [ci-skip] %s" --skip.changelog --no-verify
 
               PACKAGE_VERSION=$(cat package-lock.json | jq -r .version)
               echo "export PACKAGE_VERSION=${PACKAGE_VERSION}" >> $BASH_ENV
