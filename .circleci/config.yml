@@ -452,8 +452,10 @@ jobs:
     executor: default-machine
     steps:
       - run:
-          name: Install general dependencies
-          command: *defaults_Dependencies
+          name: Install git
+          command: |
+            sudo apt-get update && sudo apt-get install -y git
+      - gh/install
       - checkout
       - restore_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
