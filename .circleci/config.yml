@@ -449,7 +449,7 @@ jobs:
           event: fail
           template: SLACK_TEMP_RELEASE_FAILURE
   publish-prerelease:
-    executor: default-docker
+    executor: default-machine
     steps:
       - run:
           name: Install general dependencies
