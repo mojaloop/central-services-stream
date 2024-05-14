@@ -460,6 +460,8 @@ jobs:
       - restore_cache:
           key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
       - run:
+          <<: *defaults_configure_git
+      - run:
           name: Setup for pre-release
           command: |
             if [[ $CIRCLE_BRANCH =~ ^(major|minor|patch)/(.*)$ ]]; then
