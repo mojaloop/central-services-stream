@@ -432,6 +432,39 @@ Test('Producer', producerTest => {
       test.end()
     })
 
+    isConnectedTest.test('pass if the topicName is not supplied', async test => {
+      // Arrange
+      const ProducerProxy = rewire(`${src}/util/producer`)
+      const metadata = {
+        orig_broker_id: 0,
+        orig_broker_name: 'kafka:9092/0',
+        topics: [
+          { name: 'admin', partitions: [] }
+        ],
+        brokers: [{ id: 0, host: 'kafka', port: 9092 }]
+      }
+      ProducerProxy.__set__('listOfProducers', {
+        admin: {
+          _producer: {
+            // Callback with error
+            getMetadata: (options, cb) => cb(null, metadata)
+          }
+        }
+      })
+
+      // Act
+      let result
+      try {
+        result = await ProducerProxy.allConnected()
+      } catch (err) {
+        test.fail(err.message)
+      }
+
+      // Assert
+      test.equal(result, Producer.stateList.OK, 'isConnected should return true')
+      test.end()
+    })
+
     isConnectedTest.end()
   })
 

@@ -189,11 +189,48 @@ const isConnected = async (topicName = undefined) => {
   return producer.isConnected()
 }
 
+/**
+ * @function getMetadataPromise
+ *
+ * @param {object} producer - the producer class
+ * @param {string} topic - the topic name of the producer to check
+ *
+ * @description Use this to determine whether or not we are connected to the broker. Internally, it calls `getMetadata` to determine
+ * if the broker client is connected.
+ *
+ * @returns object - resolve metadata object
+ * @throws {Error} - if Producer can't be found or the producer is not connected
+ */
+const getMetadataPromise = async (producer, topic) => {
+  return new Promise((resolve, reject) => {
+    const cb = async (err, metadata) => {
+      if (err) {
+        return reject(new Error(`Error connecting to producer: ${err.message}`))
+      }
+      return resolve(metadata)
+    }
+    producer.getMetadata({ topic, timeout: 6000 }, cb)
+  })
+}
+
+const allConnected = async () => {
+  for (const [key, value] of Object.entries(listOfProducers)) {
+    const metadata = await getMetadataPromise(value._producer, key)
+    const foundTopics = metadata.topics.map(topic => topic.name)
+    if (foundTopics.indexOf(key) === -1) {
+      Logger.isDebugEnabled && Logger.debug(`Connected to producer, but ${key} not found.`)
+      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to producer, but ${key} not found.`)
+    }
+  }
+  return stateList.OK
+}
+
 module.exports = {
   getProducer,
   produceMessage,
   disconnect,
   isConnected,
+  allConnected,
   stateList,
   connectAll
 }

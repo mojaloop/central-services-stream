@@ -77,7 +77,7 @@ defaults_configure_nvm: &defaults_configure_nvm
 
     if [ -f "$NVM_DIR" ]; then
       echo "==> $NVM_DIR exists. Skipping steps 2-4!"
-    else 
+    else
       echo "==> $NVM_DIR does not exists. Executing steps 2-4!"
 
       echo "2. Installing NVM"
@@ -448,6 +448,57 @@ jobs:
       - slack/notify:
           event: fail
           template: SLACK_TEMP_RELEASE_FAILURE
+  publish-prerelease:
+    executor: default-machine
+    steps:
+      - run:
+          name: Install git
+          command: |
+            sudo apt-get update && sudo apt-get install -y git
+      - gh/install
+      - checkout
+      - restore_cache:
+          key: dependency-cache-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          <<: *defaults_configure_git
+      - run:
+          name: Setup for pre-release
+          command: |
+            if [[ $CIRCLE_BRANCH =~ ^(major|minor|patch)/(.*)$ ]]; then
+              echo "export RELEASE_TAG=${BASH_REMATCH[1]}-${BASH_REMATCH[2]}" >> $BASH_ENV
+              echo "RELEASE_TAG=${BASH_REMATCH[1]}-${BASH_REMATCH[2]}"
+              echo "Pre-releasing ${BASH_REMATCH[1]} version ${BASH_REMATCH[2]}"
+              npx standard-version --prerelease "${BASH_REMATCH[2]}" --release-as "${BASH_REMATCH[1]}" --message "chore(release): [ci skip] %s" --skip.changelog --no-verify
+
+              PACKAGE_VERSION=$(cat package-lock.json | jq -r .version)
+              echo "export PACKAGE_VERSION=${PACKAGE_VERSION}" >> $BASH_ENV
+              echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
+            else
+              echo "unsupported branch $CIRCLE_BRANCH for pre-release"
+              exit 1
+            fi
+      - run:
+          name: Push the pre-release
+          command: git push --follow-tags origin ${CIRCLE_BRANCH}
+      - run:
+          name: Setup Slack config
+          command: |
+            echo "export SLACK_PROJECT_NAME=${CIRCLE_PROJECT_REPONAME}" >> $BASH_ENV
+            echo "export SLACK_RELEASE_TYPE='NPM pre-release'" >> $BASH_ENV
+            echo "export SLACK_RELEASE_TAG=v${CIRCLE_TAG:1}" >> $BASH_ENV
+            echo "export SLACK_RELEASE_URL=https://www.npmjs.com/package/@mojaloop/${CIRCLE_PROJECT_REPONAME}/v/${CIRCLE_TAG:1}" >> $BASH_ENV
+            echo "export SLACK_BUILD_ID=${CIRCLE_BUILD_NUM}" >> $BASH_ENV
+            echo "export SLACK_CI_URL=${CIRCLE_BUILD_URL}" >> $BASH_ENV
+      - run:
+          <<: *defaults_npm_auth
+      - run:
+          <<: *defaults_npm_publish_release
+      - slack/notify:
+          event: pass
+          template: SLACK_TEMP_RELEASE_SUCCESS
+      - slack/notify:
+          event: fail
+          template: SLACK_TEMP_RELEASE_FAILURE
 
 workflows:
   build_and_test:
@@ -585,3 +636,16 @@ workflows:
             branches:
               ignore:
                 - /.*/
+      - publish-prerelease:
+          context: org-global
+          requires:
+            - pr-tools/pr-title-check
+            - test-lint
+            - test-unit
+            - test-coverage
+            - vulnerability-check
+            - audit-licenses
+          filters:
+            branches:
+              only:
+                - /(major|minor|patch)/.*/
