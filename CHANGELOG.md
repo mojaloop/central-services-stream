@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [11.2.6](https://github.com/mojaloop/central-services-stream/compare/v11.2.5...v11.2.6) (2024-05-16)
+
+
+### Bug Fixes
+
+* cannot build ml-api-adapter with current version of central-services-stream ([#141](https://github.com/mojaloop/central-services-stream/issues/141)) ([68e9cb9](https://github.com/mojaloop/central-services-stream/commit/68e9cb93fbb0f69dd0af2147b5a461357c0edf0a))
+
 ### [11.2.5](https://github.com/mojaloop/central-services-stream/compare/v11.2.4...v11.2.5) (2024-04-25)
 
 
