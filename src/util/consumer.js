@@ -63,6 +63,9 @@ const createHandler = async (topicName, config, command) => {
   if (config.rdkafkaConf !== undefined && config.rdkafkaConf['enable.auto.commit'] !== undefined) {
     autoCommitEnabled = config.rdkafkaConf['enable.auto.commit']
   }
+  if (config.rdkafkaConf !== undefined && config.rdkafkaConf.enableAutoCommit !== undefined) {
+    autoCommitEnabled = config.rdkafkaConf.enableAutoCommit
+  }
 
   let connectedTimeStamp = 0
   try {

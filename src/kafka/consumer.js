@@ -43,6 +43,7 @@ const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 
 const Protocol = require('./protocol')
+const getConfig = require('./config')
 
 const connectedClients = new Set()
 require('async-exit-hook')(callback => Promise.allSettled(
@@ -205,6 +206,7 @@ exports.ENUMS = ENUMS
 class Consumer extends EventEmitter {
   constructor (topics = [], config = {}) {
     super()
+    config = getConfig(config)
     if (!config.options) {
       config.options = {
         mode: CONSUMER_MODES.recursive,
