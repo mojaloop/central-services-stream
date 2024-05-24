@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.3.0](https://github.com/mojaloop/central-services-stream/compare/v11.2.6...v11.3.0) (2024-05-24)
+
+
+### Features
+
+* enable Kafka configuration via the environment or convict ([#143](https://github.com/mojaloop/central-services-stream/issues/143)) ([11cee90](https://github.com/mojaloop/central-services-stream/commit/11cee90bc8af52bdd2de7c41ea9edf5bf82a3cf4))
+
+
+### Bug Fixes
+
+* alpine image ([#144](https://github.com/mojaloop/central-services-stream/issues/144)) ([8aba68c](https://github.com/mojaloop/central-services-stream/commit/8aba68c7a7bed626725d925a208e4d46a18f1670))
+
 ### [11.2.6](https://github.com/mojaloop/central-services-stream/compare/v11.2.5...v11.2.6) (2024-05-16)
 
 
