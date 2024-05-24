@@ -40,6 +40,7 @@ const EventEmitter = require('events')
 const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Protocol = require('./protocol')
+const getConfig = require('./config')
 
 const connectedClients = new Set()
 require('async-exit-hook')(callback => Promise.allSettled(
@@ -153,6 +154,7 @@ const
 class Producer extends EventEmitter {
   constructor (config = {}) {
     super()
+    config = getConfig(config)
     if (!config) {
       config = {}
     }
