@@ -15,6 +15,7 @@
   "contributors": [
     "Miguel de Barros <miguel.debarros@modusbox.com>",
     "Rajiv Mothilal <rajiv.mothilal@modusbox.com>",
+    "Sam Kummary <sam@mojaloop.io",
     "Georgi Georgiev <georgi.georgiev@modusbox.com>",
     "Valentin Genev <valentin.genev@modusbox.com>"
   ],
@@ -56,9 +57,9 @@
     "node-rdkafka": "2.18.0"
   },
   "devDependencies": {
-    "audit-ci": "^6.6.1",
+    "audit-ci": "^7.0.1",
     "npm-check-updates": "16.14.20",
-    "nyc": "15.1.0",
+    "nyc": "17.0.0",
     "pre-commit": "1.2.2",
     "replace": "^1.2.2",
     "rewire": "7.0.0",
@@ -76,7 +77,7 @@
     "#test/*": "./test/*.js"
   },
   "peerDependencies": {
-    "@mojaloop/central-services-error-handling": ">=12.x.x",
+    "@mojaloop/central-services-error-handling": ">=13.x.x",
     "@mojaloop/central-services-logger": ">=11.x.x"
   },
   "peerDependenciesMeta": {
