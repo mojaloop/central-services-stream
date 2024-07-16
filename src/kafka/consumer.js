@@ -527,6 +527,7 @@ class Consumer extends EventEmitter {
    * @param {number} pollFrequency - The polling frequency in milliseconds. Only applicable when mode = CONSUMER_MODES.poll. Defaults: 10
    * @param {number} batchSize - The batch size to be requested by the Kafka consumer. Defaults: 1
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
+   * @param {object} opts - optional parameters to pass back to callback handler, such as a redis connection
    */
   _consumePoller (pollFrequency = 10, batchSize, workDoneCb, opts) {
     const { logger } = this._config
@@ -597,6 +598,7 @@ class Consumer extends EventEmitter {
    * @param {number} recursiveTimeout - The timeout in milliseconds for the recursive processing method should timeout. Only applicable when mode = CONSUMER_MODES.recursive. Defaults: 100
    * @param {number} batchSize - The batch size to be requested by the Kafka consumer. Defaults: 1
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
+   * @param {object} opts - optional parameters to pass back to callback handler, such as a redis connection
    * @returns {boolean} - true when successful
    */
   _consumeRecursive (recursiveTimeout = 100, batchSize, workDoneCb, opts) {
@@ -682,6 +684,7 @@ class Consumer extends EventEmitter {
    * @fires Consumer#message
    *
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
+   * @param {object} opts - optional parameters to pass back to callback handler, such as a redis connection
    */
   _consumeFlow (workDoneCb, opts) {
     const { logger } = this._config
