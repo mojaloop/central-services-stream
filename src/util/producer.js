@@ -108,6 +108,11 @@ const connectAll = async (configs) => {
   }
 }
 
+const disconnectAndRemoveProducer = async (topicName) => {
+  await getProducer(topicName).disconnect()
+  delete listOfProducers[topicName]
+}
+
 /**
  * @function Disconnect
  *
@@ -120,7 +125,7 @@ const connectAll = async (configs) => {
 const disconnect = async (topicName = null) => {
   if (topicName && typeof topicName === 'string') {
     try {
-      await getProducer(topicName).disconnect()
+      await disconnectAndRemoveProducer(topicName)
     } catch (err) {
       Logger.isErrorEnabled && Logger.error(err)
       throw ErrorHandler.Factory.reformatFSPIOPError(err)
@@ -131,7 +136,7 @@ const disconnect = async (topicName = null) => {
     let tpName
     for (tpName in listOfProducers) {
       try {
-        await getProducer(tpName).disconnect()
+        await disconnectAndRemoveProducer(tpName)
       } catch (e) {
         isError = true
         errorTopicList.push({ topic: tpName, error: e.toString() })
@@ -160,7 +165,28 @@ const getProducer = (topicName) => {
     return listOfProducers[topicName]
   } else {
     throw ErrorHandler.Factory.createInternalServerFSPIOPError(`No producer found for topic ${topicName}`)
+    // clarify, why we throw an error here and not just return null?
   }
+}
+
+/**
+ * @function isConnected
+ *
+ * @param {string} topicName - the topic name of the consumer to check
+ *
+ * @description Use this to determine whether or not we are connected to the broker. Internally, it calls `getMetadata` to determine
+ * if the broker client is connected.
+ *
+ * @returns boolean - if connected
+ * @throws {Error} - if consumer can't be found or the consumer is not connected
+ */
+const isConnected = async (topicName = undefined) => {
+  if (!topicName) {
+    Logger.isDebugEnabled && Logger.debug('topicName is undefined.')
+    throw ErrorHandler.Factory.createInternalServerFSPIOPError('topicName is undefined.')
+  }
+  const producer = getProducer(topicName)
+  return producer.isConnected()
 }
 
 /**
@@ -187,40 +213,16 @@ const getMetadataPromise = async (producer, topic) => {
   })
 }
 
-/**
- * @function isConnected
- *
- * @param {string} topicName - the topic name of the consumer to check
- *
- * @description Use this to determine whether or not we are connected to the broker. Internally, it calls `getMetadata` to determine
- * if the broker client is connected.
- *
- * @returns boolean - if connected
- * @throws {Error} - if consumer can't be found or the consumer is not connected
- */
-const isConnected = async (topicName = undefined) => {
-  let status = stateList.PENDING
-  if (topicName) {
-    const producer = getProducer(topicName)
-    const metadata = await getMetadataPromise(producer, topicName)
+const allConnected = async () => {
+  for (const [key, value] of Object.entries(listOfProducers)) {
+    const metadata = await getMetadataPromise(value._producer, key)
     const foundTopics = metadata.topics.map(topic => topic.name)
-    if (foundTopics.indexOf(topicName) === -1) {
-      Logger.isDebugEnabled && Logger.debug(`Connected to producer, but ${topicName} not found.`)
-      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to producer, but ${topicName} not found.`)
+    if (foundTopics.indexOf(key) === -1) {
+      Logger.isDebugEnabled && Logger.debug(`Connected to producer, but ${key} not found.`)
+      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to producer, but ${key} not found.`)
     }
-    status = stateList.OK
-  } else {
-    await Object.entries(listOfProducers).forEach(async ([key, value]) => {
-      status = stateList.OK
-      const metadata = await getMetadataPromise(value._producer, key)
-      const foundTopics = metadata.topics.map(topic => topic.name)
-      if (foundTopics.indexOf(key) === -1) {
-        Logger.isDebugEnabled && Logger.debug(`Connected to producer, but ${key} not found.`)
-        throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to producer, but ${key} not found.`)
-      }
-    })
   }
-  return status
+  return stateList.OK
 }
 
 module.exports = {
@@ -228,6 +230,7 @@ module.exports = {
   produceMessage,
   disconnect,
   isConnected,
+  allConnected,
   stateList,
   connectAll
 }

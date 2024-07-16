@@ -2,6 +2,66 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [11.3.1](https://github.com/mojaloop/central-services-stream/compare/v11.3.0...v11.3.1) (2024-06-12)
+
+## [11.3.0](https://github.com/mojaloop/central-services-stream/compare/v11.2.6...v11.3.0) (2024-05-24)
+
+
+### Features
+
+* enable Kafka configuration via the environment or convict ([#143](https://github.com/mojaloop/central-services-stream/issues/143)) ([11cee90](https://github.com/mojaloop/central-services-stream/commit/11cee90bc8af52bdd2de7c41ea9edf5bf82a3cf4))
+
+
+### Bug Fixes
+
+* alpine image ([#144](https://github.com/mojaloop/central-services-stream/issues/144)) ([8aba68c](https://github.com/mojaloop/central-services-stream/commit/8aba68c7a7bed626725d925a208e4d46a18f1670))
+
+### [11.2.6](https://github.com/mojaloop/central-services-stream/compare/v11.2.5...v11.2.6) (2024-05-16)
+
+
+### Bug Fixes
+
+* cannot build ml-api-adapter with current version of central-services-stream ([#141](https://github.com/mojaloop/central-services-stream/issues/141)) ([68e9cb9](https://github.com/mojaloop/central-services-stream/commit/68e9cb93fbb0f69dd0af2147b5a461357c0edf0a))
+
+### [11.2.5](https://github.com/mojaloop/central-services-stream/compare/v11.2.4...v11.2.5) (2024-04-25)
+
+
+### Bug Fixes
+
+* **mojaloop/#3067:** removed disconnected producers from listOfProducers map ([#139](https://github.com/mojaloop/central-services-stream/issues/139)) ([352fc28](https://github.com/mojaloop/central-services-stream/commit/352fc28b3de7c62732510b10649f450802347889)), closes [mojaloop/#3067](https://github.com/mojaloop/project/issues/3067)
+
+### [11.2.4](https://github.com/mojaloop/central-services-stream/compare/v11.2.3...v11.2.4) (2024-03-19)
+
+
+### Bug Fixes
+
+* fix peer deps version matercher, update deps and ci config ([#137](https://github.com/mojaloop/central-services-stream/issues/137)) ([11b83ae](https://github.com/mojaloop/central-services-stream/commit/11b83ae7f0d640dbc29a11ae731ca5632db14ce0))
+
+### [11.2.3](https://github.com/mojaloop/central-services-stream/compare/v11.2.2...v11.2.3) (2024-03-15)
+
+
+### Bug Fixes
+
+* disconnect the EventEmitter ([#136](https://github.com/mojaloop/central-services-stream/issues/136)) ([d1cdab6](https://github.com/mojaloop/central-services-stream/commit/d1cdab6e3098bea3e00728fa4471c4e9e0537e9d))
+
+### [11.2.2](https://github.com/mojaloop/central-services-stream/compare/v11.2.0...v11.2.2) (2024-03-15)
+
+
+### Bug Fixes
+
+* disconnect from Kafka on process exit ([#134](https://github.com/mojaloop/central-services-stream/issues/134)) ([21f9119](https://github.com/mojaloop/central-services-stream/commit/21f911902439e78d466f948411fc53d80dddfa83))
+
+## [11.2.0](https://github.com/mojaloop/central-services-stream/compare/v11.1.1...v11.2.0) (2023-09-29)
+
+
+### Features
+
+* **mojaloop/#3529:** update isConnected function for consumers/producers ([#133](https://github.com/mojaloop/central-services-stream/issues/133)) ([5f6e3fc](https://github.com/mojaloop/central-services-stream/commit/5f6e3fc20da51f790a18d5122987fca2a8489752)), closes [mojaloop/#3529](https://github.com/mojaloop/project/issues/3529)
+
+### [11.1.1](https://github.com/mojaloop/central-services-stream/compare/v11.1.0...v11.1.1) (2023-08-29)
+
+## [11.1.0](https://github.com/mojaloop/central-services-stream/compare/v11.0.0...v11.1.0) (2023-08-24)
+
 ## [11.0.0](https://github.com/mojaloop/central-services-stream/compare/v10.7.0...v11.0.0) (2022-05-19)
 
 

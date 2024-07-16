@@ -75,6 +75,7 @@ Test('Consumer test', (consumerTests) => {
         consumeTimeout: 1000
       },
       rdkafkaConf: {
+        clientId: 'default-client',
         'group.id': 'kafka-test',
         'metadata.broker.list': 'localhost:9092',
         'enable.auto.commit': false
@@ -120,6 +121,34 @@ Test('Consumer test', (consumerTests) => {
       assert.equals(error.message.toString(), 'missing a config object')
       assert.end()
     }
+  })
+
+  consumerTests.test('Test Consumer::constructor - defaults', (assert) => {
+    const config = {
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.recursive,
+        batchSize: 1,
+        recursiveTimeout: 100,
+        messageAsJSON: true,
+        sync: true,
+        syncConcurrency: 1,
+        consumeTimeout: 1000,
+        deserializeFn: 123
+      },
+      rdkafkaConf: {
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger: Logger
+    }
+    const ConsumerSpy = Sinon.spy(Consumer.prototype, 'constructor')
+    const c = new ConsumerSpy(topicsList, config)
+    assert.ok(c, 'Consumer instance created')
+    assert.ok(ConsumerSpy.calledOnce, 'Consumer constructor called once')
+    ConsumerSpy.restore()
+    assert.end()
   })
 
   consumerTests.test('Test Consumer::constructor - no params', (assert) => {
@@ -238,6 +267,41 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
       c.getMetadata(null)
+      assert.end()
+    })
+  })
+
+  consumerTests.test('Test Consumer::getMetadataSync', async (assert) => {
+    const c = new Consumer(topicsList, config)
+    c.connect().then(async result => {
+      assert.ok(result, 'connection result received')
+      c.getMetadataSync(null).then(metadata => {
+        assert.ok(metadata, 'metadata object exists')
+        assert.deepEqual(metadata, KafkaStubs.metadataSampleStub, 'metadata objects match')
+        assert.end()
+      }).catch(error => {
+        assert.fail(error)
+        assert.end()
+      })
+    })
+  })
+
+  consumerTests.test('Test Consumer::isConnected', (assert) => {
+    const c = new Consumer(topicsList, config)
+    c.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      const isConnected = c.isConnected()
+      assert.ok(isConnected, 'isConnected result exists')
+      assert.end()
+    })
+  })
+
+  consumerTests.test('Test Consumer::connectedTime', (assert) => {
+    const c = new Consumer(topicsList, config)
+    c.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      const connectedTime = c.connectedTime()
+      assert.equal(connectedTime, 0, 'connectedTime result exists')
       assert.end()
     })
   })
@@ -1419,6 +1483,89 @@ Test('Consumer test', (consumerTests) => {
     })
   })
 
+  consumerTests.test('Test Consumer::consume recursive sync=true, messageAsJson=true, syncSingleMessage=true', (assert) => {
+    config = {
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.recursive,
+        batchSize: 1,
+        recursiveTimeout: 100,
+        messageCharset: 'utf8',
+        messageAsJSON: true,
+        sync: true,
+        syncSingleMessage: true,
+        consumeTimeout: 1000
+      },
+      rdkafkaConf: {
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger: Logger
+    }
+
+    const c = new Consumer(topicsList, config)
+
+    // consume 'ready' event
+    c.on('ready', arg => {
+      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+    // consume 'message' event
+    c.on('message', message => {
+      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      assert.ok(message, 'on Message event received')
+    })
+
+    c.on('batch', messages => {
+      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      assert.ok(messages, 'on Batch event received')
+      assert.ok(Array.isArray(messages), 'batch of messages received')
+    })
+
+    let recursiveCount = 0
+
+    c.connect().then(result => {
+      assert.ok(result, 'connection result received')
+
+      c.consume((error, message) => {
+        return new Promise((resolve, reject) => {
+          recursiveCount = recursiveCount + 1
+          if (recursiveCount > 1) {
+            c.disconnect()
+            assert.ok(true, 'Message processed once by the recursive consumer')
+            assert.end()
+          } else {
+            if (error) {
+              Logger.error(error)
+              reject(error)
+            }
+            if (message) { // check if there is a valid message comming back
+              Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+              // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
+              if (Array.isArray(message) && message.length != null && message.length > 0) {
+                message.forEach(msg => {
+                  c.commitMessage(msg)
+                })
+              } else {
+                c.commitMessage(message)
+              }
+              resolve(true)
+              assert.ok(message, 'message processed')
+              assert.ok(!Array.isArray(message), 'single message received')
+              message.forEach(msg => {
+                assert.equals(typeof msg.value, 'object')
+              })
+            } else {
+              resolve(false)
+              assert.fail('message not processed')
+            }
+          }
+        })
+      })
+    })
+  })
+
   consumerTests.test('Test Consumer::consume recursive sync=true, messageAsJson=false', (assert) => {
     config = {
       options: {
@@ -2021,8 +2168,14 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::connect - test KafkaConsumer events: event.log, event.error, error', (assert) => {
-    assert.plan(4)
+    assert.plan(7)
     const c = new Consumer(topicsList, config)
+
+    const discoCallback = (err) => {
+      if (err) {
+        Logger.error(`Error received: ${err}`)
+      }
+    }
 
     // consume 'message' event
     c.on('error', error => {
@@ -2034,8 +2187,83 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
       Logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
+
+    c.on('event.throttle', arg => {
+      assert.ok(arg, 'event.throttle')
+    })
+
+    c.on('event.stats', arg => {
+      assert.ok(arg, 'event.stats')
+    })
+
+    c.on('disconnected', arg => {
+      assert.ok(arg, 'disconnected')
+    })
+
+    // This should never be called!
+    c.on('message', arg => {
+      assert.fail(arg, 'data')
+    })
+
+    c.on('partition.eof', arg => {
+      assert.ok(arg, 'partition.eof')
+    })
+
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
+      c.disconnect(discoCallback())
+    })
+  })
+
+  consumerTests.test('Test Consumer::connect - test KafkaConsumer events: event.log, event.error, error, stats enabled', (assert) => {
+    assert.plan(8)
+
+    const modifiedConfig = { ...config }
+    modifiedConfig.rdkafkaConf['statistics.interval.ms'] = 1
+
+    const c = new Consumer(topicsList, modifiedConfig)
+
+    const discoCallback = (err) => {
+      if (err) {
+        Logger.error(`Error received: ${err}`)
+      }
+    }
+
+    // consume 'message' event
+    c.on('error', error => {
+      Logger.error(error)
+      assert.ok(Sinon.match(error, 'event.error') || Sinon.match(error, 'event'), 'on Error event received')
+    })
+
+    c.on('ready', arg => {
+      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+
+    c.on('event.throttle', arg => {
+      assert.ok(arg, 'event.throttle')
+    })
+
+    c.on('event.stats', arg => {
+      assert.ok(arg, 'event.stats')
+    })
+
+    c.on('disconnected', arg => {
+      assert.ok(arg, 'disconnected')
+    })
+
+    // This should never be called!
+    c.on('message', arg => {
+      assert.fail(arg, 'data')
+    })
+
+    c.on('partition.eof', arg => {
+      assert.ok(arg, 'partition.eof')
+    })
+
+    c.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      c.disconnect(discoCallback())
     })
   })
 
