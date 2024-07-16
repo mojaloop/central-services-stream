@@ -360,7 +360,7 @@ Test('Consumer test', (consumerTests) => {
   })
 
   consumerTests.test('Test Consumer::consume flow sync=false, messageAsJson=true', (assert) => {
-    assert.plan(5)
+    assert.plan(6)
     config = {
       options: {
         mode: ConsumerEnums.CONSUMER_MODES.flow,
@@ -396,7 +396,7 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           if (error) {
             Logger.error(error)
@@ -413,6 +413,7 @@ Test('Consumer test', (consumerTests) => {
               c.commitMessage(message)
             }
             resolve(true)
+            assert.deepEqual(opts, { test: 'test' })
             assert.equals(typeof message.value, 'object')
             assert.ok(message, 'message processed')
           } else {
@@ -420,12 +421,12 @@ Test('Consumer test', (consumerTests) => {
             assert.fail('message not processed')
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 
   consumerTests.test('Test Consumer::consume flow sync=false, messageAsJson=false', (assert) => {
-    assert.plan(5)
+    assert.plan(6)
     config = {
       options: {
         mode: ConsumerEnums.CONSUMER_MODES.flow,
@@ -466,13 +467,13 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           if (error) {
             Logger.error(error)
             reject(error)
           }
-          if (message) { // check if there is a valid message comming back
+          if (message) { // check if there is a valid message coming back
             Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
             // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
             if (Array.isArray(message) && message.length != null && message.length > 0) {
@@ -483,6 +484,7 @@ Test('Consumer test', (consumerTests) => {
               c.commitMessage(message)
             }
             resolve(true)
+            assert.deepEqual(opts, { test: 'test' })
             assert.equals(typeof message.value, 'string')
             assert.ok(message, 'message processed')
           } else {
@@ -490,12 +492,12 @@ Test('Consumer test', (consumerTests) => {
             assert.fail('message not processed')
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 
   consumerTests.test('Test Consumer::consume flow sync=true, messageAsJson=true', (assert) => {
-    assert.plan(5)
+    assert.plan(6)
     config = {
       options: {
         mode: ConsumerEnums.CONSUMER_MODES.flow,
@@ -531,7 +533,7 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           if (error) {
             Logger.error(error)
@@ -548,19 +550,20 @@ Test('Consumer test', (consumerTests) => {
               c.commitMessage(message)
             }
             resolve(true)
-            assert.ok(message, 'message processed')
+            assert.deepEqual(opts, { test: 'test' })
             assert.equals(typeof message.value, 'object')
+            assert.ok(message, 'message processed')
           } else {
             resolve(false)
             assert.fail('message not processed')
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 
   consumerTests.test('Test Consumer::consume flow sync=true, messageAsJson=false', (assert) => {
-    assert.plan(5)
+    assert.plan(6)
     config = {
       options: {
         mode: ConsumerEnums.CONSUMER_MODES.flow,
@@ -596,7 +599,7 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           if (error) {
             Logger.error(error)
@@ -613,14 +616,15 @@ Test('Consumer test', (consumerTests) => {
               c.commitMessage(message)
             }
             resolve(true)
-            assert.ok(message, 'message processed')
+            assert.deepEqual(opts, { test: 'test' })
             assert.equals(typeof message.value, 'string')
+            assert.ok(message, 'message processed')
           } else {
             resolve(false)
             assert.fail('message not processed')
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 
@@ -874,7 +878,7 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
@@ -897,6 +901,7 @@ Test('Consumer test', (consumerTests) => {
                 c.commitMessage(message)
               }
               resolve(true)
+              assert.deepEqual(opts, { test: 'test' })
               assert.ok(message, 'message processed')
               assert.ok(Array.isArray(message), 'batch of messages received')
               message.forEach(msg => {
@@ -909,7 +914,7 @@ Test('Consumer test', (consumerTests) => {
             }
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 
@@ -957,7 +962,7 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
@@ -980,6 +985,7 @@ Test('Consumer test', (consumerTests) => {
                 c.commitMessage(message)
               }
               resolve(true)
+              assert.deepEqual(opts, { test: 'test' })
               assert.ok(message, 'message processed')
               assert.ok(Array.isArray(message), 'batch of messages received')
               message.forEach(msg => {
@@ -992,7 +998,7 @@ Test('Consumer test', (consumerTests) => {
             }
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 
@@ -1040,7 +1046,7 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
@@ -1063,6 +1069,7 @@ Test('Consumer test', (consumerTests) => {
                 c.commitMessage(message)
               }
               resolve(true)
+              assert.deepEqual(opts, { test: 'test' })
               assert.ok(message, 'message processed')
               assert.ok(Array.isArray(message), 'batch of messages received')
               message.forEach(msg => {
@@ -1075,7 +1082,7 @@ Test('Consumer test', (consumerTests) => {
             }
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 
@@ -1123,7 +1130,7 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           pollCount = pollCount + 1
           if (pollCount > 1) {
@@ -1158,7 +1165,7 @@ Test('Consumer test', (consumerTests) => {
             }
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 
@@ -1205,7 +1212,7 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           recursiveCount = recursiveCount + 1
           if (recursiveCount > 1) {
@@ -1228,6 +1235,7 @@ Test('Consumer test', (consumerTests) => {
                 c.commitMessage(message)
               }
               resolve(true)
+              assert.deepEqual(opts, { test: 'test' })
               assert.ok(message, 'message processed')
               assert.ok(Array.isArray(message), 'batch of messages received')
               message.forEach(msg => {
@@ -1240,7 +1248,7 @@ Test('Consumer test', (consumerTests) => {
             }
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 
@@ -1288,7 +1296,7 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           recursiveCount = recursiveCount + 1
           if (recursiveCount > 1) {
@@ -1311,6 +1319,7 @@ Test('Consumer test', (consumerTests) => {
                 c.commitMessage(message)
               }
               resolve(true)
+              assert.deepEqual(opts, { test: 'test' })
               assert.ok(message, 'message processed')
               assert.ok(Array.isArray(message), 'batch of messages received')
               message.forEach(msg => {
@@ -1323,7 +1332,7 @@ Test('Consumer test', (consumerTests) => {
             }
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 
@@ -1371,7 +1380,7 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           recursiveCount = recursiveCount + 1
           if (recursiveCount > 1) {
@@ -1394,6 +1403,7 @@ Test('Consumer test', (consumerTests) => {
                 c.commitMessage(message)
               }
               resolve(true)
+              assert.deepEqual(opts, { test: 'test' })
               assert.ok(message, 'message processed')
               assert.ok(Array.isArray(message), 'batch of messages received')
               message.forEach(msg => {
@@ -1405,7 +1415,7 @@ Test('Consumer test', (consumerTests) => {
             }
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 
@@ -1453,7 +1463,7 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           recursiveCount = recursiveCount + 1
           if (recursiveCount > 1) {
@@ -1476,6 +1486,7 @@ Test('Consumer test', (consumerTests) => {
                 c.commitMessage(message)
               }
               resolve(true)
+              assert.deepEqual(opts, { test: 'test' })
               assert.ok(message, 'message processed')
               assert.ok(Array.isArray(message), 'batch of messages received')
               message.forEach(msg => {
@@ -1487,7 +1498,7 @@ Test('Consumer test', (consumerTests) => {
             }
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 
@@ -1557,12 +1568,13 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
 
-      c.consume((error, message) => {
+      c.consume((error, message, opts) => {
         return new Promise((resolve, reject) => {
           recursiveCount = recursiveCount + 1
           Logger.info(`consume::callback[recursiveCount=${recursiveCount}] ${error}, ${JSON.stringify(message)}`)
           if (recursiveCount > 3) {
             c.disconnect()
+            assert.deepEqual(opts, { test: 'test' })
             assert.ok(true, 'Message processed by the recursive consumer')
             processedNextMessage = true
             if (errorHandledThrown && errorHandledRejected) {
@@ -1577,7 +1589,7 @@ Test('Consumer test', (consumerTests) => {
             resolve(true)
           }
         })
-      })
+      }, { test: 'test' })
     })
   })
 

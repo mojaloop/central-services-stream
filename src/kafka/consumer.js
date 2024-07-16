@@ -372,8 +372,9 @@ class Consumer extends EventEmitter {
    *
    * Consume messages from Kafka as per the configuration specified in the constructor.
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
+   * @param {object} opts - optional parameters to pass back to callback handler, such as a redis connection
    */
-  consume (workDoneCb) {
+  consume (workDoneCb, opts) {
     const { logger } = this._config
     Logger.isSillyEnabled && logger.silly('Consumer::consume() - start')
 
@@ -391,7 +392,7 @@ class Consumer extends EventEmitter {
         } else {
           payload = message.messages
         }
-        Promise.resolve(workDoneCb(message.error, payload)).then(() => {
+        Promise.resolve(workDoneCb(message.error, payload, opts)).then(() => {
           callbackDone() // this marks the completion of the processing by the worker
           if (this._config.options.mode === CONSUMER_MODES.recursive) { // lets call the recursive event if we are running in recursive mode
             super.emit('recursive', message.error, payload)
@@ -415,7 +416,7 @@ class Consumer extends EventEmitter {
     switch (this._config.options.mode) {
       case CONSUMER_MODES.poll:
         if (this._config.options.batchSize && typeof this._config.options.batchSize === 'number') {
-          this._consumePoller(this._config.options.pollFrequency, this._config.options.batchSize, workDoneCb)
+          this._consumePoller(this._config.options.pollFrequency, this._config.options.batchSize, workDoneCb, opts)
         } else {
           // throw error
           throw new Error('batchSize option is not valid - Select an integer greater then 0')
@@ -428,20 +429,20 @@ class Consumer extends EventEmitter {
               Logger.isErrorEnabled && logger.error(`Consumer::consume() - error ${error}`)
             }
             if (this._status.running) {
-              this._consumeRecursive(this._config.options.recursiveTimeout, this._config.options.batchSize, workDoneCb)
+              this._consumeRecursive(this._config.options.recursiveTimeout, this._config.options.batchSize, workDoneCb, opts)
             }
           })
-          this._consumeRecursive(this._config.options.recursiveTimeout, this._config.options.batchSize, workDoneCb)
+          this._consumeRecursive(this._config.options.recursiveTimeout, this._config.options.batchSize, workDoneCb, opts)
         } else {
           // throw error
           throw new Error('batchSize option is not valid - Select an integer greater then 0')
         }
         break
       case CONSUMER_MODES.flow:
-        this._consumeFlow(workDoneCb)
+        this._consumeFlow(workDoneCb, opts)
         break
       default:
-        this._consumeFlow(workDoneCb)
+        this._consumeFlow(workDoneCb, opts)
     }
     Logger.isSillyEnabled && logger.silly('Consumer::consume() - end')
   }
@@ -460,8 +461,9 @@ class Consumer extends EventEmitter {
    * @param {number} pollFrequency - The polling frequency in milliseconds. Only applicable when mode = CONSUMER_MODES.poll. Defaults: 10
    * @param {number} batchSize - The batch size to be requested by the Kafka consumer. Defaults: 1
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
+   * @param {object} opts - optional parameters to pass back to callback handler, such as a redis connection
    */
-  _consumePoller (pollFrequency = 10, batchSize, workDoneCb) {
+  _consumePoller (pollFrequency = 10, batchSize, workDoneCb, opts) {
     const { logger } = this._config
     this._pollInterval = setInterval(() => {
       // if (this._status.running) {
@@ -492,7 +494,7 @@ class Consumer extends EventEmitter {
               }
             })
           } else {
-            Promise.resolve(workDoneCb(error, messages)).then((response) => {
+            Promise.resolve(workDoneCb(error, messages, opts)).then((response) => {
               Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
             }).catch((err) => {
               Logger.isErrorEnabled && logger.error(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${err}`)
@@ -525,9 +527,10 @@ class Consumer extends EventEmitter {
    * @param {number} recursiveTimeout - The timeout in milliseconds for the recursive processing method should timeout. Only applicable when mode = CONSUMER_MODES.recursive. Defaults: 100
    * @param {number} batchSize - The batch size to be requested by the Kafka consumer. Defaults: 1
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
+   * @param {object} opts - optional parameters to pass back to callback handler, such as a redis connection
    * @returns {boolean} - true when successful
    */
-  _consumeRecursive (recursiveTimeout = 100, batchSize, workDoneCb) {
+  _consumeRecursive (recursiveTimeout = 100, batchSize, workDoneCb, opts) {
     const { logger } = this._config
     this._consumer.consume(batchSize, (error, messages) => {
       if (error || !messages.length) {
@@ -536,7 +539,7 @@ class Consumer extends EventEmitter {
         }
         if (this._status.running) {
           return setTimeout(() => {
-            return this._consumeRecursive(recursiveTimeout, batchSize, workDoneCb)
+            return this._consumeRecursive(recursiveTimeout, batchSize, workDoneCb, opts)
           }, recursiveTimeout)
         } else {
           return false
@@ -561,7 +564,7 @@ class Consumer extends EventEmitter {
             }
           })
         } else {
-          Promise.resolve(workDoneCb(error, messages)).then((response) => {
+          Promise.resolve(workDoneCb(error, messages, opts)).then((response) => {
             Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
           }).catch((err) => {
             Logger.isErrorEnabled && logger.error(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${err}`)
@@ -586,8 +589,9 @@ class Consumer extends EventEmitter {
    * @fires Consumer#message
    *
    * @param {Consumer~workDoneCb} workDoneCb - Callback function to process the consumed message
+   * @param {object} opts - optional parameters to pass back to callback handler, such as a redis connection
    */
-  _consumeFlow (workDoneCb) {
+  _consumeFlow (workDoneCb, opts) {
     const { logger } = this._config
     this._consumer.consume((error, message) => {
       if (error || !message) {
@@ -607,7 +611,7 @@ class Consumer extends EventEmitter {
             if (err) { Logger.isErrorEnabled && logger.error(err) }
           })
         } else {
-          Promise.resolve(workDoneCb(error, message)).then((response) => {
+          Promise.resolve(workDoneCb(error, message, opts)).then((response) => {
             Logger.isDebugEnabled && logger.debug(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${response}`)
           }).catch((err) => {
             Logger.isErrorEnabled && logger.error(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${err}`)

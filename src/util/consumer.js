@@ -42,13 +42,14 @@ const listOfConsumers = {}
  * @param {string} topicName - the topic name to be registered for the required handler. Example: 'topic-dfsp1-transfer-prepare'
  * @param {object} config - the config for the consumer for the specific functionality and action, retrieved from the default.json. Example: found in default.json 'KAFKA.CONSUMER.TRANSFER.PREPARE'
  * @param {function} command - the callback handler for the topic. Will be called when the topic is produced against. Example: Command.prepareHandler()
+ * @param {object} opts - optional parameters to pass back to callback handler, such as a redis connection
  *
  * @description Parses the accountUri into a participant name from the uri string
  *
  * @returns {object} - Returns a Promise
  * @throws {Error} -  if failure occurs
  */
-const createHandler = async (topicName, config, command) => {
+const createHandler = async (topicName, config, command, opts = {}) => {
   Logger.isDebugEnabled && Logger.debug(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
   let topicNameArray
   if (Array.isArray(topicName)) {
@@ -69,7 +70,7 @@ const createHandler = async (topicName, config, command) => {
     await consumer.connect()
     Logger.isDebugEnabled && Logger.debug(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
     connectedTimeStamp = (new Date()).valueOf()
-    await consumer.consume(command)
+    await consumer.consume(command, opts)
   } catch (e) {
     // Don't throw the error, still keep track of the topic we tried to connect to
     Logger.isWarnEnabled && Logger.warn(`CreateHandler::connect - error: ${e}`)
