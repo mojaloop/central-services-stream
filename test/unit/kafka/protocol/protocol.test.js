@@ -1,7 +1,7 @@
 const Test = require('tapes')(require('tape'))
-const Protocol = require('../../../../src/kafka').Protocol
-const Logger = require('@mojaloop/central-services-logger')
 const Sinon = require('sinon')
+const Logger = require('@mojaloop/central-services-logger')
+const Protocol = require('../../../../src/kafka').Protocol
 
 const reason = {
   code: 'code',
@@ -17,6 +17,7 @@ const parseM = {
   to: 'to',
   id: 'key',
   content: 'message',
+  context: 'context',
   type: 'type',
   metadata,
   pp: ''
@@ -27,6 +28,7 @@ const parseMNoMetaData = {
   to: 'to',
   id: 'key',
   content: 'message',
+  context: 'context',
   type: 'type',
   pp: ''
 }

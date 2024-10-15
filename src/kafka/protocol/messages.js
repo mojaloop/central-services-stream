@@ -73,6 +73,7 @@
  * @property {string} event - Required. Enum: ["accepted","validated","authorized","dispatched","received","consumed","failed"]
  * @property {Protocol~Reason} reason @see Protocol~Reason
  * @property {object} content - Payload of message
+ * @property {object} context - Additional information
  *
  */
 
@@ -143,6 +144,7 @@ const parseMessage = (messageProtocol) => {
     to: messageProtocol.to,
     id: messageProtocol.id,
     content: messageProtocol.content,
+    context: messageProtocol.context,
     type: messageProtocol.type,
     metadata: messageProtocol.metadata,
     pp: messageProtocol.pp
