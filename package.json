@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "11.3.0",
+  "version": "11.3.1",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -15,6 +15,7 @@
   "contributors": [
     "Miguel de Barros <miguel.debarros@modusbox.com>",
     "Rajiv Mothilal <rajiv.mothilal@modusbox.com>",
+    "Sam Kummary <sam@mojaloop.io",
     "Georgi Georgiev <georgi.georgiev@modusbox.com>",
     "Valentin Genev <valentin.genev@modusbox.com>"
   ],
@@ -76,7 +77,7 @@
     "#test/*": "./test/*.js"
   },
   "peerDependencies": {
-    "@mojaloop/central-services-error-handling": ">=12.x.x",
+    "@mojaloop/central-services-error-handling": ">=13.x.x",
     "@mojaloop/central-services-logger": ">=11.x.x"
   },
   "peerDependenciesMeta": {
