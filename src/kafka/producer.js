@@ -38,6 +38,8 @@
 
 const EventEmitter = require('events')
 const Logger = require('@mojaloop/central-services-logger')
+const ErrorHandler = require('@mojaloop/central-services-error-handling')
+
 const Kafka = require('node-rdkafka')
 const Protocol = require('./protocol')
 const getConfig = require('./config')
@@ -152,7 +154,7 @@ const
  * @constructor
  */
 class Producer extends EventEmitter {
-  constructor (config = {}) {
+  constructor (config = {}, topic = {}) {
     super()
     config = getConfig(config)
     if (!config) {
@@ -206,6 +208,7 @@ class Producer extends EventEmitter {
     const { logger } = config
     Logger.isSillyEnabled && logger.silly('Producer::constructor() - start')
     this._config = config
+    this._topic = topic
     this._status = {}
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
@@ -255,7 +258,7 @@ class Producer extends EventEmitter {
   async connect () {
     const { logger } = this._config
     Logger.isSillyEnabled && logger.silly('Producer::connect() - start')
-    return new Promise((resolve, reject) => {
+    const result = await new Promise((resolve, reject) => {
       if (this._config.options.sync) {
         this._producer = new Kafka.HighLevelProducer(this._config.rdkafkaConf, this._config.topicConf)
       } else {
@@ -328,6 +331,8 @@ class Producer extends EventEmitter {
         resolve(true)
       })
     })
+    await this._monitorLag()
+    return result
   }
 
   static _createBuffer (str, encoding) {
@@ -360,6 +365,12 @@ class Producer extends EventEmitter {
    * @returns {boolean} or if failed {Error}
    */
   async sendMessage (messageProtocol, topicConf) {
+    if (this._config.maxLag && this.lag > this._config.maxLag && this._topic?.topicName === topicConf.topicName) {
+      throw ErrorHandler.CreateFSPIOPError(
+        ErrorHandler.Enums.FSPIOPErrorCodes.SERVICE_CURRENTLY_UNAVAILABLE,
+        `Topic ${topicConf.topicName} lag ${this.lag} > ${this._config.maxLag}`
+      )
+    }
     return new Promise((resolve, reject) => {
       const { logger } = this._config
       try {
@@ -417,9 +428,14 @@ class Producer extends EventEmitter {
    * Disconnects producer from the Kafka broker
    */
   disconnect (cb = () => {}) {
+    if (this._monitorLagInterval) {
+      clearInterval(this._monitorLagInterval)
+      this._monitorLagInterval = null
+    }
     if (this._producer) {
       this._producer.flush()
       this._producer.disconnect(cb)
+      this._producer = null
     }
   }
 
@@ -478,6 +494,40 @@ class Producer extends EventEmitter {
       this._producer.getMetadata(metadataOptions, metaDatacCb)
       Logger.isSillyEnabled && logger.silly('Producer::getMetadataSync() - end')
     })
+  }
+
+  async _getLag (metadata) {
+    const { logger } = this._config
+    if (this._producer._isConnecting) {
+      Logger.isDebugEnabled && logger.debug('Producer::_getLag() - still connecting')
+    }
+    const lags = await Promise.all(metadata.partitions.map(partition => new Promise((resolve, reject) => {
+      this._producer.queryWatermarkOffsets(this._topic.topicName, partition.id, (this._config.lagTimeout || 5) * 1000, (err, offsets) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(offsets.highOffset - offsets.lowOffset - 1)
+        }
+      })
+    })))
+    return lags.reduce((acc, lag) => acc + lag, 0)
+  }
+
+  async _monitorLag () {
+    this.lag = 0
+    if (!this._config.lagInterval || !this._topic) return
+    const { logger } = this._config
+    const metadata = (await this.getMetadataSync({ topic: this._topic.topicName, timeout: (this._config.lagTimeout || 5) * 1000 }))
+      .topics.find(topic => topic.name === this._topic.topicName)
+    const monitor = async () => {
+      try {
+        this.lag = await this._getLag(metadata)
+        Logger.isDebugEnabled && logger.debug(`Producer::_monitorLag() - topic ${this._topic.topicName} ${this.lag} messages behind`)
+      } catch (err) {
+        Logger.isErrorEnabled && logger.error(`Producer::_monitorLag() - error: ${err}`)
+      }
+    }
+    this._monitorLagInterval = setInterval(monitor, this._config.lagInterval * 1000)
   }
 }
 

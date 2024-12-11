@@ -9,6 +9,7 @@
         "GHSA-hjrf-2m68-5959",
         "GHSA-qwph-4952-7xr6",
         "GHSA-w5p7-h5w8-2hfq",
-        "GHSA-f5x3-32g6-xq36" // https://github.com/advisories/GHSA-f5x3-32g6-xq36
+        "GHSA-f5x3-32g6-xq36", // https://github.com/advisories/GHSA-f5x3-32g6-xq36
+        "GHSA-3xgq-45jj-v275"  // https://github.com/advisories/GHSA-3xgq-45jj-v275
     ]
 }

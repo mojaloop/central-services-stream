@@ -132,6 +132,17 @@ class KafkaClient extends EventEmitter {
     this._dummyFunction()
     return 0
   }
+
+  queryWatermarkOffsets (topic, partition, timeout, cb) {
+    if (topic === 'error') {
+      cb(new Error('error'))
+    } else {
+      cb(null, {
+        highOffset: 10,
+        lowOffset: 0
+      })
+    }
+  }
 }
 
 // KafkaConsumer Stub

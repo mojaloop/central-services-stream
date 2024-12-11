@@ -249,6 +249,68 @@ Test('Producer test', (producerTests) => {
     })
   })
 
+  producerTests.test('Test Producer::sendMessage with maxLag', (assert) => {
+    assert.plan(4)
+    const producer = new Producer({ ...config, lagInterval: 1, maxLag: 5 }, { topicName: 'test' })
+    const discoCallback = (err, metrics) => {
+      if (err) {
+        Logger.error(err)
+      }
+      assert.equal(typeof metrics.connectionOpened, 'number')
+      assert.end()
+    }
+    // produce 'ready' event
+    producer.on('ready', arg => {
+      Logger.info(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+
+    producer.connect()
+      .then(result => new Promise(resolve => setTimeout(() => resolve(result), 2000))) // wait 2 seconds for the lag interval to pass
+      .then(result => {
+        assert.ok(result, 'connection result received')
+
+        producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'test', key: '1234' })
+          .catch(e => {
+            assert.ok(e.message, 'Max lag exceeded')
+          })
+          .then(() => {
+            producer.disconnect(discoCallback)
+          })
+      })
+  })
+
+  producerTests.test('Test Producer::sendMessage with error', (assert) => {
+    assert.plan(3)
+    const producer = new Producer({ ...config, lagInterval: 1, maxLag: 5 }, { topicName: 'error' })
+    const discoCallback = (err, metrics) => {
+      if (err) {
+        Logger.error(err)
+      }
+      assert.equal(typeof metrics.connectionOpened, 'number')
+      assert.end()
+    }
+    // produce 'ready' event
+    producer.on('ready', arg => {
+      Logger.info(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+
+    producer.connect()
+      .then(result => new Promise(resolve => setTimeout(() => resolve(result), 2000))) // wait 2 seconds for the lag interval to pass
+      .then(result => {
+        assert.ok(result, 'connection result received')
+
+        producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'error', key: '1234' })
+          .catch(e => {
+            assert.ok(e.message, 'Max lag exceeded')
+          })
+          .then(() => {
+            producer.disconnect(discoCallback)
+          })
+      })
+  })
+
   producerTests.test('Test sync Producer::sendMessage', (assert) => {
     assert.plan(4)
     const syncConfig = { ...config }
