@@ -83,6 +83,12 @@ Test('Producer test', (producerTests) => {
       }
     )
 
+    sandbox.stub(Kafka, 'KafkaConsumer').callsFake(
+      () => {
+        return new KafkaStubs.KafkaConsumerForLagTests()
+      }
+    )
+
     sandbox.stub(Kafka, 'HighLevelProducer').callsFake(
       () => {
         return new KafkaStubs.KafkaSyncProducer()
@@ -251,7 +257,7 @@ Test('Producer test', (producerTests) => {
 
   producerTests.test('Test Producer::sendMessage with maxLag', (assert) => {
     assert.plan(4)
-    const producer = new Producer({ ...config, lagInterval: 1, maxLag: 5 }, { topicName: 'test' })
+    const producer = new Producer({ ...config, lagMonitor: { interval: 1, max: 4, consumerGroup: 'test', topic: 'test' } })
     const discoCallback = (err, metrics) => {
       if (err) {
         Logger.error(err)
@@ -272,7 +278,8 @@ Test('Producer test', (producerTests) => {
 
         producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'test', key: '1234' })
           .catch(e => {
-            assert.ok(e.message, 'Max lag exceeded')
+            Logger.error(e)
+            assert.equal(e.httpStatusCode, 503, 'Max lag exceeded http status code 503')
           })
           .then(() => {
             producer.disconnect(discoCallback)
@@ -282,7 +289,7 @@ Test('Producer test', (producerTests) => {
 
   producerTests.test('Test Producer::sendMessage with error', (assert) => {
     assert.plan(3)
-    const producer = new Producer({ ...config, lagInterval: 1, maxLag: 5 }, { topicName: 'error' })
+    const producer = new Producer({ ...config, lagMonitor: { interval: 1, max: 4, consumerGroup: 'test', topic: 'error' } })
     const discoCallback = (err, metrics) => {
       if (err) {
         Logger.error(err)
@@ -302,9 +309,6 @@ Test('Producer test', (producerTests) => {
         assert.ok(result, 'connection result received')
 
         producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'error', key: '1234' })
-          .catch(e => {
-            assert.ok(e.message, 'Max lag exceeded')
-          })
           .then(() => {
             producer.disconnect(discoCallback)
           })

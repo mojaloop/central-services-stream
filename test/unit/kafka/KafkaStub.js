@@ -261,6 +261,32 @@ class KafkaConsumer extends KafkaClient {
   }
 }
 
+class KafkaConsumerForLagTests extends KafkaConsumer {
+  assign () {
+    this._dummyFunction()
+  }
+
+  committed (topicPartition, timeout, cb) {
+    cb(null, [{ topic: 'test', partition: 0, offset: 5 }])
+  }
+
+  connect (metadata, cb) {
+    cb(null, {
+      topics: [{
+        name: 'test',
+        partitions: [{
+          id: 0
+        }]
+      }, {
+        name: 'error',
+        partitions: [{
+          id: 0
+        }]
+      }]
+    })
+  }
+}
+
 // KafkaConsumer Stub
 class KafkaConsumerForEventTests extends KafkaConsumer {
   connect (err, info) {
@@ -330,5 +356,6 @@ exports.KafkaClient = KafkaClient
 exports.KafkaConsumer = KafkaConsumer
 exports.KafkaProducer = KafkaProducer
 exports.KafkaSyncProducer = KafkaSyncProducer
+exports.KafkaConsumerForLagTests = KafkaConsumerForLagTests
 exports.KafkaConsumerForEventTests = KafkaConsumerForEventTests
 exports.KafkaProducerForEventTests = KafkaProducerForEventTests

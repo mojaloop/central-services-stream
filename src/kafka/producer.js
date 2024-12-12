@@ -154,7 +154,7 @@ const
  * @constructor
  */
 class Producer extends EventEmitter {
-  constructor (config = {}, topic = {}) {
+  constructor (config = {}) {
     super()
     config = getConfig(config)
     if (!config) {
@@ -208,7 +208,6 @@ class Producer extends EventEmitter {
     const { logger } = config
     Logger.isSillyEnabled && logger.silly('Producer::constructor() - start')
     this._config = config
-    this._topic = topic
     this._status = {}
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
@@ -365,10 +364,10 @@ class Producer extends EventEmitter {
    * @returns {boolean} or if failed {Error}
    */
   async sendMessage (messageProtocol, topicConf) {
-    if (this._config.maxLag && this.lag > this._config.maxLag && this._topic?.topicName === topicConf.topicName) {
+    if (this._config.lagMonitor?.max && this.lag > this._config.lagMonitor.max) {
       throw ErrorHandler.CreateFSPIOPError(
         ErrorHandler.Enums.FSPIOPErrorCodes.SERVICE_CURRENTLY_UNAVAILABLE,
-        `Topic ${topicConf.topicName} lag ${this.lag} > ${this._config.maxLag}`
+        `Topic ${this._config.lagMonitor.topic} lag ${this.lag} > ${this._config.lagMonitor.max}`
       )
     }
     return new Promise((resolve, reject) => {
@@ -428,6 +427,11 @@ class Producer extends EventEmitter {
    * Disconnects producer from the Kafka broker
    */
   disconnect (cb = () => {}) {
+    if (this._consumer) {
+      this._consumer.disconnect(() => {
+        this._consumer = null
+      })
+    }
     if (this._monitorLagInterval) {
       clearInterval(this._monitorLagInterval)
       this._monitorLagInterval = null
@@ -496,38 +500,63 @@ class Producer extends EventEmitter {
     })
   }
 
-  async _getLag (metadata) {
-    const { logger } = this._config
-    if (this._producer._isConnecting) {
-      Logger.isDebugEnabled && logger.debug('Producer::_getLag() - still connecting')
-    }
-    const lags = await Promise.all(metadata.partitions.map(partition => new Promise((resolve, reject) => {
-      this._producer.queryWatermarkOffsets(this._topic.topicName, partition.id, (this._config.lagTimeout || 5) * 1000, (err, offsets) => {
-        if (err) {
-          reject(err)
-        } else {
-          resolve(offsets.highOffset - offsets.lowOffset - 1)
-        }
+  async _getLag (partitionIds) {
+    if (this._getLagActive) return
+    this._getLagActive = true
+    try {
+      const commits = new Promise((resolve, reject) => {
+        this._consumer.committed(undefined, 5000, (err, commits) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(commits)
+          }
+        })
       })
-    })))
-    return lags.reduce((acc, lag) => acc + lag, 0)
+
+      const highOffset = await Promise.all(partitionIds.map(partitionId => new Promise((resolve, reject) => {
+        this._producer.queryWatermarkOffsets(this._config.lagMonitor.topic, partitionId, (this._config.lagMonitor.timeout || 5) * 1000, (err, offsets) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(offsets.highOffset)
+          }
+        })
+      })))
+
+      this.lag = highOffset.reduce((acc, high) => acc + high, 0) - (await commits).reduce((acc, commit) => acc + commit.offset, 0)
+      Logger.isDebugEnabled && this._config.logger.debug(`Producer::_monitorLag() - topic ${this._config.lagMonitor.topic} ${this.lag} messages behind`)
+    } catch (err) {
+      Logger.isErrorEnabled && this._config.logger.error(`Producer::_getLag() - error: ${err}`)
+      return
+    } finally {
+      this._getLagActive = false
+    }
+    return this.lag
   }
 
   async _monitorLag () {
     this.lag = 0
-    if (!this._config.lagInterval || !this._topic) return
-    const { logger } = this._config
-    const metadata = (await this.getMetadataSync({ topic: this._topic.topicName, timeout: (this._config.lagTimeout || 5) * 1000 }))
-      .topics.find(topic => topic.name === this._topic.topicName)
-    const monitor = async () => {
-      try {
-        this.lag = await this._getLag(metadata)
-        Logger.isDebugEnabled && logger.debug(`Producer::_monitorLag() - topic ${this._topic.topicName} ${this.lag} messages behind`)
-      } catch (err) {
-        Logger.isErrorEnabled && logger.error(`Producer::_monitorLag() - error: ${err}`)
-      }
-    }
-    this._monitorLagInterval = setInterval(monitor, this._config.lagInterval * 1000)
+    if (!this._config.lagMonitor?.consumerGroup || !this._config.lagMonitor?.topic) return
+    this._consumer = new Kafka.KafkaConsumer({
+      'metadata.broker.list': this._config.rdkafkaConf['metadata.broker.list'],
+      'group.id': this._config.lagMonitor.consumerGroup,
+      'enable.auto.commit': false
+    }, {
+      'auto.offset.reset': 'earliest'
+    })
+    await new Promise((resolve, reject) => {
+      this._consumer.connect({ topic: this._config.lagMonitor.topic }, (err, metadata) => {
+        if (err) {
+          reject(err)
+        } else {
+          const partitionIds = metadata.topics.find(topic => topic.name === this._config.lagMonitor.topic).partitions.map(partition => partition.id)
+          this._consumer.assign(partitionIds.map(partition => ({ topic: this._config.lagMonitor.topic, partition })))
+          this._monitorLagInterval = setInterval(this._getLag.bind(this, partitionIds), (this._config.lagMonitor.interval || 5) * 1000)
+          resolve()
+        }
+      })
+    })
   }
 }
 

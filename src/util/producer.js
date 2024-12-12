@@ -95,7 +95,7 @@ const connectAll = async (configs) => {
       let producer
       if (!listOfProducers[config.topicConfig.topicName]) {
         Logger.isDebugEnabled && Logger.debug('Producer::start::topic=' + config.topicConfig.topicName)
-        producer = new Producer(config.kafkaConfig, config.topicConfig)
+        producer = new Producer(config.kafkaConfig)
         Logger.isDebugEnabled && Logger.debug('Producer::connect::start')
         await producer.connect()
         Logger.isDebugEnabled && Logger.debug('Producer::connect::end')
