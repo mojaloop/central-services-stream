@@ -83,6 +83,12 @@ Test('Producer test', (producerTests) => {
       }
     )
 
+    sandbox.stub(Kafka, 'KafkaConsumer').callsFake(
+      () => {
+        return new KafkaStubs.KafkaConsumerForLagTests()
+      }
+    )
+
     sandbox.stub(Kafka, 'HighLevelProducer').callsFake(
       () => {
         return new KafkaStubs.KafkaSyncProducer()
@@ -247,6 +253,66 @@ Test('Producer test', (producerTests) => {
         producer.disconnect(discoCallback)
       })
     })
+  })
+
+  producerTests.test('Test Producer::sendMessage with maxLag', (assert) => {
+    assert.plan(4)
+    const producer = new Producer({ ...config, lagMonitor: { interval: 1, max: 4, consumerGroup: 'test', topic: 'test' } })
+    const discoCallback = (err, metrics) => {
+      if (err) {
+        Logger.error(err)
+      }
+      assert.equal(typeof metrics.connectionOpened, 'number')
+      assert.end()
+    }
+    // produce 'ready' event
+    producer.on('ready', arg => {
+      Logger.info(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+
+    producer.connect()
+      .then(result => new Promise(resolve => setTimeout(() => resolve(result), 2000))) // wait 2 seconds for the lag interval to pass
+      .then(result => {
+        assert.ok(result, 'connection result received')
+
+        producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'test', key: '1234' })
+          .catch(e => {
+            Logger.error(e)
+            assert.equal(e.httpStatusCode, 503, 'Max lag exceeded http status code 503')
+          })
+          .then(() => {
+            producer.disconnect(discoCallback)
+          })
+      })
+  })
+
+  producerTests.test('Test Producer::sendMessage with error', (assert) => {
+    assert.plan(3)
+    const producer = new Producer({ ...config, lagMonitor: { interval: 1, max: 4, consumerGroup: 'test', topic: 'error' } })
+    const discoCallback = (err, metrics) => {
+      if (err) {
+        Logger.error(err)
+      }
+      assert.equal(typeof metrics.connectionOpened, 'number')
+      assert.end()
+    }
+    // produce 'ready' event
+    producer.on('ready', arg => {
+      Logger.info(`onReady: ${JSON.stringify(arg)}`)
+      assert.ok(arg, 'on Ready event received')
+    })
+
+    producer.connect()
+      .then(result => new Promise(resolve => setTimeout(() => resolve(result), 2000))) // wait 2 seconds for the lag interval to pass
+      .then(result => {
+        assert.ok(result, 'connection result received')
+
+        producer.sendMessage({ message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }, { topicName: 'error', key: '1234' })
+          .then(() => {
+            producer.disconnect(discoCallback)
+          })
+      })
   })
 
   producerTests.test('Test sync Producer::sendMessage', (assert) => {
