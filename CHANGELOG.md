@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.4.0](https://github.com/mojaloop/central-services-stream/compare/v11.3.1...v11.4.0) (2024-12-13)
+
+
+### Features
+
+* throw SERVICE_CURRENTLY_UNAVAILABLE in Producer if the lag is above the configured maxLag ([#152](https://github.com/mojaloop/central-services-stream/issues/152)) ([3ff2bb7](https://github.com/mojaloop/central-services-stream/commit/3ff2bb7c06068fe99f11f8e317182d9e9c68c5c6))
+
 ### [11.3.1](https://github.com/mojaloop/central-services-stream/compare/v11.3.0...v11.3.1) (2024-06-12)
 
 ## [11.3.0](https://github.com/mojaloop/central-services-stream/compare/v11.2.6...v11.3.0) (2024-05-24)
