@@ -51,10 +51,12 @@
     "snapshot": "npx standard-version --no-verify --skip.changelog --prerelease snapshot --releaseCommitMessageFormat 'chore(snapshot): {{currentTag}}'"
   },
   "dependencies": {
+    "@mojaloop/central-services-error-handling": ">=13.x.x",
+    "@mojaloop/central-services-logger": ">=11.x.x",
     "async": "3.2.6",
     "async-exit-hook": "2.0.1",
     "events": "3.3.0",
-    "node-rdkafka": "2.18.0"
+    "node-rdkafka": "3.0.1"
   },
   "devDependencies": {
     "audit-ci": "^7.1.0",
@@ -77,8 +79,6 @@
     "#test/*": "./test/*.js"
   },
   "peerDependencies": {
-    "@mojaloop/central-services-error-handling": ">=13.x.x",
-    "@mojaloop/central-services-logger": ">=11.x.x"
   },
   "peerDependenciesMeta": {
     "@mojaloop/central-services-error-handling": {
