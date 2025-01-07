@@ -58,7 +58,7 @@
   },
   "devDependencies": {
     "audit-ci": "^7.1.0",
-    "npm-check-updates": "17.1.11",
+    "npm-check-updates": "17.1.13",
     "nyc": "17.1.0",
     "pre-commit": "1.2.2",
     "replace": "^1.2.2",
@@ -71,6 +71,10 @@
     "tape": "4.13.3",
     "tapes": "4.1.0",
     "uuid4": "2.0.3"
+  },
+  "overrides": {
+    "cross-spawn": "7.0.6",
+    "trim": "0.0.3"
   },
   "imports": {
     "#src/*": "./src/*.js",
