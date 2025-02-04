@@ -36,11 +36,11 @@
 
 'use strict'
 
-const EventEmitter = require('events')
+const EventEmitter = require('node:events')
+const Kafka = require('node-rdkafka')
 const Logger = require('@mojaloop/central-services-logger')
 const ErrorHandler = require('@mojaloop/central-services-error-handling')
 
-const Kafka = require('node-rdkafka')
 const Protocol = require('./protocol')
 const getConfig = require('./config')
 
@@ -48,6 +48,10 @@ const connectedClients = new Set()
 require('async-exit-hook')(callback => Promise.allSettled(
   Array.from(connectedClients).map(client => new Promise(resolve => client.disconnect(resolve)))
 ).finally(callback))
+
+const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
+
+const tracer = trace.getTracer('kafka-producer') // think, if we need to change it to clientId
 
 /**
  * Producer ENUMs
@@ -358,67 +362,58 @@ class Producer extends EventEmitter {
    * @property {string} key - optional message key
    * @property {number} partition - optional partition to produce to
    *
+   * @property {Array<{ [key: string]: string | Buffer }>} [customHeaders] - optional list of headers
+   *
    * @todo Validate messageProtocol
    * @todo Validate topicConf
    *
+   *
    * @returns {boolean} or if failed {Error}
    */
-  async sendMessage (messageProtocol, topicConf) {
+  async sendMessage (messageProtocol, topicConf, customHeaders = []) {
     if (this._config.lagMonitor?.max && this.lag > this._config.lagMonitor.max) {
       throw ErrorHandler.CreateFSPIOPError(
         ErrorHandler.Enums.FSPIOPErrorCodes.SERVICE_CURRENTLY_UNAVAILABLE,
         `Topic ${this._config.lagMonitor.topic} lag ${this.lag} > ${this._config.lagMonitor.max}`
       )
     }
-    return new Promise((resolve, reject) => {
-      const { logger } = this._config
-      try {
-        if (!this._producer) {
-          throw new Error('You must call and await .connect() before trying to produce messages.')
-        }
-        if (this._producer._isConnecting) {
-          Logger.isDebugEnabled && logger.debug('Producer::sendMessage() - still connecting')
-        }
-        const producedAt = Date.now()
+    const { logger } = this._config
 
-        // Parse Message into Protocol format
-        const parsedMessage = Protocol.parseMessage(messageProtocol)
-        // Serialize Message
-        const parsedMessageBuffer = this._config.options.serializeFn(parsedMessage, this._config.options)
-        // Validate Serialized Message
-        if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
-          throw new Error('message must be a string or an instance of Buffer.')
-        }
+    try {
+      if (!this._producer) {
+        throw new Error('You must call and await .connect() before trying to produce messages.')
+      }
+      if (this._producer._isConnecting) {
+        Logger.isDebugEnabled && logger.debug('Producer::sendMessage() - still connecting')
+      }
+      const producedAt = Date.now()
 
-        Logger.isDebugEnabled && logger.debug(`Producer::send() - start: ${JSON.stringify({
+      // Parse Message into Protocol format
+      const parsedMessage = Protocol.parseMessage(messageProtocol)
+      // Serialize Message
+      const parsedMessageBuffer = this._config.options.serializeFn(parsedMessage, this._config.options)
+      // Validate Serialized Message
+      if (!parsedMessageBuffer || !(typeof parsedMessageBuffer === 'string' || Buffer.isBuffer(parsedMessageBuffer))) {
+        throw new Error('message must be a string or an instance of Buffer.')
+      }
+
+      Logger.isDebugEnabled && logger.debug(`Producer::send() - start: ${JSON.stringify({
           topicName: topicConf.topicName,
           partition: topicConf.partition,
           key: topicConf.key
         })}`)
 
-        Logger.isSillyEnabled && logger.silly(`Producer::send() - message: ${JSON.stringify(parsedMessage)}`)
+      Logger.isSillyEnabled && logger.silly(`Producer::send() - message: ${JSON.stringify(parsedMessage)}`)
 
-        if (this._config.options.sync) {
-          this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, (err, offset) => {
-            // The offset if our acknowledgement level allows us to receive delivery offsets
-            if (err) {
-              Logger.isDebugEnabled && logger.debug(err)
-              reject(err)
-            } else {
-              Logger.isDebugEnabled && logger.debug(`Producer::send() - delivery-callback offset=${offset}`)
-              resolve(offset)
-            }
-          })
-        } else {
-          // NOTE: this is the old way of producing a message, we should use the new one
-          this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey)
-          resolve(true)
-        }
-      } catch (err) {
-        Logger.isDebugEnabled && logger.debug(err)
-        reject(err)
-      }
-    })
+      return this.#produceMessageWithTrace({
+        topicConf, parsedMessageBuffer, producedAt, customHeaders
+      })
+      // todo: think, if it's better to wrap the whole sendMessage in a span
+    } catch (err) {
+      Logger.isDebugEnabled && logger.debug(err)
+      throw err
+      // think, if we need to reformat error, e.g.  throw ErrorHandler.Factory.reformatFSPIOPError(err)
+    }
   }
 
   /**
@@ -554,6 +549,75 @@ class Producer extends EventEmitter {
           this._consumer.assign(partitionIds.map(partition => ({ topic: this._config.lagMonitor.topic, partition })))
           this._monitorLagInterval = setInterval(this._getLag.bind(this, partitionIds), (this._config.lagMonitor.interval || 5) * 1000)
           resolve()
+        }
+      })
+    })
+  }
+
+  async #produceMessage ({
+    topicConf, parsedMessageBuffer, producedAt, headers
+  }) {
+    const { logger } = this._config
+    return new Promise((resolve, reject) => {
+      if (this._config.options.sync) {
+        this._producer.produce(
+          topicConf.topicName,
+          topicConf.partition,
+          parsedMessageBuffer,
+          topicConf.key,
+          producedAt,
+          headers,
+          (err, offset) => {
+            // The offset if our acknowledgement level allows us to receive delivery offsets
+            if (err) {
+              Logger.isWarnEnabled && logger.warn(err)
+              reject(err)
+            } else {
+              Logger.isDebugEnabled && logger.debug(`Producer::send() - delivery-callback offset=${offset}`)
+              resolve(offset)
+            }
+          })
+      } else {
+        // NOTE: this is the old way of producing a message, we should use the new one
+        this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey, headers)
+        resolve(true)
+      }
+    })
+  }
+
+  async #produceMessageWithTrace ({
+    topicConf, parsedMessageBuffer, producedAt, customHeaders = []
+  }) {
+    return new Promise((resolve, reject) => {
+      tracer.startActiveSpan(`SEND_KAFKA_${topicConf.topicName}`, { kind: SpanKind.PRODUCER }, async (span) => {
+        try {
+          const tracingContext = {}
+          propagation.inject(context.active(), tracingContext)
+          const headers = [
+            ...customHeaders,
+            ...Object.entries(tracingContext).map(([k, v]) => ({ [k]: v }))
+          ]
+          Logger.isDebugEnabled && this._config.logger.debug(`Producer::headers: ${JSON.stringify(headers)}`)
+
+          span.setAttributes({
+            'messaging.operation.name': 'send',
+            'messaging.destination.name': topicConf.topicName,
+            'messaging.system': 'kafka',
+            'server.address': this._config.rdkafkaConf['metadata.broker.list']
+            // todo: add more attributes, use keys from @opentelemetry/semantic-conventions
+          })
+
+          const result = await this.#produceMessage({
+            topicConf, parsedMessageBuffer, producedAt, headers
+          })
+
+          span.setStatus({ code: SpanStatusCode.OK })
+          resolve(result)
+        } catch (err) {
+          span.setStatus({ code: SpanStatusCode.ERROR, message: err.message })
+          reject(err)
+        } finally {
+          span.end()
         }
       })
     })

@@ -53,6 +53,10 @@
     "snapshot": "npx standard-version --no-verify --skip.changelog --prerelease snapshot --releaseCommitMessageFormat 'chore(snapshot): {{currentTag}}'"
   },
   "dependencies": {
+    "@opentelemetry/api": "1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "0.56.0",
+    "@opentelemetry/sdk-node": "0.57.1",
+    "@opentelemetry/semantic-conventions": "1.28.0",
     "async": "3.2.6",
     "async-exit-hook": "2.0.1",
     "events": "3.3.0",
