@@ -50,6 +50,11 @@ require('async-exit-hook')(callback => Promise.allSettled(
   Array.from(connectedClients).map(client => new Promise(resolve => client.disconnect(resolve)))
 ).finally(callback))
 
+const { OTEL_HEADERS } = require('../constants')
+const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
+
+const tracer = trace.getTracer('kafka')
+
 /**
  * Consumer ENUMs
  *
@@ -296,6 +301,7 @@ class Consumer extends EventEmitter {
   connect () {
     const { logger } = this._config
     Logger.isSillyEnabled && logger.silly('Consumer::connect() - start')
+
     return new Promise((resolve, reject) => {
       this._consumer = new Kafka.KafkaConsumer(this._config.rdkafkaConf, this._config.topicConf)
 
@@ -363,8 +369,7 @@ class Consumer extends EventEmitter {
           return reject(error)
         }
         connectedClients.add(this)
-        Logger.isSillyEnabled && logger.silly('Consumer::connect() - metadata:')
-        Logger.isSillyEnabled && logger.silly(metadata)
+        Logger.isSillyEnabled && logger.silly(`Consumer::connect() - metadata:  ${JSON.stringify(metadata)}`)
       })
     })
   }
@@ -453,19 +458,26 @@ class Consumer extends EventEmitter {
     if (this._config.options.sync) {
       this._syncQueue = async.queue((task, callbackDone) => {
         Logger.isSillyEnabled && logger.silly(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - Sync Process - ${JSON.stringify(task)}`)
-        let payload
-        if (this._config.options.mode === ENUMS.CONSUMER_MODES.flow) {
-          payload = task.message
-        } else {
-          payload = task.messages
-        }
-        Promise.resolve(workDoneCb(task?.error, payload)).then((result) => {
-          callbackDone(task?.error, result) // this marks the completion of the processing by the worker
-        }).catch((err) => {
-          Logger.isErrorEnabled && logger.error(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - workDoneCb - error: ${err}`)
-          super.emit('error', err)
-          callbackDone(err)
-        })
+        const payload = this._config.options.mode === ENUMS.CONSUMER_MODES.flow
+          ? task.message
+          : task.messages
+        // todo: think how to start tracing span if payload has more than 1 message? (each message in the batch should have its own span?)
+
+        const { span, newCtx } = this.#startTracingSpan(payload)
+
+        context.with(newCtx, () => Promise.resolve(workDoneCb(task.error, payload))
+          .then((result) => {
+            callbackDone(task.error, result) // this marks the completion of the processing by the worker
+            span?.setStatus({ code: SpanStatusCode.OK })
+          })
+          .catch((err) => {
+            Logger.isErrorEnabled && logger.error(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - workDoneCb - error: ${err}`)
+            super.emit('error', err)
+            callbackDone(err)
+            span?.setStatus({ code: SpanStatusCode.ERROR })
+          })
+          .finally(() => { span?.end() })
+        )
       }, this._config.options.syncConcurrency)
 
       // a callback function, invoked when queue is empty.
@@ -541,11 +553,10 @@ class Consumer extends EventEmitter {
           }
         } else {
           // lets transform the messages into the desired format
-          messages.map(msg => {
+          messages.forEach(msg => {
             const parsedValue = this._config.options.deserializeFn(msg.value, this._config.options)
             msg.value = parsedValue
             super.emit('message', msg)
-            return msg
           })
 
           if (Logger.isSillyEnabled) {
@@ -563,12 +574,15 @@ class Consumer extends EventEmitter {
               }
             })
           } else {
-            Promise.resolve(workDoneCb(error, messages)).then((response) => {
-              Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
-            }).catch((err) => {
-              Logger.isErrorEnabled && logger.error(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${err}`)
-              super.emit('error', err)
-            })
+            // todo: think how to start tracing span here (each message in the batch should have its own span?)
+            Promise.resolve(workDoneCb(error, messages))
+              .then((response) => {
+                Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${response}`)
+              })
+              .catch((err) => {
+                Logger.isErrorEnabled && logger.error(`Consumer::_consumePoller() - non-sync wokDoneCb response - ${err}`)
+                super.emit('error', err)
+              })
             super.emit('batch', messages)
           }
         }
@@ -614,11 +628,10 @@ class Consumer extends EventEmitter {
         }
       } else {
         // lets transform the messages into the desired format
-        messages.map(msg => {
+        messages.forEach(msg => {
           const parsedValue = this._config.options.deserializeFn(msg.value, this._config.options)
           msg.value = parsedValue
           super.emit('message', msg)
-          return msg
         })
 
         if (Logger.isSillyEnabled) {
@@ -655,14 +668,16 @@ class Consumer extends EventEmitter {
             }
           }
         } else {
-          Promise.resolve(workDoneCb(error, messages)).then((response) => {
-            Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
-            super.emit('recursive', error, messages)
-          }).catch((err) => {
-            Logger.isErrorEnabled && logger.error(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${err}`)
-            super.emit('recursive', error, messages)
-            super.emit('error', err)
-          })
+          // todo: think how to start tracing span here (each message in the batch should have its own span?)
+          Promise.resolve(workDoneCb(error, messages))
+            .then((response) => {
+              Logger.isDebugEnabled && logger.debug(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${response}`)
+              super.emit('recursive', error, messages)
+            }).catch((err) => {
+              Logger.isErrorEnabled && logger.error(`Consumer::_consumerRecursive() - non-sync wokDoneCb response - ${err}`)
+              super.emit('recursive', error, messages)
+              super.emit('error', err)
+            })
         }
         super.emit('batch', messages)
         return true
@@ -707,12 +722,14 @@ class Consumer extends EventEmitter {
             if (err) { Logger.isErrorEnabled && logger.error(err) }
           })
         } else {
-          Promise.resolve(workDoneCb(error, message)).then((response) => {
-            Logger.isDebugEnabled && logger.debug(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${response}`)
-          }).catch((err) => {
-            Logger.isErrorEnabled && logger.error(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${err}`)
-            super.emit('error', err)
-          })
+          // todo: think how to start tracing span here (each message in the batch should have its own span?)
+          Promise.resolve(workDoneCb(error, message))
+            .then((response) => {
+              Logger.isDebugEnabled && logger.debug(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${response}`)
+            }).catch((err) => {
+              Logger.isErrorEnabled && logger.error(`Consumer::_consumerFlow() - non-sync wokDoneCb response - ${err}`)
+              super.emit('error', err)
+            })
         }
         // super.emit('batch', message) // not applicable in flow mode since its one message at a time
       }
@@ -870,6 +887,42 @@ class Consumer extends EventEmitter {
 
   static _parseBuffer (buffer, encoding, asJson) {
     return Protocol.parseValue(buffer, encoding, asJson)
+  }
+
+  #startTracingSpan (payload) {
+    // think, how to start tracing span if payload has more than 1 message? (each message in the batch should have its own span?)
+    const { headers, topic } = Array.isArray(payload)
+      ? payload[0]
+      : payload
+
+    const otelHeaders = (!Array.isArray(headers) || headers.length === 0)
+      ? {}
+      : headers.reduce((acc, header) => {
+        Object.entries(header).forEach(([key, value]) => {
+          if (OTEL_HEADERS.includes(key)) acc[key] = value?.toString()
+        })
+        return acc
+      }, {})
+
+    const activeContext = Object.keys(otelHeaders).length
+      ? propagation.extract(context.active(), otelHeaders)
+      : context.active()
+
+    const span = tracer.startSpan(`RECEIVE:${topic}`, { kind: SpanKind.CONSUMER }, activeContext)
+    const newCtx = trace.setSpan(activeContext, span)
+
+    span.setAttributes({
+      'messaging.batch.message_count': this._config.options.batchSize,
+      'messaging.client.id': this._config.rdkafkaConf['client.id'],
+      'messaging.consumer.group.name': this._config.rdkafkaConf['group.id'],
+      'messaging.destination.name': topic,
+      'messaging.operation.name': 'receive',
+      'messaging.system': 'kafka',
+      'server.address': this._config.rdkafkaConf['metadata.broker.list']
+      // todo: add more attributes, use keys from @opentelemetry/semantic-conventions
+    })
+
+    return { span, newCtx }
   }
 }
 

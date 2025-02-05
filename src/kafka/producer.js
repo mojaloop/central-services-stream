@@ -589,7 +589,7 @@ class Producer extends EventEmitter {
     topicConf, parsedMessageBuffer, producedAt, customHeaders = []
   }) {
     return new Promise((resolve, reject) => {
-      tracer.startActiveSpan(`SEND_KAFKA_${topicConf.topicName}`, { kind: SpanKind.PRODUCER }, async (span) => {
+      tracer.startActiveSpan(`SEND:${topicConf.topicName}`, { kind: SpanKind.PRODUCER }, async (span) => {
         try {
           const tracingContext = {}
           propagation.inject(context.active(), tracingContext)
@@ -600,8 +600,9 @@ class Producer extends EventEmitter {
           Logger.isDebugEnabled && this._config.logger.debug(`Producer::headers: ${JSON.stringify(headers)}`)
 
           span.setAttributes({
-            'messaging.operation.name': 'send',
+            'messaging.client.id': this._config.rdkafkaConf['client.id'],
             'messaging.destination.name': topicConf.topicName,
+            'messaging.operation.name': 'send',
             'messaging.system': 'kafka',
             'server.address': this._config.rdkafkaConf['metadata.broker.list']
             // todo: add more attributes, use keys from @opentelemetry/semantic-conventions
