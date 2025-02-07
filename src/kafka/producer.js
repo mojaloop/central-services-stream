@@ -616,6 +616,7 @@ class Producer extends EventEmitter {
           resolve(result)
         } catch (err) {
           span.setStatus({ code: SpanStatusCode.ERROR, message: err.message })
+          span.recordException(err)
           reject(err)
         } finally {
           span.end()

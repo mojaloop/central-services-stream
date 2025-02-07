@@ -468,13 +468,14 @@ class Consumer extends EventEmitter {
         context.with(newCtx, () => Promise.resolve(workDoneCb(task.error, payload))
           .then((result) => {
             callbackDone(task.error, result) // this marks the completion of the processing by the worker
-            span?.setStatus({ code: SpanStatusCode.OK })
+            span.setStatus({ code: SpanStatusCode.OK })
           })
           .catch((err) => {
             Logger.isErrorEnabled && logger.error(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - workDoneCb - error: ${err}`)
             super.emit('error', err)
             callbackDone(err)
-            span?.setStatus({ code: SpanStatusCode.ERROR })
+            span.setStatus({ code: SpanStatusCode.ERROR })
+            span.recordException(err)
           })
           .finally(() => { span?.end() })
         )
