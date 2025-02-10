@@ -398,13 +398,13 @@ class Producer extends EventEmitter {
         throw new Error('message must be a string or an instance of Buffer.')
       }
 
-      Logger.isDebugEnabled && logger.debug(`Producer::send() - start: ${JSON.stringify({
+      Logger.isDebugEnabled && logger.debug(`Producer::sendMessage() - start: ${JSON.stringify({
           topicName: topicConf.topicName,
           partition: topicConf.partition,
           key: topicConf.key
         })}`)
 
-      Logger.isSillyEnabled && logger.silly(`Producer::send() - message: ${JSON.stringify(parsedMessage)}`)
+      Logger.isSillyEnabled && logger.silly(`Producer::sendMessage() - message: ${JSON.stringify(parsedMessage)}`)
 
       return this.#produceMessageWithTrace({
         topicConf, parsedMessageBuffer, producedAt, customHeaders
@@ -571,10 +571,10 @@ class Producer extends EventEmitter {
           (err, offset) => {
             // The offset if our acknowledgement level allows us to receive delivery offsets
             if (err) {
-              Logger.isWarnEnabled && logger.warn(err)
+              Logger.isWarnEnabled && logger.warn(`Producer::produce() - error: ${err?.stack}`)
               reject(err)
             } else {
-              Logger.isDebugEnabled && logger.debug(`Producer::send() - delivery-callback offset=${offset}`)
+              Logger.isDebugEnabled && logger.debug(`Producer::produce() - delivery-callback offset=${offset}`)
               resolve(offset)
             }
           })

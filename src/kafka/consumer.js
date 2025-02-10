@@ -51,7 +51,8 @@ require('async-exit-hook')(callback => Promise.allSettled(
 ).finally(callback))
 
 const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
-const { SemConv, OTEL_HEADERS } = require('../constants')
+const { SemConv } = require('../constants')
+const { extractOtelHeaders } = require('../helpers')
 
 const tracer = trace.getTracer('kafka')
 
@@ -895,15 +896,7 @@ class Consumer extends EventEmitter {
     const { headers, topic } = Array.isArray(payload)
       ? payload[0]
       : payload
-
-    const otelHeaders = (!Array.isArray(headers) || headers.length === 0)
-      ? {}
-      : headers.reduce((acc, header) => {
-        Object.entries(header).forEach(([key, value]) => {
-          if (OTEL_HEADERS.includes(key)) acc[key] = value?.toString()
-        })
-        return acc
-      }, {})
+    const otelHeaders = extractOtelHeaders(headers)
 
     const activeContext = Object.keys(otelHeaders).length
       ? propagation.extract(context.active(), otelHeaders)
