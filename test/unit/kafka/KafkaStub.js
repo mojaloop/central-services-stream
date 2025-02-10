@@ -325,10 +325,10 @@ class KafkaSyncProducer extends KafkaClient {
   flush () {
   }
 
-  produce (arg1, arg2, arg3, arg4, arg5, arg6) {
+  produce (arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
     const err = null
     const offset = 1
-    arg6(err, offset) // callback for deliver-report
+    arg7(err, offset) // callback for deliver-report
   }
 }
 
