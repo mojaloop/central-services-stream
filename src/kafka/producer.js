@@ -50,6 +50,7 @@ require('async-exit-hook')(callback => Promise.allSettled(
 ).finally(callback))
 
 const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
+const { SemConv } = require('../constants')
 
 const tracer = trace.getTracer('kafka-producer') // think, if we need to change it to clientId
 
@@ -600,12 +601,12 @@ class Producer extends EventEmitter {
           Logger.isDebugEnabled && this._config.logger.debug(`Producer::headers: ${JSON.stringify(headers)}`)
 
           span.setAttributes({
-            'messaging.client.id': this._config.rdkafkaConf['client.id'],
-            'messaging.destination.name': topicConf.topicName,
-            'messaging.operation.name': 'send',
-            'messaging.system': 'kafka',
-            'server.address': this._config.rdkafkaConf['metadata.broker.list']
-            // todo: add more attributes, use keys from @opentelemetry/semantic-conventions
+            [SemConv.ATTR_MESSAGING_CLIENT_ID]: this._config.rdkafkaConf['client.id'],
+            [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topicConf.topicName,
+            [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'send',
+            [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka',
+            [SemConv.ATTR_SERVER_ADDRESS]: this._config.rdkafkaConf['metadata.broker.list']
+            // think, if we need to add more attributes
           })
 
           const result = await this.#produceMessage({

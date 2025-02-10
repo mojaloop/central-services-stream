@@ -50,8 +50,8 @@ require('async-exit-hook')(callback => Promise.allSettled(
   Array.from(connectedClients).map(client => new Promise(resolve => client.disconnect(resolve)))
 ).finally(callback))
 
-const { OTEL_HEADERS } = require('../constants')
 const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
+const { SemConv, OTEL_HEADERS } = require('../constants')
 
 const tracer = trace.getTracer('kafka')
 
@@ -912,16 +912,16 @@ class Consumer extends EventEmitter {
     const span = tracer.startSpan(`RECEIVE:${topic}`, { kind: SpanKind.CONSUMER }, activeContext)
     const newCtx = trace.setSpan(activeContext, span)
 
-    span.setAttributes({
-      'messaging.batch.message_count': this._config.options.batchSize,
-      'messaging.client.id': this._config.rdkafkaConf['client.id'],
-      'messaging.consumer.group.name': this._config.rdkafkaConf['group.id'],
-      'messaging.destination.name': topic,
-      'messaging.operation.name': 'receive',
-      'messaging.system': 'kafka',
-      'server.address': this._config.rdkafkaConf['metadata.broker.list']
-      // todo: add more attributes, use keys from @opentelemetry/semantic-conventions
-    })
+  span.setAttributes({
+    [SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: this._config.options.batchSize,
+    [SemConv.ATTR_MESSAGING_CLIENT_ID]: this._config.rdkafkaConf['client.id'],
+    [SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME]: this._config.rdkafkaConf['group.id'],
+    [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topic,
+    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'receive',
+    [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka',
+    [SemConv.ATTR_SERVER_ADDRESS]: this._config.rdkafkaConf['metadata.broker.list']
+    // think, if we need more attributes
+  })
 
     return { span, newCtx }
   }
