@@ -550,7 +550,7 @@ class Consumer extends EventEmitter {
         if (error || !messages.length) {
           if (error) {
             super.emit('error', error)
-            Logger.isErrorEnabled && logger.error(`Consumer::_consumerPoller() - ERROR - ${error}`)
+            logger.error(`Consumer::_consumerPoller() - ERROR - ${error}`)
           } else {
             Logger.isSillyEnabled && logger.silly('Consumer::_consumerPoller() - POLL EMPTY PING')
           }
@@ -562,12 +562,10 @@ class Consumer extends EventEmitter {
             super.emit('message', msg)
           })
 
-          if (Logger.isSillyEnabled) {
-            if (this._config.options.messageAsJSON) {
-              Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
-            } else {
-              Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${messages}}`)
-            }
+          if (this._config.options.messageAsJSON) {
+            Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${JSON.stringify(messages)}}`)
+          } else {
+            Logger.isDebugEnabled && logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: ${messages}}`)
           }
 
           if (this._config.options.sync) {
