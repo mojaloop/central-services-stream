@@ -61,7 +61,7 @@
   },
   "devDependencies": {
     "@opentelemetry/auto-instrumentations-node": "0.56.0",
-    "@opentelemetry/sdk-node": "0.57.1",
+    "@opentelemetry/sdk-node": "0.57.2",
     "audit-ci": "^7.1.0",
     "npm-check-updates": "17.1.14",
     "nyc": "17.1.0",

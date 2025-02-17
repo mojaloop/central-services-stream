@@ -462,24 +462,25 @@ class Consumer extends EventEmitter {
         const payload = this._config.options.mode === ENUMS.CONSUMER_MODES.flow
           ? task.message
           : task.messages
-        // todo: think how to start tracing span if payload has more than 1 message? (each message in the batch should have its own span?)
 
-        const { span, newCtx } = this.#startTracingSpan(payload)
-
-        context.with(newCtx, () => Promise.resolve(workDoneCb(task.error, payload))
+        const workProcessing = () => Promise.resolve(workDoneCb(task.error, payload))
           .then((result) => {
             callbackDone(task.error, result) // this marks the completion of the processing by the worker
-            span.setStatus({ code: SpanStatusCode.OK })
           })
           .catch((err) => {
             Logger.isErrorEnabled && logger.error(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - workDoneCb - error: ${err}`)
             super.emit('error', err)
             callbackDone(err)
-            span.setStatus({ code: SpanStatusCode.ERROR })
-            span.recordException(err)
           })
-          .finally(() => { span?.end() })
-        )
+
+        if (payload.length > 1) {
+          // todo: add logic to start tracing span for each message in the batch (inside workDoneCb)
+          logger.warn('OTel tracing is not implemented yet for batch processing!')
+          workProcessing()
+        } else {
+          const { executeInsideSpanContext } = this.#startTracingSpan(payload)
+          executeInsideSpanContext(workProcessing)
+        }
       }, this._config.options.syncConcurrency)
 
       // a callback function, invoked when queue is empty.
@@ -891,7 +892,8 @@ class Consumer extends EventEmitter {
     return Protocol.parseValue(buffer, encoding, asJson)
   }
 
-  #startTracingSpan (payload) {
+  // todo: move to otelUtils?
+  #startTracingSpan (payload, spanName = '') {
     // think, how to start tracing span if payload has more than 1 message? (each message in the batch should have its own span?)
     const { headers, topic } = Array.isArray(payload)
       ? payload[0]
@@ -902,21 +904,36 @@ class Consumer extends EventEmitter {
       ? propagation.extract(context.active(), otelHeaders)
       : context.active()
 
-    const span = tracer.startSpan(`RECEIVE:${topic}`, { kind: SpanKind.CONSUMER }, activeContext)
-    const newCtx = trace.setSpan(activeContext, span)
+    const span = tracer.startSpan(spanName || `RECEIVE:${topic}`, { kind: SpanKind.CONSUMER }, activeContext)
+    const spanCtx = trace.setSpan(activeContext, span)
 
-  span.setAttributes({
-    [SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: this._config.options.batchSize,
-    [SemConv.ATTR_MESSAGING_CLIENT_ID]: this._config.rdkafkaConf['client.id'],
-    [SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME]: this._config.rdkafkaConf['group.id'],
-    [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topic,
-    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'receive',
-    [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka',
-    [SemConv.ATTR_SERVER_ADDRESS]: this._config.rdkafkaConf['metadata.broker.list']
-    // think, if we need more attributes
-  })
+    span.setAttributes({
+      [SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: this._config.options.batchSize,
+      [SemConv.ATTR_MESSAGING_CLIENT_ID]: this._config.rdkafkaConf['client.id'],
+      [SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME]: this._config.rdkafkaConf['group.id'],
+      [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topic,
+      [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'receive',
+      [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka',
+      [SemConv.ATTR_SERVER_ADDRESS]: this._config.rdkafkaConf['metadata.broker.list']
+      // think, if we need more attributes
+    })
 
-    return { span, newCtx }
+    return {
+      span,
+      spanCtx,
+      executeInsideSpanContext: (fn, withSpanEnd = true) => context.with(spanCtx, async () => {
+        try {
+          const result = await fn()
+          span.setStatus({ code: SpanStatusCode.OK })
+          return result
+        } catch (err) {
+          span.setStatus({ code: SpanStatusCode.ERROR })
+          span.recordException(err)
+        } finally {
+          if (withSpanEnd) span.end()
+        }
+      })
+    }
   }
 }
 
