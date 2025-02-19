@@ -78,8 +78,10 @@ Test('otel Tests -->', (otelTests) => {
       const error = new Error('Test error')
       const fn = () => { throw error }
       const span = createSpanStub()
+      const withSpanEnd = false
+      const rethrowError = false
 
-      await otel.executeAndSetSpanStatus(fn, span)
+      await otel.executeAndSetSpanStatus(fn, span, withSpanEnd, rethrowError)
       test.true(span.setStatus.calledWith({ code: SpanStatusCode.ERROR }), 'span.setStatus() was called with error code')
       test.true(span.recordException.calledWith(error), 'span.recordException() was called with error')
     }))

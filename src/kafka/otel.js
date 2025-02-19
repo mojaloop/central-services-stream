@@ -24,14 +24,14 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
   return {
     span,
     topic,
-    executeInsideSpanContext: async (fn, withSpanEnd = true) => context.with(
+    executeInsideSpanContext: async (fn, withSpanEnd = true, rethrowError = true) => context.with(
       spanCtx,
-      () => executeAndSetSpanStatus(fn, span, withSpanEnd)
+      () => executeAndSetSpanStatus(fn, span, withSpanEnd, rethrowError)
     )
   }
 }
 
-const executeAndSetSpanStatus = async (fn, span, withSpanEnd) => {
+const executeAndSetSpanStatus = async (fn, span, withSpanEnd, rethrowError) => {
   try {
     const result = await fn()
     span.setStatus({ code: SpanStatusCode.OK })
@@ -39,6 +39,7 @@ const executeAndSetSpanStatus = async (fn, span, withSpanEnd) => {
   } catch (err) {
     span.setStatus({ code: SpanStatusCode.ERROR })
     span.recordException(err)
+    if (rethrowError) throw err
   } finally {
     if (withSpanEnd) span.end()
   }
