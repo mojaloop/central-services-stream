@@ -66,7 +66,7 @@ const createHandler = async (topicName, config, command) => {
   let connectedTimeStamp = 0
   try {
     await consumer.connect()
-    Logger.isDebugEnabled && Logger.debug(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
+    Logger.isVerboseEnabled && Logger.verbose(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
     connectedTimeStamp = (new Date()).valueOf()
     await consumer.consume(command)
   } catch (e) {

@@ -4,7 +4,7 @@ const { OTEL_HEADERS, SemConv } = require('../constants')
 const tracer = trace.getTracer('kafka')
 
 /* istanbul ignore next */
-const startConsumerTracingSpan = (payload, spanName = '', spanAttrs = null) => {
+const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '', spanAttrs = null) => {
   // think, how to start tracing span if payload has more than 1 message? (each message in the batch should have its own span?)
   const { headers, topic } = Array.isArray(payload)
     ? payload[0]
@@ -18,6 +18,7 @@ const startConsumerTracingSpan = (payload, spanName = '', spanAttrs = null) => {
   const span = tracer.startSpan(spanName || `RECEIVE:${topic}`, { kind: SpanKind.CONSUMER }, activeContext)
   const spanCtx = trace.setSpan(activeContext, span)
 
+  if (consumerConfig) span.setAttributes(makeConsumerAttributes(consumerConfig, topic))
   if (spanAttrs) span.setAttributes(spanAttrs)
 
   return {

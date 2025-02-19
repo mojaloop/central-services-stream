@@ -472,11 +472,10 @@ class Consumer extends EventEmitter {
 
         const skipOtelSpan = this._config.options.disableOtelSpanAutoCreation || (payload.length > 1)
         if (skipOtelSpan) {
-          logger.verbose('OTel tracing logic can be implemented inside workDoneCb using otel.startConsumerTracingSpan')
+          Logger.isDebugEnabled && logger.debug('OTel tracing logic can be implemented inside workDoneCb using otel.startConsumerTracingSpan')
           workProcessing()
         } else {
-          const { span, topic, executeInsideSpanContext } = otel.startConsumerTracingSpan(payload)
-          span.setAttributes(otel.makeConsumerAttributes(this._config, topic))
+          const { executeInsideSpanContext } = otel.startConsumerTracingSpan(payload, this._config)
           executeInsideSpanContext(workProcessing)
         }
       }, this._config.options.syncConcurrency)
