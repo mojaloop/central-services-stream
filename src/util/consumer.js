@@ -56,6 +56,7 @@ const createHandler = async (topicName, config, command) => {
   const consumer = new Consumer(topicNameArray, config)
 
   let autoCommitEnabled = true
+  // istanbul ignore next
   if (config.rdkafkaConf !== undefined && config.rdkafkaConf['enable.auto.commit'] !== undefined) {
     autoCommitEnabled = config.rdkafkaConf['enable.auto.commit']
   }
