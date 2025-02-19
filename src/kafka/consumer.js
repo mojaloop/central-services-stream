@@ -91,8 +91,7 @@ exports.ENUMS = ENUMS
  * @typedef {object} KafkaConsumer~Message
  * @property {buffer} value - the message buffer from Kafka.
  * @property {string} topic - the topic name
- * @property {number} partition - the partition on the topic the
- * message was on
+ * @property {number} partition - the partition on the topic the message was on
  * @property {number} offset - the offset of the message
  * @property {string} key - the message key
  * @property {number} size - message size, in bytes.
@@ -119,6 +118,7 @@ exports.ENUMS = ENUMS
  * @property {boolean} messageAsJSON - Parse processed message from Kafka into a JSON object. Defaults: true
  * @property {boolean} sync - Ensures that messages are processed in order via a single thread. This may impact performance. Defaults: false
  * @property {number} consumeTimeout - Set the default consume timeout (milliseconds) provided to RDKafka c++land. Defaults: 1000
+ * @property {boolean} [disableOtelSpanAutoCreation] - Defines if kafka-stream lib should create OTel span automatically. Defaults: false
  *
  */
 
@@ -196,7 +196,7 @@ exports.ENUMS = ENUMS
  * @fires Consumer#batch
  * @fires Consumer#recursive
  *
- * @param {object} topics - List of topics that will be auto subscribed
+ * @param {string[]} topics - List of topics that will be auto subscribed
  * @param {object} config - Key value pairs for the configuration of the Consumer with the followin:
  * options - consumer processing configuration, topic - Key value pairs to create a default. @see Consumer~Options
  * rdkafkaConf - specific rdkafka condfigurations [Refer to RDKAFKA configuration doc]{@link https://github.com/edenhill/librdkafka/blob/0.11.1.x/CONFIGURATION.md}
@@ -220,7 +220,8 @@ class Consumer extends EventEmitter {
         sync: false,
         syncConcurrency: 1, // only applicable when sync=true
         syncSingleMessage: false, // only applicable when sync=true, and only applicable when mode=2 (i.e. RECURSIVE)
-        consumeTimeout: 1000
+        consumeTimeout: 1000,
+        disableOtelSpanAutoCreation: false
       }
     }
     if (!config.options.syncConcurrency) {
@@ -469,8 +470,9 @@ class Consumer extends EventEmitter {
             callbackDone(err)
           })
 
-        if (payload.length > 1) {
-          logger.info('OTel tracing logic can be implemented inside workDoneCb using otel.startConsumerTracingSpan')
+        const skipOtelSpan = this._config.options.disableOtelSpanAutoCreation || (payload.length > 1)
+        if (skipOtelSpan) {
+          logger.verbose('OTel tracing logic can be implemented inside workDoneCb using otel.startConsumerTracingSpan')
           workProcessing()
         } else {
           const { span, topic, executeInsideSpanContext } = otel.startConsumerTracingSpan(payload)

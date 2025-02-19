@@ -39,7 +39,7 @@ const listOfConsumers = {}
 /**
  * @function CreateHandler
  *
- * @param {string} topicName - the topic name to be registered for the required handler. Example: 'topic-dfsp1-transfer-prepare'
+ * @param {string | string[]} topicName - the topic name to be registered for the required handler. Example: 'topic-dfsp1-transfer-prepare'
  * @param {object} config - the config for the consumer for the specific functionality and action, retrieved from the default.json. Example: found in default.json 'KAFKA.CONSUMER.TRANSFER.PREPARE'
  * @param {function} command - the callback handler for the topic. Will be called when the topic is produced against. Example: Command.prepareHandler()
  *
@@ -50,13 +50,9 @@ const listOfConsumers = {}
  */
 const createHandler = async (topicName, config, command) => {
   Logger.isDebugEnabled && Logger.debug(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
-  let topicNameArray
-  if (Array.isArray(topicName)) {
-    topicNameArray = topicName
-  } else {
-    topicNameArray = [topicName]
-  }
-
+  const topicNameArray = Array.isArray(topicName)
+    ? topicName
+    : [topicName]
   const consumer = new Consumer(topicNameArray, config)
 
   let autoCommitEnabled = true
