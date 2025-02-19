@@ -32,7 +32,8 @@
 'use strict'
 
 module.exports = {
-  Producer: require('./producer'),
   Consumer: require('./consumer'),
-  Protocol: require('./protocol')
+  Producer: require('./producer'),
+  Protocol: require('./protocol'),
+  otel: require('./otel')
 }

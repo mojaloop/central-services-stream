@@ -50,11 +50,7 @@ require('async-exit-hook')(callback => Promise.allSettled(
   Array.from(connectedClients).map(client => new Promise(resolve => client.disconnect(resolve)))
 ).finally(callback))
 
-const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
-const { SemConv } = require('../constants')
-const { extractOtelHeaders } = require('../helpers')
-
-const tracer = trace.getTracer('kafka')
+const otel = require('./otel')
 
 /**
  * Consumer ENUMs
@@ -474,11 +470,11 @@ class Consumer extends EventEmitter {
           })
 
         if (payload.length > 1) {
-          // todo: add logic to start tracing span for each message in the batch (inside workDoneCb)
-          logger.warn('OTel tracing is not implemented yet for batch processing!')
+          logger.info('OTel tracing logic can be implemented inside workDoneCb using otel.startConsumerTracingSpan')
           workProcessing()
         } else {
-          const { executeInsideSpanContext } = this.#startTracingSpan(payload)
+          const { span, topic, executeInsideSpanContext } = otel.startConsumerTracingSpan(payload)
+          span.setAttributes(otel.makeConsumerAttributes(this._config, topic))
           executeInsideSpanContext(workProcessing)
         }
       }, this._config.options.syncConcurrency)
@@ -888,50 +884,6 @@ class Consumer extends EventEmitter {
 
   static _parseBuffer (buffer, encoding, asJson) {
     return Protocol.parseValue(buffer, encoding, asJson)
-  }
-
-  // todo: move to otelUtils?
-  #startTracingSpan (payload, spanName = '') {
-    // think, how to start tracing span if payload has more than 1 message? (each message in the batch should have its own span?)
-    const { headers, topic } = Array.isArray(payload)
-      ? payload[0]
-      : payload
-    const otelHeaders = extractOtelHeaders(headers)
-
-    const activeContext = Object.keys(otelHeaders).length
-      ? propagation.extract(context.active(), otelHeaders)
-      : context.active()
-
-    const span = tracer.startSpan(spanName || `RECEIVE:${topic}`, { kind: SpanKind.CONSUMER }, activeContext)
-    const spanCtx = trace.setSpan(activeContext, span)
-
-    span.setAttributes({
-      [SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: this._config.options.batchSize,
-      [SemConv.ATTR_MESSAGING_CLIENT_ID]: this._config.rdkafkaConf['client.id'],
-      [SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME]: this._config.rdkafkaConf['group.id'],
-      [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topic,
-      [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'receive',
-      [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka',
-      [SemConv.ATTR_SERVER_ADDRESS]: this._config.rdkafkaConf['metadata.broker.list']
-      // think, if we need more attributes
-    })
-
-    return {
-      span,
-      spanCtx,
-      executeInsideSpanContext: (fn, withSpanEnd = true) => context.with(spanCtx, async () => {
-        try {
-          const result = await fn()
-          span.setStatus({ code: SpanStatusCode.OK })
-          return result
-        } catch (err) {
-          span.setStatus({ code: SpanStatusCode.ERROR })
-          span.recordException(err)
-        } finally {
-          if (withSpanEnd) span.end()
-        }
-      })
-    }
   }
 }
 
