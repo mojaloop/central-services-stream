@@ -38,12 +38,13 @@
 'use strict'
 
 const Test = require('tapes')(require('tape'))
-const Consumer = require('../../../src/kafka').Consumer
-const ConsumerEnums = require('../../../src/kafka').Consumer.ENUMS
-const Logger = require('@mojaloop/central-services-logger')
 const Kafka = require('node-rdkafka')
 const Sinon = require('sinon')
+const Logger = require('@mojaloop/central-services-logger')
+const Consumer = require('../../../src/kafka').Consumer
+const ConsumerEnums = require('../../../src/kafka').Consumer.ENUMS
 const KafkaStubs = require('./KafkaStub')
+const { tryCatchEndTest } = require('#test/utils')
 
 Test('Consumer test', (consumerTests) => {
   let sandbox
@@ -2203,7 +2204,7 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
     })
   })
 
-  consumerTests.test('Test Consumer::connect - test KafkaConsumer events: event.log, event.error, error, stats enabled', (assert) => {
+  consumerTests.test('Test Consumer::connect - test KafkaConsumer events: event.log, event.error, error, stats enabled', tryCatchEndTest((assert) => {
     assert.plan(8)
 
     const modifiedConfig = { ...config }
@@ -2253,7 +2254,7 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
       assert.ok(result, 'connection result received')
       c.disconnect(discoCallback())
     })
-  })
+  }))
 
   consumerTests.end()
 })
