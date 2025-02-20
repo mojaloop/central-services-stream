@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.5.0](https://github.com/mojaloop/central-services-stream/compare/v11.4.4...v11.5.0) (2025-02-20)
+
+
+### Features
+
+* **csi-1161:** added otel to producer and consumer ([#155](https://github.com/mojaloop/central-services-stream/issues/155)) ([4244330](https://github.com/mojaloop/central-services-stream/commit/4244330b6fc76f0a99205053c2466682a25b389f))
+
 ### [11.4.4](https://github.com/mojaloop/central-services-stream/compare/v11.4.3...v11.4.4) (2025-02-20)
 
 ### [11.4.3](https://github.com/mojaloop/central-services-stream/compare/v11.4.2...v11.4.3) (2025-01-27)
