@@ -60,7 +60,7 @@
     "node-rdkafka": "2.18.0"
   },
   "devDependencies": {
-    "@opentelemetry/auto-instrumentations-node": "0.56.0",
+    "@opentelemetry/auto-instrumentations-node": "0.56.1",
     "@opentelemetry/sdk-node": "0.57.2",
     "audit-ci": "^7.1.0",
     "npm-check-updates": "17.1.14",
