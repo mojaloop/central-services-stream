@@ -71,3 +71,5 @@ typings/
 
 # Ignore test results
 **/test/results/*
+
+.rush
