@@ -422,7 +422,7 @@ class Consumer extends EventEmitter {
     }
 
     if (this._topics) {
-      logger.isSillyEnabled && logger.silly(`Consumer::subscribe() - subscribing too [${this._topics}]`)
+      logger.isSillyEnabled && logger.silly(`Consumer::subscribe() - subscribing to [${this._topics}]`)
       this._consumer.subscribe(this._topics)
     }
     logger.isSillyEnabled && logger.silly('Consumer::subscribe() - end')
