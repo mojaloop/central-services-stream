@@ -35,6 +35,7 @@ const Test = require('tapes')(require('tape'))
 const Consumer = require(`${src}`).Util.Consumer
 const KafkaConsumer = require(`${src}`).Kafka.Consumer
 const Logger = require('@mojaloop/central-services-logger')
+const { stateList } = require('../../../src/constants')
 
 Test('Consumer', ConsumerTest => {
   let sandbox
@@ -334,6 +335,98 @@ Test('Consumer', ConsumerTest => {
     })
 
     isConnectedTest.end()
+  })
+
+  ConsumerTest.test('getMetadataPromise should', getMetadataPromiseTest => {
+    getMetadataPromiseTest.test('resolve with metadata when no error', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const fakeConsumer = {
+        getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'admin' }] })
+      }
+      // Act
+      try {
+        const metadata = await ConsumerProxy.getMetadataPromise(fakeConsumer, 'admin')
+        test.deepEqual(metadata, { topics: [{ name: 'admin' }] }, 'Should resolve with metadata')
+      } catch (err) {
+        test.fail('Should not throw')
+      }
+      test.end()
+    })
+
+    getMetadataPromiseTest.test('reject with error when getMetadata returns error', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const fakeConsumer = {
+        getMetadata: (opts, cb) => cb(new Error('fail'), null)
+      }
+      // Act
+      try {
+        await ConsumerProxy.getMetadataPromise(fakeConsumer, 'admin')
+        test.fail('Should throw')
+      } catch (err) {
+        test.ok(err.message.includes('Error connecting to consumer: fail'), 'Should reject with error')
+      }
+      test.end()
+    })
+
+    getMetadataPromiseTest.end()
+  })
+
+  ConsumerTest.test('allConnected should', allConnectedTest => {
+    allConnectedTest.test('return OK if topic found in metadata', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const fakeConsumer = {
+        getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'admin' }] })
+      }
+      ConsumerProxy.__set__('listOfConsumers', {
+        admin: { consumer: fakeConsumer }
+      })
+      // Act
+      try {
+        const result = await ConsumerProxy.allConnected('admin')
+        test.equal(result, stateList.OK, 'Should return OK')
+      } catch (err) {
+        test.fail('Should not throw')
+      }
+      test.end()
+    })
+
+    allConnectedTest.test('throw error if topic not found in metadata', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const fakeConsumer = {
+        getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'otherTopic' }] })
+      }
+      ConsumerProxy.__set__('listOfConsumers', {
+        admin: { consumer: fakeConsumer }
+      })
+      // Act
+      try {
+        await ConsumerProxy.allConnected('admin')
+        test.fail('Should throw')
+      } catch (err) {
+        test.ok(err.message.includes('Connected to consumer, but admin not found.'), 'Should throw correct error')
+      }
+      test.end()
+    })
+
+    allConnectedTest.test('throw error if getConsumer throws', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      ConsumerProxy.__set__('listOfConsumers', {})
+      // Act
+      try {
+        await ConsumerProxy.allConnected('admin')
+        test.fail('Should throw')
+      } catch (err) {
+        test.ok(err.message.includes('No consumer found for topic admin'), 'Should throw correct error')
+      }
+      test.end()
+    })
+
+    allConnectedTest.end()
   })
 
   ConsumerTest.end()

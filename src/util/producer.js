@@ -1,8 +1,8 @@
 /*****
  License
  --------------
- Copyright © 2020-2025 Mojaloop Foundation
- The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
+ Copyright © 2017 Bill & Melinda Gates Foundation
+ The Mojaloop files are made available by the Bill & Melinda Gates Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
  http://www.apache.org/licenses/LICENSE-2.0
 
@@ -15,12 +15,12 @@
  should be listed with a '*' in the first column. People who have
  contributed from an organization can be listed under the organization
  that actually holds the copyright for their contributions (see the
- Mojaloop Foundation for an example). Those individuals should have
+ Gates Foundation organization for an example). Those individuals should have
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Mojaloop Foundation
- - Name Surname <name.surname@mojaloop.io>
+ * Gates Foundation
+ - Name Surname <name.surname@gatesfoundation.com>
 
  * Rajiv Mothilal <rajiv.mothilal@modusbox.com>
  * Miguel de Barros <miguel.debarros@modusbox.com>
@@ -36,13 +36,9 @@
 const Producer = require('../../src').Kafka.Producer
 const Logger = require('@mojaloop/central-services-logger')
 const ErrorHandler = require('@mojaloop/central-services-error-handling')
+const { stateList } = require('../constants')
 
 const listOfProducers = {}
-const stateList = {
-  PENDING: 'PENDING',
-  DOWN: 'DOWN',
-  OK: 'OK'
-}
 
 /**
  * @function ProduceMessage
@@ -157,8 +153,8 @@ const disconnect = async (topicName = null) => {
  *
  * @description This is used to get a producer with the topic name to send messages to a kafka topic
  *
- * @returns {Producer} - Returns consumer
- * @throws {Error} - if consumer not found for topic name
+ * @returns {Producer} - Returns producer
+ * @throws {Error} - if producer not found for topic name
  */
 const getProducer = (topicName) => {
   if (listOfProducers[topicName]) {
@@ -172,13 +168,18 @@ const getProducer = (topicName) => {
 /**
  * @function isConnected
  *
- * @param {string} topicName - the topic name of the consumer to check
+ * @param {string} topicName - the topic name of the producer to check
  *
- * @description Use this to determine whether or not we are connected to the broker. Internally, it calls `getMetadata` to determine
- * if the broker client is connected.
+ * @description
+ * Checks if the producer is connected to the broker. Note: Due to the underlying implementation of node-rdkafka,
+ * the `isConnected()` method only returns false if the producer is manually disconnected.
+ * For more robust checks (e.g., topic existence or partition assignment), use
+ * `getMetadataPromise` or `allConnected`.
+ *
+ * https://github.com/Blizzard/node-rdkafka/issues/217#issuecomment-313582908
  *
  * @returns boolean - if connected
- * @throws {Error} - if consumer can't be found or the consumer is not connected
+ * @throws {Error} - if producer can't be found or the producer is not connected
  */
 const isConnected = async (topicName = undefined) => {
   if (!topicName) {
