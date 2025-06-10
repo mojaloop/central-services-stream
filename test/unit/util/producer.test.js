@@ -37,6 +37,7 @@ const KafkaProducer = require(`${src}/kafka`).Producer
 const Producer = require(`${src}/util`).Producer
 const Uuid = require('uuid4')
 const Logger = require('@mojaloop/central-services-logger')
+const { stateList } = require(`${src}/constants`)
 
 const transfer = {
   transferId: 'b51ec534-ee48-4575-b6a9-ead2955b8999',
@@ -461,7 +462,7 @@ Test('Producer', producerTest => {
       }
 
       // Assert
-      test.equal(result, Producer.stateList.OK, 'isConnected should return true')
+      test.equal(result, stateList.OK, 'isConnected should return true')
       test.end()
     })
 

@@ -232,6 +232,5 @@ module.exports = {
   disconnect,
   isConnected,
   allConnected,
-  stateList,
   connectAll
 }
