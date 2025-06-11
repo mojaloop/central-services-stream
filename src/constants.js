@@ -10,7 +10,14 @@ const SemConv = Object.freeze({ // https://www.npmjs.com/package/@opentelemetry/
 
 const OTEL_HEADERS = ['traceparent', 'tracestate', 'baggage']
 
+const stateList = {
+  PENDING: 'PENDING',
+  DOWN: 'DOWN',
+  OK: 'OK'
+}
+
 module.exports = {
   SemConv,
-  OTEL_HEADERS
+  OTEL_HEADERS,
+  stateList
 }

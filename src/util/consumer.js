@@ -36,6 +36,7 @@
 const Consumer = require('../../src').Kafka.Consumer
 const Logger = require('@mojaloop/central-services-logger')
 const ErrorHandler = require('@mojaloop/central-services-error-handling')
+const { stateList } = require('../constants')
 
 const listOfConsumers = {}
 
@@ -140,11 +141,16 @@ const getListOfTopics = () => {
  *
  * @param {string} topicName - the topic name of the consumer to check
  *
- * @description Use this to determine whether or not we are connected to the broker. Internally, it calls `getMetadata` to determine
- * if the broker client is connected.
+ * @description
+ * Checks if the consumer is connected to the broker. Note: Due to the underlying implementation of node-rdkafka,
+ * the `isConnected()` method only returns false if the consumer is manually disconnected.
+ * For more robust checks (e.g., topic existence or partition assignment), use
+ * `getMetadataPromise` or `allConnected`.
  *
- * @returns boolean - if connected
- * @throws {Error} - if consumer can't be found or the consumer is not connected
+ * https://github.com/Blizzard/node-rdkafka/issues/217#issuecomment-313582908
+ *
+ * @returns {boolean} - true if the consumer is connected to at least one broker, false otherwise
+ * @throws {Error} - if consumer can't be found for the topic name or topicName is undefined
  */
 const isConnected = async (topicName = undefined) => {
   if (!topicName) {
@@ -155,11 +161,61 @@ const isConnected = async (topicName = undefined) => {
   return consumer.isConnected()
 }
 
+/**
+ * @function getMetadataPromise
+ *
+ * @param {object} consumer - the consumer class
+ * @param {string} topic - the topic name of the consumer to check
+ *
+ * @description Use this to determine whether or not we are connected to the broker. Internally, it calls `getMetadata` to determine
+ * if the broker client is connected.
+ *
+ * @returns object - resolve metadata object
+ * @throws {Error} - if consumer can't be found or the consumer is not connected
+ */
+const getMetadataPromise = (consumer, topic) => {
+  return new Promise((resolve, reject) => {
+    const cb = (err, metadata) => {
+      if (err) {
+        return reject(new Error(`Error connecting to consumer: ${err.message}`))
+      }
+
+      return resolve(metadata)
+    }
+    consumer.getMetadata({ topic, timeout: 6000 }, cb)
+  })
+}
+
+/**
+ * @function allConnected
+ *
+ * @param {string} topicName - the topic name of the consumer to check
+ *
+ * @description Use this to determine whether or not we are connected to the broker. Internally, it calls `getMetadata` to determine
+ * if the broker client is connected.
+ *
+ * @returns boolean - if connected
+ * @throws {Error} - if consumer can't be found or the consumer is not connected
+ */
+const allConnected = async topicName => {
+  const consumer = getConsumer(topicName)
+
+  const metadata = await getMetadataPromise(consumer, topicName)
+  const foundTopics = metadata.topics.map(topic => topic.name)
+  if (foundTopics.indexOf(topicName) === -1) {
+    Logger.isDebugEnabled && Logger.debug(`Connected to consumer, but ${topicName} not found.`)
+    throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to consumer, but ${topicName} not found.`)
+  }
+  return stateList.OK
+}
+
 module.exports = {
   Consumer,
   createHandler,
   getConsumer,
   getListOfTopics,
   isConsumerAutoCommitEnabled,
-  isConnected
+  isConnected,
+  getMetadataPromise,
+  allConnected
 }
