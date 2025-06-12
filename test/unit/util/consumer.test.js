@@ -374,54 +374,80 @@ Test('Consumer', ConsumerTest => {
   })
 
   ConsumerTest.test('allConnected should', allConnectedTest => {
-    allConnectedTest.test('return OK if topic found in metadata', async test => {
+    allConnectedTest.test('return stateList.OK if all topics are found in metadata', async test => {
       // Arrange
       const ConsumerProxy = rewire(`${src}/util/consumer`)
-      const fakeConsumer = {
-        getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'admin' }] })
+      const fakeConsumer1 = {
+        _consumer: {
+          getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'admin1' }, { name: 'admin2' }] })
+        }
+      }
+      const fakeConsumer2 = {
+        _consumer: {
+          getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'admin1' }, { name: 'admin2' }] })
+        }
       }
       ConsumerProxy.__set__('listOfConsumers', {
-        admin: { consumer: fakeConsumer }
+        admin1: { consumer: fakeConsumer1 },
+        admin2: { consumer: fakeConsumer2 }
       })
+
       // Act
       try {
-        const result = await ConsumerProxy.allConnected('admin')
-        test.equal(result, stateList.OK, 'Should return OK')
+        const result = await ConsumerProxy.allConnected()
+        test.equal(result, stateList.OK, 'Should return stateList.OK')
       } catch (err) {
         test.fail('Should not throw')
       }
       test.end()
     })
 
-    allConnectedTest.test('throw error if topic not found in metadata', async test => {
+    allConnectedTest.test('throw error if a topic is missing in metadata', async test => {
       // Arrange
       const ConsumerProxy = rewire(`${src}/util/consumer`)
-      const fakeConsumer = {
-        getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'otherTopic' }] })
+      const fakeConsumer1 = {
+        _consumer: {
+          getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'admin1' }] })
+        }
+      }
+      const fakeConsumer2 = {
+        _consumer: {
+          getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'admin1' }] })
+        }
       }
       ConsumerProxy.__set__('listOfConsumers', {
-        admin: { consumer: fakeConsumer }
+        admin1: { consumer: fakeConsumer1 },
+        admin2: { consumer: fakeConsumer2 }
       })
+
       // Act
       try {
-        await ConsumerProxy.allConnected('admin')
-        test.fail('Should throw')
+        await ConsumerProxy.allConnected()
+        test.fail('Should throw error')
       } catch (err) {
-        test.ok(err.message.includes('Connected to consumer, but admin not found.'), 'Should throw correct error')
+        test.ok(err.message.includes('Connected to consumer, but admin2 not found.'), 'Should throw error about missing topic')
       }
       test.end()
     })
 
-    allConnectedTest.test('throw error if getConsumer throws', async test => {
+    allConnectedTest.test('throw error if getMetadataPromise rejects', async test => {
       // Arrange
       const ConsumerProxy = rewire(`${src}/util/consumer`)
-      ConsumerProxy.__set__('listOfConsumers', {})
+      const fakeConsumer1 = {
+        _consumer: {
+          getMetadata: (opts, cb) => cb(new Error('fail'), null)
+        }
+      }
+      ConsumerProxy.__set__('listOfConsumers', {
+        admin1: { consumer: fakeConsumer1 }
+      })
+
       // Act
       try {
-        await ConsumerProxy.allConnected('admin')
-        test.fail('Should throw')
+        await ConsumerProxy.allConnected()
+        test.fail('Should throw error')
       } catch (err) {
-        test.ok(err.message.includes('No consumer found for topic admin'), 'Should throw correct error')
+        test.ok(err.message.includes('Error connecting to consumer: fail'), 'Should throw error from getMetadata')
       }
       test.end()
     })

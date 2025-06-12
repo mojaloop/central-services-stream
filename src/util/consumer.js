@@ -164,47 +164,42 @@ const isConnected = async (topicName = undefined) => {
 /**
  * @function getMetadataPromise
  *
- * @param {object} consumer - the consumer class
- * @param {string} topic - the topic name of the consumer to check
+ * @param {object} consumer - the consumer instance
  *
  * @description Use this to determine whether or not we are connected to the broker. Internally, it calls `getMetadata` to determine
  * if the broker client is connected.
  *
- * @returns object - resolve metadata object
- * @throws {Error} - if consumer can't be found or the consumer is not connected
+ * @returns {object} - resolve metadata object
+ * @throws {Error} - if Consumer can't be found or the consumer is not connected
  */
-const getMetadataPromise = (consumer, topic) => {
+const getMetadataPromise = async (consumer) => {
   return new Promise((resolve, reject) => {
     const cb = (err, metadata) => {
       if (err) {
         return reject(new Error(`Error connecting to consumer: ${err.message}`))
       }
-
       return resolve(metadata)
     }
-    consumer.getMetadata({ topic, timeout: 6000 }, cb)
+    consumer.getMetadata({ timeout: 6000 }, cb)
   })
 }
 
 /**
  * @function allConnected
  *
- * @param {string} topicName - the topic name of the consumer to check
+ * @description Checks if all consumers are connected to their respective topics.
  *
- * @description Use this to determine whether or not we are connected to the broker. Internally, it calls `getMetadata` to determine
- * if the broker client is connected.
- *
- * @returns boolean - if connected
- * @throws {Error} - if consumer can't be found or the consumer is not connected
+ * @returns {string} - stateList.OK if all consumers are connected to their topics
+ * @throws {Error} - if any consumer is not connected to its topic
  */
-const allConnected = async topicName => {
-  const consumer = getConsumer(topicName)
-
-  const metadata = await getMetadataPromise(consumer, topicName)
-  const foundTopics = metadata.topics.map(topic => topic.name)
-  if (foundTopics.indexOf(topicName) === -1) {
-    Logger.isDebugEnabled && Logger.debug(`Connected to consumer, but ${topicName} not found.`)
-    throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to consumer, but ${topicName} not found.`)
+const allConnected = async () => {
+  for (const [topic, consumerObj] of Object.entries(listOfConsumers)) {
+    const metadata = await getMetadataPromise(consumerObj.consumer._consumer)
+    const foundTopics = metadata.topics.map(t => t.name)
+    if (!foundTopics.includes(topic)) {
+      Logger.isDebugEnabled && Logger.debug(`Connected to consumer, but ${topic} not found.`)
+      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to consumer, but ${topic} not found.`)
+    }
   }
   return stateList.OK
 }
