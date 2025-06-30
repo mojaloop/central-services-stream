@@ -57,7 +57,7 @@
     "async": "3.2.6",
     "async-exit-hook": "2.0.1",
     "events": "3.3.0",
-    "node-rdkafka": "3.0.1"
+    "node-rdkafka": "3.4.1"
   },
   "devDependencies": {
     "@mojaloop/central-services-error-handling": "13.1.0",
