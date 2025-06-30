@@ -329,16 +329,16 @@ class Consumer extends EventEmitter {
           Logger.isSillyEnabled && logger.silly(`Consumer::onEventStats - ${JSON.stringify(eventData)}`)
           // Track connection health based on event.stats
           try {
-        const stats = typeof eventData === 'string' ? JSON.parse(eventData) : eventData
-        // Simple health check: if brokers[].state is "UP" for all brokers, consider healthy
-        let healthy = false
-        if (stats && stats.brokers) {
-          healthy = Object.values(stats.brokers).every(broker => broker.state === 'UP')
-        }
-        this._eventStatsConnectionHealthy = healthy
+            const stats = typeof eventData === 'string' ? JSON.parse(eventData) : eventData
+            // Simple health check: if brokers[].state is "UP" for all brokers, consider healthy
+            let healthy = false
+            if (stats && stats.brokers) {
+              healthy = Object.values(stats.brokers).every(broker => broker.state === 'UP')
+            }
+            this._eventStatsConnectionHealthy = healthy
           } catch (err) {
-        Logger.isErrorEnabled && logger.error(`Consumer::onEventStats - error parsing stats: ${err}`)
-        this._eventStatsConnectionHealthy = false
+            Logger.isErrorEnabled && logger.error(`Consumer::onEventStats - error parsing stats: ${err}`)
+            this._eventStatsConnectionHealthy = false
           }
           super.emit('event.stats', eventData)
         })
