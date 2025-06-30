@@ -62,7 +62,7 @@
   "devDependencies": {
     "@mojaloop/central-services-error-handling": "13.1.0",
     "@mojaloop/central-services-logger": "11.9.0",
-    "@opentelemetry/auto-instrumentations-node": "0.60.0",
+    "@opentelemetry/auto-instrumentations-node": "0.60.1",
     "@opentelemetry/sdk-node": "0.202.0",
     "audit-ci": "7.1.0",
     "npm-check-updates": "18.0.1",
@@ -70,7 +70,7 @@
     "pre-commit": "1.2.2",
     "replace": "1.2.2",
     "rewire": "8.0.0",
-    "sinon": "20.0.0",
+    "sinon": "21.0.0",
     "standard": "17.1.2",
     "standard-version": "9.5.0",
     "tap-spec": "5.0.0",

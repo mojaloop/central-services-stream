@@ -264,6 +264,7 @@ class Consumer extends EventEmitter {
     this._status.runningInConsumeOnceMode = false
     this._status.runningInConsumeMode = false
     this._status.running = false
+    this._eventStatsConnectionHealthy = true
 
     // setup default onReady emit handler
     Logger.isDebugEnabled && super.on('ready', arg => {
@@ -326,6 +327,19 @@ class Consumer extends EventEmitter {
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
         this._consumer.on('event.stats', (eventData) => {
           Logger.isSillyEnabled && logger.silly(`Consumer::onEventStats - ${JSON.stringify(eventData)}`)
+          // Track connection health based on event.stats
+          try {
+        const stats = typeof eventData === 'string' ? JSON.parse(eventData) : eventData
+        // Simple health check: if brokers[].state is "UP" for all brokers, consider healthy
+        let healthy = false
+        if (stats && stats.brokers) {
+          healthy = Object.values(stats.brokers).every(broker => broker.state === 'UP')
+        }
+        this._eventStatsConnectionHealthy = healthy
+          } catch (err) {
+        Logger.isErrorEnabled && logger.error(`Consumer::onEventStats - error parsing stats: ${err}`)
+        this._eventStatsConnectionHealthy = false
+          }
           super.emit('event.stats', eventData)
         })
       }
@@ -370,6 +384,14 @@ class Consumer extends EventEmitter {
         Logger.isSillyEnabled && logger.silly(`Consumer::connect() - metadata:  ${JSON.stringify(metadata)}`)
       })
     })
+  }
+
+  /**
+   * Returns whether the last event.stats indicated a healthy connection.
+   * @returns {boolean}
+   */
+  isEventStatsConnectionHealthy () {
+    return this._eventStatsConnectionHealthy
   }
 
   /**

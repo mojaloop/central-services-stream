@@ -433,7 +433,7 @@ Test('Producer', producerTest => {
       test.end()
     })
 
-    isConnectedTest.test('pass if the topicName is not supplied', async test => {
+    isConnectedTest.test('allConnected should return OK if all producers are healthy', async test => {
       // Arrange
       const ProducerProxy = rewire(`${src}/util/producer`)
       const metadata = {
@@ -446,10 +446,7 @@ Test('Producer', producerTest => {
       }
       ProducerProxy.__set__('listOfProducers', {
         admin: {
-          _producer: {
-            // Callback with error
-            getMetadata: (options, cb) => cb(null, metadata)
-          }
+          getMetadata: (options, cb) => cb(null, metadata)
         }
       })
 
@@ -462,7 +459,75 @@ Test('Producer', producerTest => {
       }
 
       // Assert
-      test.equal(result, stateList.OK, 'isConnected should return true')
+      test.equal(result, stateList.OK, 'allConnected should return OK')
+      test.end()
+    })
+
+    isConnectedTest.test('allConnected should throw if a topic is missing in metadata', async test => {
+      // Arrange
+      const ProducerProxy = rewire(`${src}/util/producer`)
+      const metadata = {
+        orig_broker_id: 0,
+        orig_broker_name: 'kafka:9092/0',
+        topics: [
+          { name: 'not-admin', partitions: [] }
+        ],
+        brokers: [{ id: 0, host: 'kafka', port: 9092 }]
+      }
+      ProducerProxy.__set__('listOfProducers', {
+        admin: {
+          getMetadata: (options, cb) => cb(null, metadata)
+        }
+      })
+
+      // Act
+      try {
+        await ProducerProxy.allConnected()
+        test.fail('Error not thrown')
+      } catch (err) {
+      // Assert
+        test.ok(err.message.includes('not found in metadata'), 'Should throw error for missing topic')
+      }
+      test.end()
+    })
+
+    isConnectedTest.test('allConnected should throw if isEventStatsConnectionHealthy returns false', async test => {
+      // Arrange
+      const ProducerProxy = rewire(`${src}/util/producer`)
+      ProducerProxy.__set__('listOfProducers', {
+        admin: {
+          isEventStatsConnectionHealthy: async () => false
+        }
+      })
+
+      // Act
+      try {
+        await ProducerProxy.allConnected()
+        test.fail('Error not thrown')
+      } catch (err) {
+      // Assert
+        test.ok(err.message.includes('is not healthy'), 'Should throw error for unhealthy connection')
+      }
+      test.end()
+    })
+
+    isConnectedTest.test('allConnected should throw if getMetadata returns error', async test => {
+      // Arrange
+      const ProducerProxy = rewire(`${src}/util/producer`)
+      ProducerProxy.__set__('listOfProducers', {
+        admin: {
+          getMetadata: (options, cb) => cb(new Error('metadata error'))
+        }
+      })
+
+      // Act
+      try {
+        await ProducerProxy.allConnected()
+        test.fail('Error not thrown')
+      } catch (err) {
+      // Assert
+        test.ok(err.message.includes('Error connecting to producer'), 'Should throw error for getMetadata error')
+      }
       test.end()
     })
 

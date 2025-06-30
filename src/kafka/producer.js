@@ -216,6 +216,7 @@ class Producer extends EventEmitter {
     this._status = {}
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
+    this._eventStatsConnectionHealthy = true
     Logger.isSillyEnabled && logger.silly('Producer::constructor() - end')
   }
 
@@ -287,6 +288,19 @@ class Producer extends EventEmitter {
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
         this._producer.on('event.stats', (eventData) => {
           Logger.isSillyEnabled && logger.silly(`Producer::onEventStats - ${JSON.stringify(eventData)}`)
+          // Track connection health based on event.stats
+          try {
+            const stats = typeof eventData === 'string' ? JSON.parse(eventData) : eventData
+            // Simple health check: if brokers[].state is "UP" for all brokers, consider healthy
+            let healthy = false
+            if (stats && stats.brokers) {
+              healthy = Object.values(stats.brokers).every(broker => broker.state === 'UP')
+            }
+            this._eventStatsConnectionHealthy = healthy
+          } catch (err) {
+            Logger.isErrorEnabled && logger.error(`Producer::onEventStats - error parsing stats: ${err}`)
+            this._eventStatsConnectionHealthy = false
+          }
           super.emit('event.stats', eventData)
         })
       }
@@ -494,6 +508,14 @@ class Producer extends EventEmitter {
       this._producer.getMetadata(metadataOptions, metaDatacCb)
       Logger.isSillyEnabled && logger.silly('Producer::getMetadataSync() - end')
     })
+  }
+
+  /**
+   * Returns the health status based on the last event.stats received.
+   * @returns {boolean}
+   */
+  isEventStatsConnectionHealthy () {
+    return this._eventStatsConnectionHealthy
   }
 
   async _getLag (partitionIds) {
