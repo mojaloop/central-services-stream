@@ -51,7 +51,7 @@ require('async-exit-hook')(callback => Promise.allSettled(
 ).finally(callback))
 
 const otel = require('./otel')
-const { kafkaBrokerStates } = require('../constants')
+const { trackConnectionHealth } = require('./shared')
 
 /**
  * Consumer ENUMs
@@ -328,20 +328,8 @@ class Consumer extends EventEmitter {
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
         this._consumer.on('event.stats', (eventData) => {
           Logger.isSillyEnabled && logger.silly(`Consumer::onEventStats - ${JSON.stringify(eventData)}`)
-          // Track connection health based on event.stats
-          try {
-            const stats = typeof eventData === 'string' ? JSON.parse(eventData) : eventData
-            // Simple health check: if brokers[].state is "UP" for all brokers, consider healthy
-            let healthy = false
-            if (stats && stats.brokers) {
-                // Use kafkaBrokerStates.UP from constants.js for comparison
-                healthy = Object.values(stats.brokers).every(broker => broker.state === kafkaBrokerStates.UP)
-            }
-            this._eventStatsConnectionHealthy = healthy
-          } catch (err) {
-            Logger.isErrorEnabled && logger.error(`Consumer::onEventStats - error parsing stats: ${err}`)
-            this._eventStatsConnectionHealthy = false
-          }
+          // Use shared trackConnectionHealth to update health status
+          this._eventStatsConnectionHealthy = trackConnectionHealth(eventData)
           super.emit('event.stats', eventData)
         })
       }

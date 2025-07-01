@@ -51,7 +51,7 @@ require('async-exit-hook')(callback => Promise.allSettled(
 
 const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
 const { SemConv } = require('../constants')
-const { kafkaBrokerStates } = require('../constants')
+const { trackConnectionHealth } = require('./shared')
 
 const tracer = trace.getTracer('kafka-producer') // think, if we need to change it to clientId
 
@@ -289,19 +289,7 @@ class Producer extends EventEmitter {
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
         this._producer.on('event.stats', (eventData) => {
           Logger.isSillyEnabled && logger.silly(`Producer::onEventStats - ${JSON.stringify(eventData)}`)
-          // Track connection health based on event.stats
-          try {
-            const stats = typeof eventData === 'string' ? JSON.parse(eventData) : eventData
-            // Simple health check: if brokers[].state is "UP" for all brokers, consider healthy
-            let healthy = false
-            if (stats && stats.brokers) {
-              healthy = Object.values(stats.brokers).every(broker => broker.state === kafkaBrokerStates.UP)
-            }
-            this._eventStatsConnectionHealthy = healthy
-          } catch (err) {
-            Logger.isErrorEnabled && logger.error(`Producer::onEventStats - error parsing stats: ${err}`)
-            this._eventStatsConnectionHealthy = false
-          }
+          this._eventStatsConnectionHealthy = trackConnectionHealth(eventData)
           super.emit('event.stats', eventData)
         })
       }
