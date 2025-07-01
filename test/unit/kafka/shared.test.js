@@ -165,5 +165,41 @@ Test('trackConnectionHealth', (t) => {
     assert.end()
   })
 
+  t.test('parses stats.message if it is a JSON string', (assert) => {
+    const eventData = {
+      message: JSON.stringify({
+        brokers: {
+          1: { state: kafkaBrokerStates.UP, nodename: 'broker1', nodeid: 1 }
+        }
+      })
+    }
+    assert.equal(trackConnectionHealth(eventData, Logger), true)
+    assert.end()
+  })
+
+  t.test('returns false and logs error if stats.message JSON parsing fails', (assert) => {
+    const eventData = {
+      message: '{invalid json'
+    }
+    assert.equal(trackConnectionHealth(eventData, Logger), false)
+    assert.ok(Logger.error.calledWithMatch(/error parsing nested stats\.message/), 'Logger.error should be called for nested stats.message')
+    assert.end()
+  })
+
+  t.test('returns false if stats.message is a string but not JSON and brokers is missing', (assert) => {
+    const eventData = {
+      message: '"not a brokers object"'
+    }
+    assert.equal(trackConnectionHealth(eventData, Logger), false)
+    assert.end()
+  })
+
+  t.test('returns false if stats.message is a JSON string with brokers missing', (assert) => {
+    const eventData = {
+      message: JSON.stringify({ foo: 'bar' })
+    }
+    assert.equal(trackConnectionHealth(eventData, Logger), false)
+    assert.end()
+  })
   t.end()
 })

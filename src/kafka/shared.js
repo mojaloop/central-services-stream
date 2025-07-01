@@ -8,15 +8,25 @@ const { kafkaBrokerStates } = require('../constants')
  */
 function trackConnectionHealth (eventData, logger) {
   try {
-    const stats = typeof eventData === 'string' ? JSON.parse(eventData) : eventData
+    let stats = typeof eventData === 'string' ? JSON.parse(eventData) : eventData
+    // If stats has a 'message' property, parse it as JSON
+    if (stats && typeof stats.message === 'string') {
+      try {
+        stats = JSON.parse(stats.message)
+      } catch (e) {
+        Logger.isErrorEnabled && logger.error(`Consumer::onEventStats - error parsing nested stats.message: ${e}`)
+        return false
+      }
+    }
     Logger.isDebugEnabled && logger.debug(`Consumer::onEventStats - stats: ${JSON.stringify(stats)}`)
     if (stats && stats.brokers) {
       let allHealthy = true
       for (const brokerId in stats.brokers) {
         const broker = stats.brokers[brokerId]
         const state = broker.state
-        const nodename = broker.nodename
-        const nodeid = broker.nodeid
+        // Use broker.name, broker.nodeid, broker.nodename if available, fallback to brokerId
+        const nodename = broker.nodename || broker.name || brokerId
+        const nodeid = broker.nodeid !== undefined ? broker.nodeid : brokerId
         Logger.isDebugEnabled && logger.debug(`Broker ${nodename} (ID: ${nodeid}) state: ${state}`)
         switch (state) {
           case kafkaBrokerStates.UP:
