@@ -289,7 +289,7 @@ class Producer extends EventEmitter {
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
         this._producer.on('event.stats', (eventData) => {
           Logger.isSillyEnabled && logger.silly(`Producer::onEventStats - ${JSON.stringify(eventData)}`)
-          this._eventStatsConnectionHealthy = trackConnectionHealth(eventData)
+          this._eventStatsConnectionHealthy = trackConnectionHealth(eventData, logger)
           super.emit('event.stats', eventData)
         })
       }

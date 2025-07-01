@@ -329,7 +329,7 @@ class Consumer extends EventEmitter {
         this._consumer.on('event.stats', (eventData) => {
           Logger.isSillyEnabled && logger.silly(`Consumer::onEventStats - ${JSON.stringify(eventData)}`)
           // Use shared trackConnectionHealth to update health status
-          this._eventStatsConnectionHealthy = trackConnectionHealth(eventData)
+          this._eventStatsConnectionHealthy = trackConnectionHealth(eventData, logger)
           super.emit('event.stats', eventData)
         })
       }

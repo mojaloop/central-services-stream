@@ -217,7 +217,7 @@ const allConnected = async () => {
   for (const [key, producer] of Object.entries(listOfProducers)) {
     // Use isEventStatsConnectionHealthy if available, otherwise fallback to metadata check
     if (typeof producer.isEventStatsConnectionHealthy === 'function') {
-      const healthy = await producer.isEventStatsConnectionHealthy()
+      const healthy = producer.isEventStatsConnectionHealthy()
       if (!healthy) {
         Logger.isDebugEnabled && Logger.debug(`Producer connection for topic ${key} is not healthy.`)
         throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Producer connection for topic ${key} is not healthy.`)
