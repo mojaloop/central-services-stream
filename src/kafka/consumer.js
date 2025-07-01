@@ -51,6 +51,7 @@ require('async-exit-hook')(callback => Promise.allSettled(
 ).finally(callback))
 
 const otel = require('./otel')
+const { kafkaBrokerStates } = require('../constants')
 
 /**
  * Consumer ENUMs
@@ -333,7 +334,8 @@ class Consumer extends EventEmitter {
             // Simple health check: if brokers[].state is "UP" for all brokers, consider healthy
             let healthy = false
             if (stats && stats.brokers) {
-              healthy = Object.values(stats.brokers).every(broker => broker.state === 'UP')
+                // Use kafkaBrokerStates.UP from constants.js for comparison
+                healthy = Object.values(stats.brokers).every(broker => broker.state === kafkaBrokerStates.UP)
             }
             this._eventStatsConnectionHealthy = healthy
           } catch (err) {
