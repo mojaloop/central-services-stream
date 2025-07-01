@@ -496,7 +496,7 @@ Test('Producer', producerTest => {
       const ProducerProxy = rewire(`${src}/util/producer`)
       ProducerProxy.__set__('listOfProducers', {
         admin: {
-          isEventStatsConnectionHealthy: async () => false
+          isEventStatsConnectionHealthy: () => false
         }
       })
 
