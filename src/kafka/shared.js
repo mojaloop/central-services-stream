@@ -9,6 +9,7 @@ const { kafkaBrokerStates } = require('../constants')
 function trackConnectionHealth (eventData, logger) {
   try {
     const stats = typeof eventData === 'string' ? JSON.parse(eventData) : eventData
+    Logger.isDebugEnabled && logger.debug(`Consumer::onEventStats - stats: ${JSON.stringify(stats)}`)
     if (stats && stats.brokers) {
       let allHealthy = true
       for (const brokerId in stats.brokers) {
