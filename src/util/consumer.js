@@ -210,7 +210,7 @@ const allConnected = async topicName => {
 
   const metadata = await getMetadataPromise(consumer, topicName)
   const foundTopics = metadata.topics.map(topic => topic.name)
-  if (foundTopics.indexOf(topicName) === -1) {
+  if (!foundTopics.includes(topicName)) {
     Logger.isDebugEnabled && Logger.debug(`Connected to consumer, but ${topicName} not found.`)
     throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to consumer, but ${topicName} not found.`)
   }
