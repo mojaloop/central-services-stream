@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.8.0](https://github.com/mojaloop/central-services-stream/compare/v11.7.0...v11.8.0) (2025-07-02)
+
+
+### Features
+
+* add more health logic using event stats ([#167](https://github.com/mojaloop/central-services-stream/issues/167)) ([42bebed](https://github.com/mojaloop/central-services-stream/commit/42bebed166878088d5e85996fd879abf79d63e09))
+
 ## [11.7.0](https://github.com/mojaloop/central-services-stream/compare/v11.6.1...v11.7.0) (2025-06-12)
 
 ### [11.6.1](https://github.com/mojaloop/central-services-stream/compare/v11.6.0...v11.6.1) (2025-06-11)
