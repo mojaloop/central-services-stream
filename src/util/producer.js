@@ -214,12 +214,22 @@ const getMetadataPromise = async (producer, topic) => {
 }
 
 const allConnected = async () => {
-  for (const [key, value] of Object.entries(listOfProducers)) {
-    const metadata = await getMetadataPromise(value._producer, key)
-    const foundTopics = metadata.topics.map(topic => topic.name)
-    if (foundTopics.indexOf(key) === -1) {
-      Logger.isDebugEnabled && Logger.debug(`Connected to producer, but ${key} not found.`)
-      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to producer, but ${key} not found.`)
+  for (const [key, producer] of Object.entries(listOfProducers)) {
+    // Use isEventStatsConnectionHealthy if available, otherwise fallback to metadata check
+    if (typeof producer.isEventStatsConnectionHealthy === 'function') {
+      const healthy = producer.isEventStatsConnectionHealthy()
+      if (!healthy) {
+        Logger.isDebugEnabled && Logger.debug(`Producer connection for topic ${key} is not healthy.`)
+        throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Producer connection for topic ${key} is not healthy.`)
+      }
+    } else {
+      // Fallback to metadata check
+      const metadata = await getMetadataPromise(producer, key)
+      const foundTopics = metadata.topics.map(topic => topic.name)
+      if (!foundTopics.includes(key)) {
+        Logger.isDebugEnabled && Logger.debug(`Connected to producer, but ${key} not found in metadata.`)
+        throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to producer, but ${key} not found in metadata.`)
+      }
     }
   }
   return stateList.OK

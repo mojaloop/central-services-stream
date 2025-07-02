@@ -51,6 +51,7 @@ require('async-exit-hook')(callback => Promise.allSettled(
 
 const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
 const { SemConv } = require('../constants')
+const { trackConnectionHealth } = require('./shared')
 
 const tracer = trace.getTracer('kafka-producer') // think, if we need to change it to clientId
 
@@ -216,6 +217,7 @@ class Producer extends EventEmitter {
     this._status = {}
     this._status.runningInProduceMode = false
     this._status.runningInProduceBatchMode = false
+    this._eventStatsConnectionHealthy = true
     Logger.isSillyEnabled && logger.silly('Producer::constructor() - end')
   }
 
@@ -287,6 +289,7 @@ class Producer extends EventEmitter {
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
         this._producer.on('event.stats', (eventData) => {
           Logger.isSillyEnabled && logger.silly(`Producer::onEventStats - ${JSON.stringify(eventData)}`)
+          this._eventStatsConnectionHealthy = trackConnectionHealth(eventData, logger)
           super.emit('event.stats', eventData)
         })
       }
@@ -494,6 +497,14 @@ class Producer extends EventEmitter {
       this._producer.getMetadata(metadataOptions, metaDatacCb)
       Logger.isSillyEnabled && logger.silly('Producer::getMetadataSync() - end')
     })
+  }
+
+  /**
+   * Returns the health status based on the last event.stats received.
+   * @returns {boolean}
+   */
+  isEventStatsConnectionHealthy () {
+    return this._eventStatsConnectionHealthy
   }
 
   async _getLag (partitionIds) {

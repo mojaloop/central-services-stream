@@ -51,6 +51,7 @@ require('async-exit-hook')(callback => Promise.allSettled(
 ).finally(callback))
 
 const otel = require('./otel')
+const { trackConnectionHealth } = require('./shared')
 
 /**
  * Consumer ENUMs
@@ -264,6 +265,7 @@ class Consumer extends EventEmitter {
     this._status.runningInConsumeOnceMode = false
     this._status.runningInConsumeMode = false
     this._status.running = false
+    this._eventStatsConnectionHealthy = true
 
     // setup default onReady emit handler
     Logger.isDebugEnabled && super.on('ready', arg => {
@@ -326,6 +328,8 @@ class Consumer extends EventEmitter {
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
         this._consumer.on('event.stats', (eventData) => {
           Logger.isSillyEnabled && logger.silly(`Consumer::onEventStats - ${JSON.stringify(eventData)}`)
+          // Use shared trackConnectionHealth to update health status
+          this._eventStatsConnectionHealthy = trackConnectionHealth(eventData, logger)
           super.emit('event.stats', eventData)
         })
       }
@@ -370,6 +374,14 @@ class Consumer extends EventEmitter {
         Logger.isSillyEnabled && logger.silly(`Consumer::connect() - metadata:  ${JSON.stringify(metadata)}`)
       })
     })
+  }
+
+  /**
+   * Returns whether the last event.stats indicated a healthy connection.
+   * @returns {boolean}
+   */
+  isEventStatsConnectionHealthy () {
+    return this._eventStatsConnectionHealthy
   }
 
   /**

@@ -16,8 +16,21 @@ const stateList = {
   OK: 'OK'
 }
 
+const kafkaBrokerStates = {
+  INIT: 'INIT',
+  DOWN: 'DOWN',
+  TRY_CONNECT: 'TRY_CONNECT',
+  CONNECT: 'CONNECT',
+  SSL_HANDSHAKE: 'SSL_HANDSHAKE',
+  AUTH_LEGACY: 'AUTH_LEGACY',
+  AUTH: 'AUTH',
+  UP: 'UP',
+  UPDATE: 'UPDATE'
+}
+
 module.exports = {
   SemConv,
   OTEL_HEADERS,
-  stateList
+  stateList,
+  kafkaBrokerStates
 }

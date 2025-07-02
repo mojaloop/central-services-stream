@@ -200,9 +200,17 @@ const getMetadataPromise = (consumer, topic) => {
 const allConnected = async topicName => {
   const consumer = getConsumer(topicName)
 
+  // Use the isEventStatsConnectionHealthy method from the consumer
+  if (typeof consumer.isEventStatsConnectionHealthy === 'function') {
+    if (!consumer.isEventStatsConnectionHealthy()) {
+      Logger.isDebugEnabled && Logger.debug(`Consumer event.stats indicates unhealthy connection for topic ${topicName}`)
+      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Consumer event.stats indicates unhealthy connection for topic ${topicName}`)
+    }
+  }
+
   const metadata = await getMetadataPromise(consumer, topicName)
   const foundTopics = metadata.topics.map(topic => topic.name)
-  if (foundTopics.indexOf(topicName) === -1) {
+  if (!foundTopics.includes(topicName)) {
     Logger.isDebugEnabled && Logger.debug(`Connected to consumer, but ${topicName} not found.`)
     throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to consumer, but ${topicName} not found.`)
   }

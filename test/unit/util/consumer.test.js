@@ -378,7 +378,8 @@ Test('Consumer', ConsumerTest => {
       // Arrange
       const ConsumerProxy = rewire(`${src}/util/consumer`)
       const fakeConsumer = {
-        getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'admin' }] })
+        getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'admin' }] }),
+        isEventStatsConnectionHealthy: undefined
       }
       ConsumerProxy.__set__('listOfConsumers', {
         admin: { consumer: fakeConsumer }
@@ -397,7 +398,8 @@ Test('Consumer', ConsumerTest => {
       // Arrange
       const ConsumerProxy = rewire(`${src}/util/consumer`)
       const fakeConsumer = {
-        getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'otherTopic' }] })
+        getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'otherTopic' }] }),
+        isEventStatsConnectionHealthy: undefined
       }
       ConsumerProxy.__set__('listOfConsumers', {
         admin: { consumer: fakeConsumer }
@@ -422,6 +424,26 @@ Test('Consumer', ConsumerTest => {
         test.fail('Should throw')
       } catch (err) {
         test.ok(err.message.includes('No consumer found for topic admin'), 'Should throw correct error')
+      }
+      test.end()
+    })
+
+    allConnectedTest.test('throw error if isEventStatsConnectionHealthy returns false', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const fakeConsumer = {
+        getMetadata: (opts, cb) => cb(null, { topics: [{ name: 'admin' }] }),
+        isEventStatsConnectionHealthy: () => false
+      }
+      ConsumerProxy.__set__('listOfConsumers', {
+        admin: { consumer: fakeConsumer }
+      })
+      // Act
+      try {
+        await ConsumerProxy.allConnected('admin')
+        test.fail('Should throw')
+      } catch (err) {
+        test.ok(err.message.includes('Consumer event.stats indicates unhealthy connection for topic admin'), 'Should throw correct error')
       }
       test.end()
     })

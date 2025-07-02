@@ -576,5 +576,105 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
     })
   })
 
+  producerTests.test('Test Producer::isEventStatsConnectionHealthy default', (assert) => {
+    const producer = new Producer(config)
+    assert.equal(producer.isEventStatsConnectionHealthy(), true, 'Default eventStatsConnectionHealthy should be true')
+    assert.end()
+  })
+
+  producerTests.test('Test Producer::isEventStatsConnectionHealthy after healthy event.stats', async (assert) => {
+    assert.plan(1)
+    const modifiedConfig = { ...config }
+    modifiedConfig.rdkafkaConf['statistics.interval.ms'] = 1
+
+    const producer = new Producer(modifiedConfig)
+    producer.on('ready', () => {
+      // Simulate healthy event.stats
+      const healthyStats = {
+        brokers: {
+          1: { state: 'UP' },
+          2: { state: 'UP' }
+        }
+      }
+      producer._producer.emit('event.stats', healthyStats)
+      assert.equal(producer.isEventStatsConnectionHealthy(), true, 'eventStatsConnectionHealthy should be true when all brokers are UP')
+      producer.disconnect()
+    })
+    await producer.connect()
+  })
+
+  producerTests.test('Test Producer::isEventStatsConnectionHealthy after unhealthy event.stats', async (assert) => {
+    assert.plan(1)
+    const modifiedConfig = { ...config }
+    modifiedConfig.rdkafkaConf['statistics.interval.ms'] = 1
+
+    const producer = new Producer(modifiedConfig)
+    producer.on('ready', () => {
+      // Simulate unhealthy event.stats
+      const unhealthyStats = {
+        brokers: {
+          1: { state: 'UP' },
+          2: { state: 'DOWN' }
+        }
+      }
+      producer._producer.emit('event.stats', unhealthyStats)
+      assert.equal(producer.isEventStatsConnectionHealthy(), false, 'eventStatsConnectionHealthy should be false when any broker is DOWN')
+      producer.disconnect()
+    })
+    await producer.connect()
+  })
+
+  producerTests.test('Test Producer::isEventStatsConnectionHealthy with malformed event.stats', async (assert) => {
+    assert.plan(1)
+    const modifiedConfig = { ...config }
+    modifiedConfig.rdkafkaConf['statistics.interval.ms'] = 1
+
+    const producer = new Producer(modifiedConfig)
+    producer.on('ready', () => {
+      // Simulate malformed event.stats (invalid JSON string)
+      producer._producer.emit('event.stats', '{notjson')
+      assert.equal(producer.isEventStatsConnectionHealthy(), false, 'eventStatsConnectionHealthy should be false on malformed stats')
+      producer.disconnect()
+    })
+    await producer.connect()
+  })
+
+  producerTests.test('Test Producer::isEventStatsConnectionHealthy with event.stats as string', async (assert) => {
+    assert.plan(1)
+    const modifiedConfig = { ...config }
+    modifiedConfig.rdkafkaConf['statistics.interval.ms'] = 1
+
+    const producer = new Producer(modifiedConfig)
+    producer.on('ready', () => {
+      // Simulate event.stats as JSON string
+      const statsString = JSON.stringify({
+        brokers: {
+          1: { state: 'UP' },
+          2: { state: 'UP' }
+        }
+      })
+      producer._producer.emit('event.stats', statsString)
+      assert.equal(producer.isEventStatsConnectionHealthy(), true, 'eventStatsConnectionHealthy should be true when all brokers are UP (string)')
+      producer.disconnect()
+    })
+    await producer.connect()
+  })
+
+  producerTests.test('Test Producer::isEventStatsConnectionHealthy with event.stats missing brokers', async (assert) => {
+    assert.plan(1)
+    const modifiedConfig = { ...config }
+    modifiedConfig.rdkafkaConf['statistics.interval.ms'] = 1
+
+    const producer = new Producer(modifiedConfig)
+    producer.on('ready', () => {
+      // Simulate event.stats with no brokers property
+      const stats = { foo: 'bar' }
+      producer._producer.emit('event.stats', stats)
+      assert.equal(producer.isEventStatsConnectionHealthy(), false, 'eventStatsConnectionHealthy should be false when brokers property is missing')
+      producer.disconnect()
+    })
+    await producer.connect()
+  })
+
   producerTests.end()
 })
