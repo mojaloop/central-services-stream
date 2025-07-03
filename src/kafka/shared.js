@@ -31,6 +31,7 @@ function trackConnectionHealth (eventData, logger) {
         switch (state) {
           case kafkaBrokerStates.UP:
           case kafkaBrokerStates.UPDATE:
+          case kafkaBrokerStates.INIT:
             Logger.isDebugEnabled && logger.debug('  -> Broker is HEALTHY')
             break
           case kafkaBrokerStates.DOWN:
