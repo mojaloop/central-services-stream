@@ -647,5 +647,119 @@ Test('Producer', producerTest => {
     connectAllTest.end()
   })
 
+  producerTest.test('producer health timer functionality', healthTest => {
+    let ProducerProxy
+    let clock
+
+    healthTest.beforeEach(t => {
+      sandbox = Sinon.createSandbox()
+      clock = sandbox.useFakeTimers()
+      ProducerProxy = rewire(`${src}/util/producer`)
+      sandbox.stub(Logger, 'isErrorEnabled').value(true)
+      sandbox.stub(Logger, 'isDebugEnabled').value(true)
+      t.end()
+    })
+
+    healthTest.afterEach(t => {
+      sandbox.restore()
+      t.end()
+    })
+
+    healthTest.test('should get and set producer health timer ms', async test => {
+      const defaultMs = ProducerProxy.getProducerHealthTimerMs()
+      test.ok(typeof defaultMs === 'number', 'Default timer ms is a number')
+      ProducerProxy.setProducerHealthTimerMs(5000)
+      test.equal(ProducerProxy.getProducerHealthTimerMs(), 5000, 'Timer ms updated')
+      ProducerProxy.setProducerHealthTimerMs(defaultMs)
+      test.end()
+    })
+
+    healthTest.test('should mark producer as unhealthy after timer expires', async test => {
+      // Arrange
+      const topicName = 'healthTopic'
+      const listOfProducers = {}
+      const fakeProducer = {
+        disconnect: sandbox.stub().resolves()
+      }
+      listOfProducers[topicName] = fakeProducer
+      ProducerProxy.__set__('listOfProducers', listOfProducers)
+      const producerHealth = {}
+      ProducerProxy.__set__('producerHealth', producerHealth)
+      ProducerProxy.setProducerHealthTimerMs(1000)
+
+      // Act: update health to false, should start timer
+      ProducerProxy.__get__('updateProducerHealth')(topicName, false)
+      test.equal(producerHealth[topicName].healthy, false, 'Producer marked unhealthy')
+      test.ok(producerHealth[topicName].timer, 'Timer is set')
+
+      // Fast-forward time
+      clock.tick(1001)
+      // Timer callback should have run
+      test.equal(producerHealth[topicName].healthy, false, 'Producer remains unhealthy after timer')
+
+      // Clean up
+      await ProducerProxy.disconnect(topicName)
+      test.end()
+    })
+
+    healthTest.test('should clear timer and mark healthy if updateProducerHealth called with true', async test => {
+      // Arrange
+      const topicName = 'healthTopic2'
+      const listOfProducers = {}
+      const fakeProducer = {
+        disconnect: sandbox.stub().resolves()
+      }
+      listOfProducers[topicName] = fakeProducer
+      ProducerProxy.__set__('listOfProducers', listOfProducers)
+      const producerHealth = {}
+      ProducerProxy.__set__('producerHealth', producerHealth)
+      ProducerProxy.setProducerHealthTimerMs(1000)
+
+      // Set unhealthy first
+      ProducerProxy.__get__('updateProducerHealth')(topicName, false)
+      test.equal(producerHealth[topicName].healthy, false, 'Producer marked unhealthy')
+      test.ok(producerHealth[topicName].timer, 'Timer is set')
+
+      // Now set healthy, should clear timer
+      ProducerProxy.__get__('updateProducerHealth')(topicName, true)
+      test.equal(producerHealth[topicName].healthy, true, 'Producer marked healthy')
+      test.equal(producerHealth[topicName].timer, null, 'Timer cleared')
+
+      // Fast-forward time to ensure timer does not fire
+      clock.tick(1001)
+      test.equal(producerHealth[topicName].healthy, true, 'Producer remains healthy after timer')
+
+      // Clean up
+      await ProducerProxy.disconnect(topicName)
+      test.end()
+    })
+
+    healthTest.test('should remove health entry and clear timer on disconnect', async test => {
+      // Arrange
+      const topicName = 'healthTopic3'
+      const listOfProducers = {}
+      const fakeProducer = {
+        disconnect: sandbox.stub().resolves()
+      }
+      listOfProducers[topicName] = fakeProducer
+      ProducerProxy.__set__('listOfProducers', listOfProducers)
+      const producerHealth = {}
+      ProducerProxy.__set__('producerHealth', producerHealth)
+      ProducerProxy.setProducerHealthTimerMs(1000)
+
+      // Set unhealthy to start timer
+      ProducerProxy.__get__('updateProducerHealth')(topicName, false)
+      test.ok(producerHealth[topicName], 'Health entry exists')
+      test.ok(producerHealth[topicName].timer, 'Timer is set')
+
+      // Disconnect should clear timer and remove health entry
+      await ProducerProxy.disconnect(topicName)
+      test.notOk(producerHealth[topicName], 'Health entry removed after disconnect')
+      test.end()
+    })
+
+    healthTest.end()
+  })
+
   producerTest.end()
 })

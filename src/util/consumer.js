@@ -41,6 +41,62 @@ const { stateList } = require('../constants')
 const listOfConsumers = {}
 
 /**
+ * Health tracking for consumers.
+ * Each topicName maps to an object: { healthy: boolean, timer: Timeout|null }
+ */
+const consumerHealth = {}
+
+// Default health timer duration in milliseconds
+let consumerHealthTimerMs = 10000
+
+/**
+ * Get the current consumer health timer duration in ms.
+ */
+function getConsumerHealthTimerMs () {
+  return consumerHealthTimerMs
+}
+
+/**
+ * Set the consumer health timer duration in ms.
+ * @param {number} ms
+ */
+function setConsumerHealthTimerMs (ms) {
+  consumerHealthTimerMs = ms
+}
+
+/**
+ * Wrapper for consumer.consume to track health.
+ * If an error occurs, sets a timer for consumerHealthTimerMs to mark unhealthy.
+ * Any successful consume clears the timer and marks healthy.
+ */
+function consumeWithHealthTracking (consumer, topicName, command) {
+  // Wrap the original command to track health
+  const wrappedCommand = async (error, messages) => {
+    if (error) {
+      // Start a timer if not already started
+      if (!consumerHealth[topicName]) consumerHealth[topicName] = { healthy: true, timer: null }
+      if (!consumerHealth[topicName].timer) {
+        consumerHealth[topicName].timer = setTimeout(() => {
+          consumerHealth[topicName].healthy = false
+          Logger.isWarnEnabled && Logger.warn(`Consumer health timer expired for topic ${topicName}, marking as unhealthy`)
+        }, consumerHealthTimerMs)
+      }
+    } else {
+      // On success, clear timer and mark healthy
+      if (!consumerHealth[topicName]) consumerHealth[topicName] = { healthy: true, timer: null }
+      if (consumerHealth[topicName].timer) {
+        clearTimeout(consumerHealth[topicName].timer)
+        consumerHealth[topicName].timer = null
+      }
+      consumerHealth[topicName].healthy = true
+    }
+    // Call the original command
+    return command(error, messages)
+  }
+  consumer.consume(wrappedCommand)
+}
+
+/**
  * @function CreateHandler
  *
  * @param {string | string[]} topicName - the topic name to be registered for the required handler. Example: 'topic-dfsp1-transfer-prepare'
@@ -73,7 +129,11 @@ const createHandler = async (topicName, config, command) => {
     await consumer.connect()
     Logger.isVerboseEnabled && Logger.verbose(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
     connectedTimeStamp = (new Date()).valueOf()
-    await consumer.consume(command)
+    // Use the health-tracking wrapper
+    topicNameArray.forEach(topic => {
+      consumerHealth[topic] = { healthy: true, timer: null }
+    })
+    consumeWithHealthTracking(consumer, topicNameArray[0], command)
   } catch (e) {
     // Don't throw the error, still keep track of the topic we tried to connect to
     Logger.isWarnEnabled && Logger.warn(`CreateHandler::connect - error: ${e}`)
@@ -198,6 +258,12 @@ const getMetadataPromise = (consumer, topic) => {
  * @throws {Error} - if consumer can't be found or the consumer is not connected
  */
 const allConnected = async topicName => {
+  // Use the health variable
+  if (consumerHealth[topicName] && consumerHealth[topicName].healthy === false) {
+    Logger.isDebugEnabled && Logger.debug(`Consumer health variable indicates unhealthy connection for topic ${topicName}`)
+    throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Consumer health variable indicates unhealthy connection for topic ${topicName}`)
+  }
+
   const consumer = getConsumer(topicName)
 
   // Use the isEventStatsConnectionHealthy method from the consumer
@@ -225,5 +291,7 @@ module.exports = {
   isConsumerAutoCommitEnabled,
   isConnected,
   getMetadataPromise,
-  allConnected
+  allConnected,
+  getConsumerHealthTimerMs,
+  setConsumerHealthTimerMs
 }

@@ -451,5 +451,66 @@ Test('Consumer', ConsumerTest => {
     allConnectedTest.end()
   })
 
+  ConsumerTest.test('Health timer functionality', healthTimerTest => {
+    healthTimerTest.test('should mark consumer as unhealthy after timer expires on error', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const topicName = 'healthTopic'
+      const config = { rdkafkaConf: {} }
+      let consumeCallback
+      // Fake Consumer with consume method that saves the callback
+      function FakeConsumer () {}
+      FakeConsumer.prototype.connect = async () => {}
+      FakeConsumer.prototype.consume = cb => { consumeCallback = cb }
+      ConsumerProxy.__set__('Consumer', FakeConsumer)
+      ConsumerProxy.setConsumerHealthTimerMs(50) // Set short timer
+
+      // Act
+      await ConsumerProxy.createHandler(topicName, config, () => {})
+      // Simulate error in consume callback
+      consumeCallback(new Error('fail'), null)
+      // Wait for timer to expire
+      setTimeout(() => {
+        const consumerHealth = ConsumerProxy.__get__('consumerHealth')
+        test.equal(consumerHealth[topicName].healthy, false, 'Should be unhealthy after timer')
+        test.end()
+      }, 70)
+    })
+
+    healthTimerTest.test('should clear health timer and mark healthy on success', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const topicName = 'healthTopic2'
+      const config = { rdkafkaConf: {} }
+      let consumeCallback
+      function FakeConsumer () {}
+      FakeConsumer.prototype.connect = async () => {}
+      FakeConsumer.prototype.consume = cb => { consumeCallback = cb }
+      ConsumerProxy.__set__('Consumer', FakeConsumer)
+      ConsumerProxy.setConsumerHealthTimerMs(100)
+      await ConsumerProxy.createHandler(topicName, config, () => {})
+      // Simulate error to start timer
+      consumeCallback(new Error('fail'), null)
+      // Simulate success before timer expires
+      setTimeout(() => {
+        consumeCallback(null, {})
+        const consumerHealth = ConsumerProxy.__get__('consumerHealth')
+        test.equal(consumerHealth[topicName].healthy, true, 'Should be healthy after success')
+        test.equal(consumerHealth[topicName].timer, null, 'Timer should be cleared')
+        test.end()
+      }, 30)
+    })
+
+    healthTimerTest.test('getConsumerHealthTimerMs and setConsumerHealthTimerMs should work', test => {
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      ConsumerProxy.setConsumerHealthTimerMs(1234)
+      const ms = ConsumerProxy.getConsumerHealthTimerMs()
+      test.equal(ms, 1234, 'Should get the value set')
+      test.end()
+    })
+
+    healthTimerTest.end()
+  })
+
   ConsumerTest.end()
 })

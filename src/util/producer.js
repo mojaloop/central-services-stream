@@ -38,9 +38,53 @@ const ErrorHandler = require('@mojaloop/central-services-error-handling')
 const { stateList } = require('../constants')
 
 const listOfProducers = {}
+const producerHealth = {} // { [topicName]: { healthy: boolean, timer: NodeJS.Timeout|null } }
+
+// Default health timer duration in milliseconds
+let producerHealthTimerMs = 10000
 
 /**
- * @function ProduceMessage
+ * Get the current producer health timer duration in ms.
+ */
+function getProducerHealthTimerMs () {
+  return producerHealthTimerMs
+}
+
+/**
+ * Set the producer health timer duration in ms.
+ * @param {number} ms
+ */
+function setProducerHealthTimerMs (ms) {
+  producerHealthTimerMs = ms
+}
+
+/**
+ * @function updateProducerHealth
+ * Updates the health status for a producer and manages the timer.
+ */
+const updateProducerHealth = (topicName, isHealthy) => {
+  if (!producerHealth[topicName]) {
+    producerHealth[topicName] = { healthy: true, timer: null }
+  }
+  if (isHealthy) {
+    producerHealth[topicName].healthy = true
+    if (producerHealth[topicName].timer) {
+      clearTimeout(producerHealth[topicName].timer)
+      producerHealth[topicName].timer = null
+    }
+  } else {
+    producerHealth[topicName].healthy = false
+    if (producerHealth[topicName].timer) {
+      clearTimeout(producerHealth[topicName].timer)
+    }
+    producerHealth[topicName].timer = setTimeout(() => {
+      producerHealth[topicName].healthy = false
+    }, producerHealthTimerMs)
+  }
+}
+
+/**
+ * @function produceMessage
  *
  * @param {object} messageProtocol - message being created against topic
  * @param {object} topicConf - configuration for the topic to produce to
@@ -67,10 +111,12 @@ const produceMessage = async (messageProtocol, topicConf, config) => {
     Logger.isDebugEnabled && Logger.debug(`Producer.sendMessage::messageProtocol:'${JSON.stringify(messageProtocol)}'`)
     await producer.sendMessage(messageProtocol, topicConf)
     Logger.isDebugEnabled && Logger.debug('Producer::end')
+    updateProducerHealth(topicConf.topicName, true)
     return true
   } catch (err) {
     Logger.isErrorEnabled && Logger.error(err)
     Logger.isDebugEnabled && Logger.debug(`Producer error has occurred for ${topicConf.topicName}`)
+    updateProducerHealth(topicConf.topicName, false)
     throw ErrorHandler.Factory.reformatFSPIOPError(err)
   }
 }
@@ -95,10 +141,12 @@ const connectAll = async (configs) => {
         await producer.connect()
         Logger.isDebugEnabled && Logger.debug('Producer::connect::end')
         listOfProducers[config.topicConfig.topicName] = producer
+        updateProducerHealth(config.topicConfig.topicName, true)
       }
     } catch (err) {
       Logger.isErrorEnabled && Logger.error(err)
       Logger.isDebugEnabled && Logger.debug(`Producer error has occurred for ${config.topicConf.topicName}`)
+      updateProducerHealth(config.topicConfig.topicName, false)
     }
   }
 }
@@ -106,6 +154,12 @@ const connectAll = async (configs) => {
 const disconnectAndRemoveProducer = async (topicName) => {
   await getProducer(topicName).disconnect()
   delete listOfProducers[topicName]
+  if (producerHealth[topicName]) {
+    if (producerHealth[topicName].timer) {
+      clearTimeout(producerHealth[topicName].timer)
+    }
+    delete producerHealth[topicName]
+  }
 }
 
 /**
@@ -215,6 +269,11 @@ const getMetadataPromise = async (producer, topic) => {
 
 const allConnected = async () => {
   for (const [key, producer] of Object.entries(listOfProducers)) {
+    // Use health variable first
+    if (producerHealth[key] && !producerHealth[key].healthy) {
+      Logger.isDebugEnabled && Logger.debug(`Producer health for topic ${key} is not healthy.`)
+      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Producer health for topic ${key} is not healthy.`)
+    }
     // Use isEventStatsConnectionHealthy if available, otherwise fallback to metadata check
     if (typeof producer.isEventStatsConnectionHealthy === 'function') {
       const healthy = producer.isEventStatsConnectionHealthy()
@@ -241,5 +300,7 @@ module.exports = {
   disconnect,
   isConnected,
   allConnected,
-  connectAll
+  connectAll,
+  getProducerHealthTimerMs,
+  setProducerHealthTimerMs
 }
