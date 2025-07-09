@@ -448,6 +448,53 @@ Test('Consumer', ConsumerTest => {
       test.end()
     })
 
+    allConnectedTest.test('should throw error if consumerHealth timer marks unhealthy', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const topicName = 'admin'
+      // Set consumerHealth to unhealthy
+      const consumerHealth = {}
+      consumerHealth[topicName] = { healthy: false, timer: {} }
+      ConsumerProxy.__set__('consumerHealth', consumerHealth)
+      ConsumerProxy.__set__('listOfConsumers', {
+        admin: { consumer: { getMetadata: () => {}, isEventStatsConnectionHealthy: undefined } }
+      })
+      // Act
+      try {
+        await ConsumerProxy.allConnected(topicName)
+        test.fail('Should throw')
+      } catch (err) {
+        test.ok(
+          err.message.includes('Consumer health variable indicates unhealthy connection for topic admin'),
+          'Should throw correct error for unhealthy timer'
+        )
+      }
+      test.end()
+    })
+
+    allConnectedTest.test('should not throw error if consumerHealth is healthy', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const topicName = 'admin'
+      const consumerHealth = {}
+      consumerHealth[topicName] = { healthy: true, timer: null }
+      ConsumerProxy.__set__('consumerHealth', consumerHealth)
+      const fakeConsumer = {
+        getMetadata: (opts, cb) => cb(null, { topics: [{ name: topicName }] }),
+        isEventStatsConnectionHealthy: undefined
+      }
+      ConsumerProxy.__set__('listOfConsumers', {
+        admin: { consumer: fakeConsumer }
+      })
+      // Act
+      try {
+        const result = await ConsumerProxy.allConnected(topicName)
+        test.equal(result, stateList.OK, 'Should return OK if healthy')
+      } catch (err) {
+        test.fail('Should not throw')
+      }
+      test.end()
+    })
     allConnectedTest.end()
   })
 
@@ -509,6 +556,126 @@ Test('Consumer', ConsumerTest => {
       test.end()
     })
 
+    healthTimerTest.test('consumeWithHealthTracking should call command with error and set timer', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const topicName = 'testTopic'
+      const config = { rdkafkaConf: {} }
+      let consumeCallback
+      let commandCalled = false
+      let commandErrorArg = null
+      function FakeConsumer () {}
+      FakeConsumer.prototype.connect = async () => {}
+      FakeConsumer.prototype.consume = cb => { consumeCallback = cb }
+      ConsumerProxy.__set__('Consumer', FakeConsumer)
+      ConsumerProxy.setConsumerHealthTimerMs(50)
+      const command = (error, messages) => {
+        commandCalled = true
+        commandErrorArg = error
+      }
+      await ConsumerProxy.createHandler(topicName, config, command)
+      // Act
+      const errorObj = new Error('consume error')
+      consumeCallback(errorObj, null)
+      // Assert
+      setTimeout(() => {
+        test.ok(commandCalled, 'command should be called')
+        test.equal(commandErrorArg, errorObj, 'command should receive error')
+        const consumerHealth = ConsumerProxy.__get__('consumerHealth')
+        test.equal(typeof consumerHealth[topicName].timer, 'object', 'timer should be set')
+        test.end()
+      }, 10)
+    })
+
+    healthTimerTest.test('consumeWithHealthTracking should clear timer and mark healthy on success', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const topicName = 'testTopic2'
+      const config = { rdkafkaConf: {} }
+      let consumeCallback
+      let commandCalled = false
+      function FakeConsumer () {}
+      FakeConsumer.prototype.connect = async () => {}
+      FakeConsumer.prototype.consume = cb => { consumeCallback = cb }
+      ConsumerProxy.__set__('Consumer', FakeConsumer)
+      ConsumerProxy.setConsumerHealthTimerMs(50)
+      const command = (error, messages) => {
+        commandCalled = true
+        if (error) {
+          // Handle or log the error to satisfy standard style
+          // eslint-disable-next-line no-console
+          console.error(error)
+        }
+        // Optionally reference messages if needed
+        // messages is intentionally unused
+      }
+      await ConsumerProxy.createHandler(topicName, config, command)
+      // Simulate error to start timer
+      consumeCallback(new Error('fail'), null)
+      // Simulate success to clear timer
+      setTimeout(() => {
+        consumeCallback(null, { foo: 'bar' })
+        const consumerHealth = ConsumerProxy.__get__('consumerHealth')
+        test.equal(consumerHealth[topicName].healthy, true, 'Should be healthy after success')
+        test.equal(consumerHealth[topicName].timer, null, 'Timer should be cleared')
+        test.ok(commandCalled, 'command should be called')
+        test.end()
+      }, 10)
+    })
+
+    healthTimerTest.test('consumeWithHealthTracking should not start multiple timers for repeated errors', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const topicName = 'testTopic3'
+      const config = { rdkafkaConf: {} }
+      let consumeCallback
+      function FakeConsumer () {}
+      FakeConsumer.prototype.connect = async () => {}
+      FakeConsumer.prototype.consume = cb => { consumeCallback = cb }
+      ConsumerProxy.__set__('Consumer', FakeConsumer)
+      ConsumerProxy.setConsumerHealthTimerMs(30)
+      const command = () => {}
+      await ConsumerProxy.createHandler(topicName, config, command)
+      // Simulate error to start timer
+      consumeCallback(new Error('fail1'), null)
+      const consumerHealth = ConsumerProxy.__get__('consumerHealth')
+      const timer1 = consumerHealth[topicName].timer
+      // Simulate another error before timer expires
+      consumeCallback(new Error('fail2'), null)
+      const timer2 = consumerHealth[topicName].timer
+      test.equal(timer1, timer2, 'Timer should not be replaced on repeated errors')
+      setTimeout(() => {
+        test.equal(consumerHealth[topicName].healthy, false, 'Should be unhealthy after timer')
+        test.end()
+      }, 40)
+    })
+
+    healthTimerTest.test('consumeWithHealthTracking should initialize consumerHealth entry if missing', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const topicName = 'testTopic4'
+      const config = { rdkafkaConf: {} }
+      let consumeCallback
+      function FakeConsumer () {}
+      FakeConsumer.prototype.connect = async () => {}
+      FakeConsumer.prototype.consume = cb => { consumeCallback = cb }
+      ConsumerProxy.__set__('Consumer', FakeConsumer)
+      ConsumerProxy.setConsumerHealthTimerMs(20)
+      const command = () => {}
+      await ConsumerProxy.createHandler(topicName, config, command)
+      // Remove consumerHealth entry to simulate missing
+      const consumerHealth = ConsumerProxy.__get__('consumerHealth')
+      delete consumerHealth[topicName]
+      // Act
+      consumeCallback(new Error('fail'), null)
+      // Assert
+      setTimeout(() => {
+        const consumerHealth2 = ConsumerProxy.__get__('consumerHealth')
+        test.ok(consumerHealth2[topicName], 'consumerHealth entry should be initialized')
+        test.equal(consumerHealth2[topicName].healthy, false, 'Should be unhealthy after timer')
+        test.end()
+      }, 30)
+    })
     healthTimerTest.end()
   })
 
