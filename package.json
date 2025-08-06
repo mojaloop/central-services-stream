@@ -57,7 +57,7 @@
     "async": "3.2.6",
     "async-exit-hook": "2.0.1",
     "events": "3.3.0",
-    "node-rdkafka": "3.3.1"
+    "node-rdkafka": "3.4.1"
   },
   "devDependencies": {
     "@mojaloop/central-services-error-handling": "13.1.0",
@@ -65,7 +65,7 @@
     "@opentelemetry/auto-instrumentations-node": "0.62.0",
     "@opentelemetry/sdk-node": "0.203.0",
     "audit-ci": "7.1.0",
-    "npm-check-updates": "18.0.1",
+    "npm-check-updates": "18.0.2",
     "nyc": "17.1.0",
     "pre-commit": "1.2.2",
     "replace": "1.2.2",
