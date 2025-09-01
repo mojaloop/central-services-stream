@@ -307,8 +307,8 @@ class Consumer extends EventEmitter {
 
       this._consumer.setDefaultConsumeTimeout(this._config.options.consumeTimeout)
 
-      Logger.isDebugEnabled && this._consumer.on('warning', warn => {
-        Logger.isDebugEnabled && logger.debug(`Consumer::onWarning - ${JSON.stringify(warn)}`)
+      Logger.isWarnEnabled && this._consumer.on('warning', warn => {
+        Logger.isWarnEnabled && logger.warn(`Consumer::onWarning - ${JSON.stringify(warn)}`)
       })
 
       this._consumer.on('event.log', log => {
@@ -316,12 +316,12 @@ class Consumer extends EventEmitter {
       })
 
       this._consumer.on('event.error', error => {
-        Logger.isDebugEnabled && logger.debug(`Consumer::onEventError  - ${JSON.stringify(error)}`)
+        Logger.isErrorEnabled && logger.error(`Consumer::onEventError  - ${JSON.stringify(error)}`)
         super.emit('error', error)
       })
 
       this._consumer.on('event.throttle', eventData => {
-        Logger.isDebugEnabled && logger.debug(`Consumer::onEventThrottle - ${JSON.stringify(eventData)}`)
+        Logger.isWarnEnabled && logger.warn(`Consumer::onEventThrottle - ${JSON.stringify(eventData)}`)
         super.emit('event.throttle', eventData)
       })
 
@@ -335,7 +335,7 @@ class Consumer extends EventEmitter {
       }
 
       this._consumer.on('error', error => {
-        Logger.isDebugEnabled && logger.debug(`Consumer::onError - ${JSON.stringify(error)}`)
+        Logger.isErrorEnabled && logger.error(`Consumer::onError - ${JSON.stringify(error)}`)
         super.emit('error', error)
       })
 
@@ -346,7 +346,7 @@ class Consumer extends EventEmitter {
 
       this._consumer.on('disconnected', (metrics) => {
         connectedClients.delete(this)
-        Logger.isDebugEnabled && logger.debug(`Consumer::onDisconnected - ${JSON.stringify(metrics)}`)
+        Logger.isWarnEnabled && logger.warn(`Consumer::onDisconnected - ${JSON.stringify(metrics)}`)
         super.emit('disconnected', metrics)
       })
 
