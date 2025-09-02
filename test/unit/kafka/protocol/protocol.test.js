@@ -1,6 +1,6 @@
 const Test = require('tapes')(require('tape'))
 const Protocol = require('../../../../src/kafka').Protocol
-const logger = require('../../../src/lib/logger').logger
+const logger = require('../../../../src/lib/logger').logger
 const Sinon = require('sinon')
 
 const reason = {
