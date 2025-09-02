@@ -33,9 +33,9 @@
  */
 
 const Producer = require('../../src').Kafka.Producer
-const Logger = require('@mojaloop/central-services-logger')
 const ErrorHandler = require('@mojaloop/central-services-error-handling')
 const { stateList } = require('../constants')
+const logger = require('../lib/logger').logger
 
 const listOfProducers = {}
 const producerHealth = {} // { [topicName]: { healthy: boolean, timer: NodeJS.Timeout|null } }
@@ -101,21 +101,21 @@ const produceMessage = async (messageProtocol, topicConf, config) => {
     if (listOfProducers[topicConf.topicName]) {
       producer = listOfProducers[topicConf.topicName]
     } else {
-      Logger.isDebugEnabled && Logger.debug('Producer::start::topic=' + topicConf.topicName)
+      logger.debug('Producer::start::topic=' + topicConf.topicName)
       producer = new Producer(config)
-      Logger.isDebugEnabled && Logger.debug('Producer::connect::start')
+      logger.debug('Producer::connect::start')
       await producer.connect()
-      Logger.isDebugEnabled && Logger.debug('Producer::connect::end')
+      logger.debug('Producer::connect::end')
       listOfProducers[topicConf.topicName] = producer
     }
-    Logger.isDebugEnabled && Logger.debug(`Producer.sendMessage::messageProtocol:'${JSON.stringify(messageProtocol)}'`)
+    logger.debug(`Producer.sendMessage::messageProtocol:'${JSON.stringify(messageProtocol)}'`)
     await producer.sendMessage(messageProtocol, topicConf)
-    Logger.isDebugEnabled && Logger.debug('Producer::end')
+    logger.debug('Producer::end')
     updateProducerHealth(topicConf.topicName, true)
     return true
   } catch (err) {
-    Logger.isErrorEnabled && Logger.error(err)
-    Logger.isDebugEnabled && Logger.debug(`Producer error has occurred for ${topicConf.topicName}`)
+    logger.error(err)
+    logger.debug(`Producer error has occurred for ${topicConf.topicName}`)
     updateProducerHealth(topicConf.topicName, false)
     throw ErrorHandler.Factory.reformatFSPIOPError(err)
   }
@@ -135,17 +135,17 @@ const connectAll = async (configs) => {
     try {
       let producer
       if (!listOfProducers[config.topicConfig.topicName]) {
-        Logger.isDebugEnabled && Logger.debug('Producer::start::topic=' + config.topicConfig.topicName)
+        logger.debug('Producer::start::topic=' + config.topicConfig.topicName)
         producer = new Producer(config.kafkaConfig)
-        Logger.isDebugEnabled && Logger.debug('Producer::connect::start')
+        logger.debug('Producer::connect::start')
         await producer.connect()
-        Logger.isDebugEnabled && Logger.debug('Producer::connect::end')
+        logger.debug('Producer::connect::end')
         listOfProducers[config.topicConfig.topicName] = producer
         updateProducerHealth(config.topicConfig.topicName, true)
       }
     } catch (err) {
-      Logger.isErrorEnabled && Logger.error(err)
-      Logger.isDebugEnabled && Logger.debug(`Producer error has occurred for ${config.topicConf.topicName}`)
+      logger.error(err)
+      logger.debug(`Producer error has occurred for ${config.topicConf.topicName}`)
       updateProducerHealth(config.topicConfig.topicName, false)
     }
   }
@@ -176,7 +176,7 @@ const disconnect = async (topicName = null) => {
     try {
       await disconnectAndRemoveProducer(topicName)
     } catch (err) {
-      Logger.isErrorEnabled && Logger.error(err)
+      logger.error(err)
       throw ErrorHandler.Factory.reformatFSPIOPError(err)
     }
   } else if (topicName === null) {
@@ -236,7 +236,7 @@ const getProducer = (topicName) => {
  */
 const isConnected = async (topicName = undefined) => {
   if (!topicName) {
-    Logger.isDebugEnabled && Logger.debug('topicName is undefined.')
+    logger.debug('topicName is undefined.')
     throw ErrorHandler.Factory.createInternalServerFSPIOPError('topicName is undefined.')
   }
   const producer = getProducer(topicName)
@@ -271,14 +271,14 @@ const allConnected = async () => {
   for (const [key, producer] of Object.entries(listOfProducers)) {
     // Use health variable first
     if (producerHealth[key] && !producerHealth[key].healthy) {
-      Logger.isDebugEnabled && Logger.debug(`Producer health for topic ${key} is not healthy.`)
+      logger.error(`Producer health for topic ${key} is not healthy.`)
       throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Producer health for topic ${key} is not healthy.`)
     }
     // Use isEventStatsConnectionHealthy if available, otherwise fallback to metadata check
     if (typeof producer.isEventStatsConnectionHealthy === 'function') {
       const healthy = producer.isEventStatsConnectionHealthy()
       if (!healthy) {
-        Logger.isDebugEnabled && Logger.debug(`Producer connection for topic ${key} is not healthy.`)
+        logger.error(`Producer connection for topic ${key} is not healthy.`)
         throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Producer connection for topic ${key} is not healthy.`)
       }
     } else {
@@ -286,7 +286,7 @@ const allConnected = async () => {
       const metadata = await getMetadataPromise(producer, key)
       const foundTopics = metadata.topics.map(topic => topic.name)
       if (!foundTopics.includes(key)) {
-        Logger.isDebugEnabled && Logger.debug(`Connected to producer, but ${key} not found in metadata.`)
+        logger.error(`Connected to producer, but ${key} not found in metadata.`)
         throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to producer, but ${key} not found in metadata.`)
       }
     }

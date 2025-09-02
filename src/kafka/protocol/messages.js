@@ -36,7 +36,6 @@
  */
 
 'use strict'
-// const Logger = require('@mojaloop/central-services-logger')
 
 /**
  * Notification Protocol Object

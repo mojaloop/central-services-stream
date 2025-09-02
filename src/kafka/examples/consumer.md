@@ -3,10 +3,10 @@
 ```JSON
 const Consumer = require('@mojaloop/central-services-stream').Kafka.Consumer
 const ConsumerEnums = require('@mojaloop/central-services-stream').Kafka.Consumer.ENUMS
-const Logger = require('@mojaloop/central-services-logger')
+const logger = require('../lib/logger').logger
 
 const testConsumer = async () => {
-  Logger.info('Instantiate consumer')
+  logger.info('Instantiate consumer')
   var c = new Consumer(['test1'], {
     options: {
       mode: ConsumerEnums.CONSUMER_MODES.recursive,
@@ -23,25 +23,25 @@ const testConsumer = async () => {
       'enable.auto.commit': false
     },
     topicConf: {},
-    logger: Logger
+    logger
   })
 
-  Logger.debug('Connect consumer')
+  logger.debug('Connect consumer')
   var connectionResult = await c.connect()
 
-  Logger.debug(`Connected result=${connectionResult}`)
+  logger.debug(`Connected result=${connectionResult}`)
 
-  Logger.debug('Consume messages')
+  logger.debug('Consume messages')
 
   c.consume((error, message) => {
     return new Promise((resolve, reject) => {
       if (error) {
-        Logger.debug(`WTDSDSD!!! error ${error}`)
+        logger.debug(`WTDSDSD!!! error ${error}`)
         // resolve(false)
         reject(error)
       }
       if (message) { // check if there is a valid message coming back
-        Logger.debug(`Message Received by callback function - ${JSON.stringify(message)}`)
+        logger.debug(`Message Received by callback function - ${JSON.stringify(message)}`)
         // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
         if (Array.isArray(message) && message.length != null && message.length > 0) {
           message.forEach(msg => {
@@ -59,13 +59,13 @@ const testConsumer = async () => {
   })
 
   // consume 'ready' event
-  c.on('ready', arg => Logger.debug(`onReady: ${JSON.stringify(arg)}`))
+  c.on('ready', arg => logger.debug(`onReady: ${JSON.stringify(arg)}`))
   // consume 'message' event
-  c.on('message', message => Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`))
+  c.on('message', message => logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`))
   // consume 'batch' event
-  c.on('batch', message => Logger.debug(`onBatch: ${JSON.stringify(message)}`))
+  c.on('batch', message => logger.debug(`onBatch: ${JSON.stringify(message)}`))
 
-  Logger.debug('testConsumer::end')
+  logger.debug('testConsumer::end')
 }
 
 testConsumer()
