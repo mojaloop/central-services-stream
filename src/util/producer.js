@@ -114,8 +114,7 @@ const produceMessage = async (messageProtocol, topicConf, config) => {
     updateProducerHealth(topicConf.topicName, true)
     return true
   } catch (err) {
-    logger.error(err)
-    logger.debug(`Producer error has occurred for ${topicConf.topicName}`)
+    logger.error(`Producer error has occurred for ${topicConf.topicName}`, err)
     updateProducerHealth(topicConf.topicName, false)
     throw ErrorHandler.Factory.reformatFSPIOPError(err)
   }
@@ -144,8 +143,7 @@ const connectAll = async (configs) => {
         updateProducerHealth(config.topicConfig.topicName, true)
       }
     } catch (err) {
-      logger.error(err)
-      logger.debug(`Producer error has occurred for ${config.topicConf.topicName}`)
+      logger.error(`Producer error has occurred for ${config.topicConf.topicName}`, err)
       updateProducerHealth(config.topicConfig.topicName, false)
     }
   }
@@ -176,7 +174,7 @@ const disconnect = async (topicName = null) => {
     try {
       await disconnectAndRemoveProducer(topicName)
     } catch (err) {
-      logger.error(err)
+      logger.error(`Producer disconnect error has occurred for ${topicName}: `, err)
       throw ErrorHandler.Factory.reformatFSPIOPError(err)
     }
   } else if (topicName === null) {

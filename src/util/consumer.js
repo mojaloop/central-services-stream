@@ -136,7 +136,7 @@ const createHandler = async (topicName, config, command) => {
     consumeWithHealthTracking(consumer, topicNameArray[0], command)
   } catch (e) {
     // Don't throw the error, still keep track of the topic we tried to connect to
-    logger.warn(`CreateHandler::connect - error: ${e}`)
+    logger.error('CreateHandler::connect - error: ', e)
   }
 
   topicNameArray.forEach(topicName => {
