@@ -260,7 +260,7 @@ const getMetadataPromise = (consumer, topic) => {
 const allConnected = async topicName => {
   // Use the health variable
   if (consumerHealth[topicName] && consumerHealth[topicName].healthy === false) {
-    Logger.isDebugEnabled && Logger.debug(`Consumer health variable indicates unhealthy connection for topic ${topicName}`)
+    Logger.isErrorEnabled && Logger.error(`Consumer health variable indicates unhealthy connection for topic ${topicName}`)
     throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Consumer health variable indicates unhealthy connection for topic ${topicName}`)
   }
 
@@ -269,15 +269,23 @@ const allConnected = async topicName => {
   // Use the isEventStatsConnectionHealthy method from the consumer
   if (typeof consumer.isEventStatsConnectionHealthy === 'function') {
     if (!consumer.isEventStatsConnectionHealthy()) {
-      Logger.isDebugEnabled && Logger.debug(`Consumer event.stats indicates unhealthy connection for topic ${topicName}`)
+      Logger.isErrorEnabled && Logger.error(`Consumer event.stats indicates unhealthy connection for topic ${topicName}`)
       throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Consumer event.stats indicates unhealthy connection for topic ${topicName}`)
+    }
+  }
+
+  // Use the isPollHealthy method from the consumer
+  if (typeof consumer.isPollHealthy === 'function') {
+    if (!consumer.isPollHealthy()) {
+      Logger.isErrorEnabled && Logger.error(`Consumer poll health indicates unhealthy connection for topic ${topicName}`)
+      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Consumer poll health indicates unhealthy connection for topic ${topicName}`)
     }
   }
 
   const metadata = await getMetadataPromise(consumer, topicName)
   const foundTopics = metadata.topics.map(topic => topic.name)
   if (!foundTopics.includes(topicName)) {
-    Logger.isDebugEnabled && Logger.debug(`Connected to consumer, but ${topicName} not found.`)
+    Logger.isErrorEnabled && Logger.error(`Connected to consumer, but ${topicName} not found.`)
     throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to consumer, but ${topicName} not found.`)
   }
   return stateList.OK
