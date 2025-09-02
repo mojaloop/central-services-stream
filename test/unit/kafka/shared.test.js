@@ -5,15 +5,13 @@ const kafkaBrokerStates = require('../../../src/constants').kafkaBrokerStates
 
 Test('trackConnectionHealth', (t) => {
   let sandbox
-  let Logger
+  let logger
 
   t.beforeEach((t) => {
     sandbox = Sinon.createSandbox()
-    Logger = require('@mojaloop/central-services-logger')
-    sandbox.stub(Logger, 'debug')
-    sandbox.stub(Logger, 'error')
-    sandbox.stub(Logger, 'isDebugEnabled').value(true)
-    sandbox.stub(Logger, 'isErrorEnabled').value(true)
+    logger = require('../../../src/lib/logger').logger
+    sandbox.stub(logger, 'debug')
+    sandbox.stub(logger, 'error')
     t.end()
   })
 
@@ -29,7 +27,7 @@ Test('trackConnectionHealth', (t) => {
         2: { state: kafkaBrokerStates.UP, nodename: 'broker2', nodeid: 2 }
       }
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), true)
+    assert.equal(trackConnectionHealth(eventData, logger), true)
     assert.end()
   })
 
@@ -39,7 +37,7 @@ Test('trackConnectionHealth', (t) => {
         1: { state: kafkaBrokerStates.UPDATE, nodename: 'broker1', nodeid: 1 }
       }
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), true)
+    assert.equal(trackConnectionHealth(eventData, logger), true)
     assert.end()
   })
 
@@ -50,7 +48,7 @@ Test('trackConnectionHealth', (t) => {
         2: { state: kafkaBrokerStates.DOWN, nodename: 'broker2', nodeid: 2 }
       }
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), false)
+    assert.equal(trackConnectionHealth(eventData, logger), false)
     assert.end()
   })
 
@@ -60,8 +58,8 @@ Test('trackConnectionHealth', (t) => {
         1: { state: kafkaBrokerStates.TRY_CONNECT, nodename: 'broker1', nodeid: 1 }
       }
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), false)
-    assert.ok(Logger.debug.calledWithMatch(/TRANSITION/), 'Logger.debug called for TRANSITION')
+    assert.equal(trackConnectionHealth(eventData, logger), false)
+    assert.ok(logger.debug.calledWithMatch(/TRANSITION/), 'logger.debug called for TRANSITION')
     assert.end()
   })
 
@@ -71,8 +69,8 @@ Test('trackConnectionHealth', (t) => {
         1: { state: kafkaBrokerStates.CONNECT, nodename: 'broker1', nodeid: 1 }
       }
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), false)
-    assert.ok(Logger.debug.calledWithMatch(/TRANSITION/), 'Logger.debug called for TRANSITION')
+    assert.equal(trackConnectionHealth(eventData, logger), false)
+    assert.ok(logger.debug.calledWithMatch(/TRANSITION/), 'logger.debug called for TRANSITION')
     assert.end()
   })
 
@@ -82,8 +80,8 @@ Test('trackConnectionHealth', (t) => {
         1: { state: kafkaBrokerStates.SSL_HANDSHAKE, nodename: 'broker1', nodeid: 1 }
       }
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), false)
-    assert.ok(Logger.debug.calledWithMatch(/TRANSITION/), 'Logger.debug called for TRANSITION')
+    assert.equal(trackConnectionHealth(eventData, logger), false)
+    assert.ok(logger.debug.calledWithMatch(/TRANSITION/), 'logger.debug called for TRANSITION')
     assert.end()
   })
 
@@ -93,8 +91,8 @@ Test('trackConnectionHealth', (t) => {
         1: { state: kafkaBrokerStates.AUTH_LEGACY, nodename: 'broker1', nodeid: 1 }
       }
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), false)
-    assert.ok(Logger.debug.calledWithMatch(/TRANSITION/), 'Logger.debug called for TRANSITION')
+    assert.equal(trackConnectionHealth(eventData, logger), false)
+    assert.ok(logger.debug.calledWithMatch(/TRANSITION/), 'logger.debug called for TRANSITION')
     assert.end()
   })
 
@@ -104,8 +102,8 @@ Test('trackConnectionHealth', (t) => {
         1: { state: kafkaBrokerStates.AUTH, nodename: 'broker1', nodeid: 1 }
       }
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), false)
-    assert.ok(Logger.debug.calledWithMatch(/TRANSITION/), 'Logger.debug called for TRANSITION')
+    assert.equal(trackConnectionHealth(eventData, logger), false)
+    assert.ok(logger.debug.calledWithMatch(/TRANSITION/), 'logger.debug called for TRANSITION')
     assert.end()
   })
 
@@ -115,19 +113,19 @@ Test('trackConnectionHealth', (t) => {
         1: { state: 'SOME_UNKNOWN_STATE', nodename: 'broker1', nodeid: 1 }
       }
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), false)
-    assert.ok(Logger.debug.calledWithMatch(/UNKNOWN state/), 'Logger.debug called for UNKNOWN state')
+    assert.equal(trackConnectionHealth(eventData, logger), false)
+    assert.ok(logger.debug.calledWithMatch(/UNKNOWN state/), 'logger.debug called for UNKNOWN state')
     assert.end()
   })
 
   t.test('returns false if stats.brokers is missing', (assert) => {
-    assert.equal(trackConnectionHealth({}, Logger), false)
+    assert.equal(trackConnectionHealth({}, logger), false)
     assert.end()
   })
 
   t.test('returns false if eventData is not an object', (assert) => {
-    assert.equal(trackConnectionHealth(null, Logger), false)
-    assert.equal(trackConnectionHealth(undefined, Logger), false)
+    assert.equal(trackConnectionHealth(null, logger), false)
+    assert.equal(trackConnectionHealth(undefined, logger), false)
     assert.end()
   })
 
@@ -137,18 +135,18 @@ Test('trackConnectionHealth', (t) => {
         1: { state: kafkaBrokerStates.UP, nodename: 'broker1', nodeid: 1 }
       }
     })
-    assert.equal(trackConnectionHealth(eventData, Logger), true)
+    assert.equal(trackConnectionHealth(eventData, logger), true)
     assert.end()
   })
 
   t.test('returns false and logs error if JSON parsing fails', (assert) => {
-    assert.equal(trackConnectionHealth('{invalid json', Logger), false)
-    assert.ok(Logger.error.called, 'Logger.error should be called')
+    assert.equal(trackConnectionHealth('{invalid json', logger), false)
+    assert.ok(logger.error.called, 'logger.error should be called')
     assert.end()
   })
 
   t.test('returns true if brokers object is empty', (assert) => {
-    assert.equal(trackConnectionHealth({ brokers: {} }, Logger), true)
+    assert.equal(trackConnectionHealth({ brokers: {} }, logger), true)
     assert.end()
   })
 
@@ -159,9 +157,9 @@ Test('trackConnectionHealth', (t) => {
         2: { state: kafkaBrokerStates.DOWN, nodename: 'broker2', nodeid: 2 }
       }
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), false, 'Should be false when a broker is DOWN')
+    assert.equal(trackConnectionHealth(eventData, logger), false, 'Should be false when a broker is DOWN')
     eventData.brokers['2'].state = kafkaBrokerStates.UP
-    assert.equal(trackConnectionHealth(eventData, Logger), true, 'Should be true when all brokers are UP')
+    assert.equal(trackConnectionHealth(eventData, logger), true, 'Should be true when all brokers are UP')
     assert.end()
   })
 
@@ -173,7 +171,7 @@ Test('trackConnectionHealth', (t) => {
         }
       })
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), true)
+    assert.equal(trackConnectionHealth(eventData, logger), true)
     assert.end()
   })
 
@@ -181,8 +179,8 @@ Test('trackConnectionHealth', (t) => {
     const eventData = {
       message: '{invalid json'
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), false)
-    assert.ok(Logger.error.calledWithMatch(/error parsing nested stats\.message/), 'Logger.error should be called for nested stats.message')
+    assert.equal(trackConnectionHealth(eventData, logger), false)
+    assert.ok(logger.error.calledWithMatch(/error parsing nested stats\.message/), 'logger.error should be called for nested stats.message')
     assert.end()
   })
 
@@ -190,7 +188,7 @@ Test('trackConnectionHealth', (t) => {
     const eventData = {
       message: '"not a brokers object"'
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), false)
+    assert.equal(trackConnectionHealth(eventData, logger), false)
     assert.end()
   })
 
@@ -198,7 +196,7 @@ Test('trackConnectionHealth', (t) => {
     const eventData = {
       message: JSON.stringify({ foo: 'bar' })
     }
-    assert.equal(trackConnectionHealth(eventData, Logger), false)
+    assert.equal(trackConnectionHealth(eventData, logger), false)
     assert.end()
   })
   t.end()

@@ -221,17 +221,17 @@ class Producer extends EventEmitter {
 
     // setup default onReady emit handler
     super.on('ready', arg => {
-      logger.debug(`Consumer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
+      logger.debug(`Producer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
     })
 
     // setup default onError emit handler
     super.on('error', error => {
-      logger.error(`Consumer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
+      logger.error(`Producer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
     })
 
     // setup default onDisconnect emit handler
     super.on('disconnected', metrics => {
-      logger.warn(`Consumer::onDisconnected()[topics='${this._topics}'] - ${JSON.stringify(metrics)}`)
+      logger.warn(`Producer::onDisconnected()[topics='${this._topics}'] - ${JSON.stringify(metrics)}`)
     })
 
     logger.silly('Producer::constructor() - end')

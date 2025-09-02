@@ -34,7 +34,7 @@ const Sinon = require('sinon')
 const Test = require('tapes')(require('tape'))
 const Consumer = require(`${src}`).Util.Consumer
 const KafkaConsumer = require(`${src}`).Kafka.Consumer
-const Logger = require('@mojaloop/central-services-logger')
+const logger = require('../../../src/lib/logger').logger
 const { stateList } = require('../../../src/constants')
 
 Test('Consumer', ConsumerTest => {
@@ -46,10 +46,10 @@ Test('Consumer', ConsumerTest => {
     sandbox.stub(KafkaConsumer.prototype, 'connect').resolves()
     sandbox.stub(KafkaConsumer.prototype, 'consume').resolves()
     sandbox.stub(KafkaConsumer.prototype, 'commitMessageSync').resolves()
-    sandbox.stub(Logger, 'isErrorEnabled').value(true)
-    sandbox.stub(Logger, 'isWarnEnabled').value(true)
-    sandbox.stub(Logger, 'isDebugEnabled').value(true)
-    sandbox.stub(Logger, 'isSillyEnabled').value(true)
+    sandbox.stub(logger, 'isErrorEnabled').value(true)
+    sandbox.stub(logger, 'isWarnEnabled').value(true)
+    sandbox.stub(logger, 'isDebugEnabled').value(true)
+    sandbox.stub(logger, 'isSillyEnabled').value(true)
     test.end()
   })
 

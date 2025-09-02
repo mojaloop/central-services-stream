@@ -36,7 +36,7 @@ const Test = require('tapes')(require('tape'))
 const KafkaProducer = require(`${src}/kafka`).Producer
 const Producer = require(`${src}/util`).Producer
 const Uuid = require('uuid4')
-const Logger = require('@mojaloop/central-services-logger')
+const logger = require('../../../src/lib/logger').logger
 const { stateList } = require(`${src}/constants`)
 
 const transfer = {
@@ -99,7 +99,7 @@ const getProducerWithoutThrowError = (topicName) => {
   try {
     return Producer.getProducer(topicName)
   } catch (err) {
-    Logger.warn(`getProducer error: ${err?.message}`)
+    logger.warn(`getProducer error: ${err?.message}`)
     return null
   }
 }
@@ -111,8 +111,8 @@ Test('Producer', producerTest => {
   producerTest.test('produceMessage should', produceMessageTest => {
     produceMessageTest.beforeEach(async t => {
       sandbox = Sinon.createSandbox()
-      sandbox.stub(Logger, 'isErrorEnabled').value(true)
-      sandbox.stub(Logger, 'isDebugEnabled').value(true)
+      sandbox.stub(logger, 'isErrorEnabled').value(true)
+      sandbox.stub(logger, 'isDebugEnabled').value(true)
       sandbox.stub(KafkaProducer.prototype, 'constructor').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'connect').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'sendMessage').returns(Promise.resolve())
@@ -166,8 +166,8 @@ Test('Producer', producerTest => {
   producerTest.test('getProducer should', getProducerTest => {
     getProducerTest.beforeEach(t => {
       sandbox = Sinon.createSandbox()
-      sandbox.stub(Logger, 'isErrorEnabled').value(true)
-      sandbox.stub(Logger, 'isDebugEnabled').value(true)
+      sandbox.stub(logger, 'isErrorEnabled').value(true)
+      sandbox.stub(logger, 'isDebugEnabled').value(true)
       sandbox.stub(KafkaProducer.prototype, 'constructor').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'connect').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'sendMessage').returns(Promise.resolve())
@@ -206,8 +206,8 @@ Test('Producer', producerTest => {
       sandbox.stub(KafkaProducer.prototype, 'connect').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'sendMessage').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'disconnect').returns(Promise.resolve())
-      sandbox.stub(Logger, 'isErrorEnabled').value(true)
-      sandbox.stub(Logger, 'isDebugEnabled').value(true)
+      sandbox.stub(logger, 'isErrorEnabled').value(true)
+      sandbox.stub(logger, 'isDebugEnabled').value(true)
       t.end()
     })
 
@@ -321,8 +321,8 @@ Test('Producer', producerTest => {
       sandbox.stub(KafkaProducer.prototype, 'connect').throws(new Error())
       sandbox.stub(KafkaProducer.prototype, 'sendMessage').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'disconnect').throws(new Error())
-      sandbox.stub(Logger, 'isErrorEnabled').value(true)
-      sandbox.stub(Logger, 'isDebugEnabled').value(true)
+      sandbox.stub(logger, 'isErrorEnabled').value(true)
+      sandbox.stub(logger, 'isDebugEnabled').value(true)
       t.end()
     })
 
@@ -632,8 +632,8 @@ Test('Producer', producerTest => {
   producerTest.test('connectAll should', async connectAllTest => {
     connectAllTest.beforeEach(t => {
       sandbox = Sinon.createSandbox()
-      sandbox.stub(Logger, 'isErrorEnabled').value(true)
-      sandbox.stub(Logger, 'isDebugEnabled').value(true)
+      sandbox.stub(logger, 'isErrorEnabled').value(true)
+      sandbox.stub(logger, 'isDebugEnabled').value(true)
       t.end()
     })
 
@@ -750,8 +750,8 @@ Test('Producer', producerTest => {
       sandbox = Sinon.createSandbox()
       clock = sandbox.useFakeTimers()
       ProducerProxy = rewire(`${src}/util/producer`)
-      sandbox.stub(Logger, 'isErrorEnabled').value(true)
-      sandbox.stub(Logger, 'isDebugEnabled').value(true)
+      sandbox.stub(logger, 'isErrorEnabled').value(true)
+      sandbox.stub(logger, 'isDebugEnabled').value(true)
       t.end()
     })
 
