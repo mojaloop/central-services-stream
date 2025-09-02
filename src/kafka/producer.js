@@ -550,7 +550,7 @@ class Producer extends EventEmitter {
       this.lag = highOffset.reduce((acc, high) => acc + high, 0) - (await commits).reduce((acc, commit) => acc + commit.offset, 0)
       this._config.logger.debug(`Producer::_monitorLag() - topic ${this._config.lagMonitor.topic} ${this.lag} messages behind`)
     } catch (err) {
-      this._config.logger.error(`Producer::_getLag() - error: ${err}`)
+      this._config.logger.error(`Producer::_getLag() - error: `, err)
       return
     } finally {
       this._getLagActive = false
@@ -598,7 +598,7 @@ class Producer extends EventEmitter {
           (err, offset) => {
             // The offset if our acknowledgement level allows us to receive delivery offsets
             if (err) {
-              logger.warn(`Producer::produce() - error: ${err?.stack}`)
+              logger.warn(`Producer::produce() - error: `, err)
               reject(err)
             } else {
               logger.debug(`Producer::produce() - delivery-callback offset=${offset}`)
