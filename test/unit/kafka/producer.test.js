@@ -676,5 +676,42 @@ Test('Producer test for KafkaProducer events', (producerTests) => {
     await producer.connect()
   })
 
+  producerTests.test('Test Producer::connect - pollIntervalMs not integer', async (assert) => {
+    assert.plan(1)
+    const badConfig = { ...config }
+    badConfig.options.pollIntervalMs = 'notAnInteger'
+    const producer = new Producer(badConfig)
+    try {
+      await producer.connect()
+      assert.fail('Should have thrown error for non-integer pollIntervalMs')
+    } catch (error) {
+      assert.equal(error.message, 'pollIntervalMs should be integer', 'Error thrown for non-integer pollIntervalMs')
+    }
+  })
+
+  producerTests.test('Test Producer::sendMessage throws for invalid buffer', async (assert) => {
+    assert.plan(1)
+    const producer = new Producer(config)
+    await producer.connect()
+    // Override serializeFn to return an object (not string or Buffer)
+    producer._config.options.serializeFn = () => ({ not: 'buffer' })
+    try {
+      await producer.sendMessage({
+        message: { test: 'test' },
+        from: 'testAccountSender',
+        to: 'testAccountReceiver',
+        type: 'application/json',
+        pp: '',
+        id: 'id',
+        metadata: {}
+      }, { topicName: 'test', key: '1234' })
+      assert.fail('Should have thrown error for invalid buffer')
+    } catch (e) {
+      assert.equal(e.message, 'message must be a string or an instance of Buffer.', 'Error thrown for invalid buffer')
+    }
+    producer.disconnect()
+    assert.end()
+  })
+
   producerTests.end()
 })

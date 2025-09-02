@@ -139,6 +139,16 @@ Test('Consumer', ConsumerTest => {
       test.end()
     })
 
+    createHandlerTest.test('should set autoCommitEnabled from enableAutoCommit property', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const topicName = 'adminAutoCommit'
+      const config = { rdkafkaConf: { enableAutoCommit: false } }
+      await ConsumerProxy.createHandler(topicName, config)
+      const result = ConsumerProxy.__get__('listOfConsumers')
+      test.equal(result[topicName].autoCommitEnabled, false, 'autoCommitEnabled should be set from enableAutoCommit')
+      test.end()
+    })
     createHandlerTest.end()
   })
 
@@ -490,6 +500,51 @@ Test('Consumer', ConsumerTest => {
       try {
         const result = await ConsumerProxy.allConnected(topicName)
         test.equal(result, stateList.OK, 'Should return OK if healthy')
+      } catch (err) {
+        test.fail('Should not throw')
+      }
+      test.end()
+    })
+
+    allConnectedTest.test('should throw error if isEventStatsConnectionHealthy exists and returns false', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const topicName = 'admin'
+      const fakeConsumer = {
+        getMetadata: (opts, cb) => cb(null, { topics: [{ name: topicName }] }),
+        isEventStatsConnectionHealthy: () => false
+      }
+      ConsumerProxy.__set__('listOfConsumers', {
+        [topicName]: { consumer: fakeConsumer }
+      })
+      // Act
+      try {
+        await ConsumerProxy.allConnected(topicName)
+        test.fail('Should throw error when isEventStatsConnectionHealthy returns false')
+      } catch (err) {
+        test.ok(
+          err.message.includes(`Consumer event.stats indicates unhealthy connection for topic ${topicName}`),
+          'Should throw correct error for unhealthy event.stats'
+        )
+      }
+      test.end()
+    })
+
+    allConnectedTest.test('should not throw error if isEventStatsConnectionHealthy exists and returns true', async test => {
+      // Arrange
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const topicName = 'admin'
+      const fakeConsumer = {
+        getMetadata: (opts, cb) => cb(null, { topics: [{ name: topicName }] }),
+        isEventStatsConnectionHealthy: () => true
+      }
+      ConsumerProxy.__set__('listOfConsumers', {
+        [topicName]: { consumer: fakeConsumer }
+      })
+      // Act
+      try {
+        const result = await ConsumerProxy.allConnected(topicName)
+        test.equal(result, stateList.OK, 'Should return OK if event.stats is healthy')
       } catch (err) {
         test.fail('Should not throw')
       }
