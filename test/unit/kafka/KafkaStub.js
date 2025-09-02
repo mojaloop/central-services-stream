@@ -32,7 +32,7 @@
 'use strict'
 
 const EventEmitter = require('events')
-const Logger = require('@mojaloop/central-services-logger')
+const logger = require('../../../src/lib/logger').logger
 
 const metadataSampleStub = {
   orig_broker_id: 1,
@@ -88,7 +88,7 @@ class KafkaClient extends EventEmitter {
 
   connect (err, info) {
     if (err) {
-      Logger.error(err)
+      logger.error(err)
     }
     this.emit('ready', true)
     this.metrics = {}
@@ -102,7 +102,7 @@ class KafkaClient extends EventEmitter {
 
   disconnect (cb = (err) => {
     if (err) {
-      Logger.error(err)
+      logger.error(err)
     }
   }) {
     cb(null, this.metrics)
@@ -112,7 +112,7 @@ class KafkaClient extends EventEmitter {
 
   getMetadata (_metadataOptions, cb = (err) => {
     if (err) {
-      Logger.error(err)
+      logger.error(err)
     }
   }) {
     const metadataSample = { ...metadataSampleStub }

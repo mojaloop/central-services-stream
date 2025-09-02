@@ -5,7 +5,7 @@
 'use strict'
 
 const Producer = require('@mojaloop/central-services-stream').Kafka.Producer
-const Logger = require('@mojaloop/central-services-logger')
+const logger = require('../lib/logger').logger
 
 var testProducer = async () => {
   console.log('testProducer::start')
@@ -34,7 +34,7 @@ var testProducer = async () => {
       'request.required.acks': 1
     }
   }
-  
+
   var p = new Producer(confg)
   console.log('testProducer::connect::start')
   var connectionResult = await p.connect()
@@ -57,7 +57,7 @@ var testProducer = async () => {
   var topicConf = {
     topicName: 'test'
   }
-  
+
   console.log('testProducer::sendMessage::start1')
   await p.sendMessage(messageProtocol, topicConf).then(results => {
     console.log(`testProducer.sendMessage:: result:'${JSON.stringify(results)}'`)

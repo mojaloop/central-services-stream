@@ -40,7 +40,7 @@
 const Test = require('tapes')(require('tape'))
 const Kafka = require('node-rdkafka')
 const Sinon = require('sinon')
-const Logger = require('@mojaloop/central-services-logger')
+const logger = require('../../../src/lib/logger').logger
 const Consumer = require('../../../src/kafka').Consumer
 const ConsumerEnums = require('../../../src/kafka').Consumer.ENUMS
 const KafkaStubs = require('./KafkaStub')
@@ -60,10 +60,10 @@ Test('Consumer test', (consumerTests) => {
     //   shouldAdvanceTime: true
     // })
 
-    sandbox.stub(Logger, 'isErrorEnabled').value(true)
-    sandbox.stub(Logger, 'isWarnEnabled').value(true)
-    sandbox.stub(Logger, 'isDebugEnabled').value(true)
-    sandbox.stub(Logger, 'isSillyEnabled').value(true)
+    sandbox.stub(logger, 'isErrorEnabled').value(true)
+    sandbox.stub(logger, 'isWarnEnabled').value(true)
+    sandbox.stub(logger, 'isDebugEnabled').value(true)
+    sandbox.stub(logger, 'isSillyEnabled').value(true)
 
     config = {
       options: {
@@ -82,7 +82,7 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     topicsList = ['test']
@@ -118,7 +118,7 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(c, 'Consumer instance created')
       assert.end()
     } catch (error) {
-      Logger.error(error)
+      logger.error(error)
       assert.equals(error.message.toString(), 'missing a config object')
       assert.end()
     }
@@ -142,7 +142,7 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
     const ConsumerSpy = Sinon.spy(Consumer.prototype, 'constructor')
     const c = new ConsumerSpy(topicsList, config)
@@ -168,7 +168,7 @@ Test('Consumer test', (consumerTests) => {
     assert.plan(2)
     const c = new Consumer(topicsList, config)
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     c.connect().then(result => {
@@ -188,7 +188,7 @@ Test('Consumer test', (consumerTests) => {
 
     // consume 'message' event
     c.on('error', error => {
-      Logger.error(error)
+      logger.error(error)
       assert.ok(Sinon.match(error, 'error test test'), 'on Error event received')
     })
 
@@ -201,7 +201,7 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::disconnect', (assert) => {
     const discoCallback = (err, metrics) => {
       if (err) {
-        Logger.error(err)
+        logger.error(err)
       }
       assert.equal(typeof metrics.connectionOpened, 'number')
       assert.end()
@@ -250,7 +250,7 @@ Test('Consumer test', (consumerTests) => {
   consumerTests.test('Test Consumer::getMetadata', (assert) => {
     const metaDatacCb = (error, metadata) => {
       if (error) {
-        Logger.error(error)
+        logger.error(error)
       }
       assert.ok(metadata, 'metadata object exists')
       assert.deepEqual(metadata, KafkaStubs.metadataSampleStub, 'metadata objects match')
@@ -374,7 +374,7 @@ Test('Consumer test', (consumerTests) => {
       try {
         c.consumeOnce()
       } catch (error) {
-        Logger.error(error)
+        logger.error(error)
         assert.equals(error.message.toString(), 'Not implemented')
         assert.end()
       }
@@ -389,14 +389,14 @@ Test('Consumer test', (consumerTests) => {
         c.consumeOnce(1, (error) => {
           return new Promise((resolve, reject) => {
             if (error) {
-              Logger.error(error)
+              logger.error(error)
               reject(error)
             }
             resolve(true)
           })
         })
       } catch (error) {
-        Logger.error(error)
+        logger.error(error)
         assert.equals(error.message.toString(), 'Not implemented')
         assert.end()
       }
@@ -409,7 +409,7 @@ Test('Consumer test', (consumerTests) => {
     const c = new Consumer(topicsList, config)
 
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       c.disconnect()
       assert.ok(message, 'on Message event received')
       if (!messageReceived) {
@@ -442,19 +442,19 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
@@ -464,11 +464,11 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           if (error) {
-            Logger.error(error)
+            logger.error(error)
             reject(error)
           }
           if (message) { // check if there is a valid message comming back
-            Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+            logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
             // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
             if (Array.isArray(message) && message.length != null && message.length > 0) {
               message.forEach(msg => {
@@ -507,24 +507,24 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
 
     c.on('error', error => {
-      Logger.error(`error: ${error}`)
+      logger.error(`error: ${error}`)
     })
 
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
@@ -534,11 +534,11 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           if (error) {
-            Logger.error(error)
+            logger.error(error)
             reject(error)
           }
           if (message) { // check if there is a valid message comming back
-            Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+            logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
             // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
             if (Array.isArray(message) && message.length != null && message.length > 0) {
               message.forEach(msg => {
@@ -577,19 +577,19 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
@@ -599,11 +599,11 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           if (error) {
-            Logger.error(error)
+            logger.error(error)
             reject(error)
           }
           if (message) { // check if there is a valid message comming back
-            Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+            logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
             // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
             if (Array.isArray(message) && message.length != null && message.length > 0) {
               message.forEach(msg => {
@@ -642,19 +642,19 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
@@ -664,11 +664,11 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           if (error) {
-            Logger.error(error)
+            logger.error(error)
             reject(error)
           }
           if (message) { // check if there is a valid message comming back
-            Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+            logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
             // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
             if (Array.isArray(message) && message.length != null && message.length > 0) {
               message.forEach(msg => {
@@ -706,7 +706,7 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     let consumeCount = 0
@@ -719,7 +719,7 @@ Test('Consumer test', (consumerTests) => {
     let errorHandledRejected = false
     let processedNextMessage = false
     c.on('error', error => {
-      Logger.debug(`OMG - ${error}`)
+      logger.debug(`OMG - ${error}`)
       if (error instanceof Error) {
         assert.equal(error.message, errorMessageThrown)
         assert.ok(true, 'Error handled by throw')
@@ -737,12 +737,12 @@ Test('Consumer test', (consumerTests) => {
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
@@ -752,7 +752,7 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve) => {
           consumeCount = consumeCount + 1
-          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
           assert.ok(true, 'Message processed by the flow consumer')
           resolve(true)
         })
@@ -761,7 +761,7 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise(() => {
           consumeCount = consumeCount + 1
-          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
           assert.ok(true, 'Message processed by the flow to throw exception consumer')
           throw new Error(errorMessageThrown)
         })
@@ -770,7 +770,7 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           consumeCount = consumeCount + 1
-          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
           assert.ok(true, 'Message processed by the flow to throw exception consumer')
           reject(errorMessageRejected)
         })
@@ -779,7 +779,7 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve) => {
           consumeCount = consumeCount + 1
-          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
           assert.ok(true, 'Message processed by the flow consumer')
           resolve(true)
           processedNextMessage = true
@@ -809,7 +809,7 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     let consumeCount = 0
@@ -822,7 +822,7 @@ Test('Consumer test', (consumerTests) => {
     let errorHandledRejected = false
     let processedNextMessage = false
     c.on('error', error => {
-      Logger.debug(`onError: ${error}`)
+      logger.debug(`onError: ${error}`)
       if (error instanceof Error) {
         assert.equal(error.message, errorMessageThrown)
         assert.ok(true, 'Error handled by throw')
@@ -840,12 +840,12 @@ Test('Consumer test', (consumerTests) => {
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
@@ -855,7 +855,7 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve) => {
           consumeCount = consumeCount + 1
-          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
           assert.ok(true, 'Message processed by the flow consumer')
           resolve(true)
         })
@@ -864,7 +864,7 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise(() => {
           consumeCount = consumeCount + 1
-          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
           assert.ok(true, 'Message processed by the flow to throw exception consumer')
           throw new Error(errorMessageThrown)
         })
@@ -873,7 +873,7 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           consumeCount = consumeCount + 1
-          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
           assert.ok(true, 'Message processed by the flow to throw exception consumer')
           reject(errorMessageRejected)
         })
@@ -882,7 +882,7 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve) => {
           consumeCount = consumeCount + 1
-          Logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
+          logger.info(`consume::callback[recursiveCount=${consumeCount}] ${error}, ${JSON.stringify(message)}`)
           assert.ok(true, 'Message processed by the flow consumer')
           resolve(true)
           processedNextMessage = true
@@ -912,24 +912,24 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
     c.on('batch', messages => {
-      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      logger.debug(`onBatch: ${JSON.stringify(messages)}`)
       assert.ok(messages, 'on Batch event received')
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
@@ -948,11 +948,11 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.error(error)
+              logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
-              Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+              logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
               // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
               if (Array.isArray(message) && message.length != null && message.length > 0) {
                 message.forEach(msg => {
@@ -995,24 +995,24 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
     c.on('batch', messages => {
-      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      logger.debug(`onBatch: ${JSON.stringify(messages)}`)
       assert.ok(messages, 'on Batch event received')
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
@@ -1031,11 +1031,11 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.error(error)
+              logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
-              Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+              logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
               // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
               if (Array.isArray(message) && message.length != null && message.length > 0) {
                 message.forEach(msg => {
@@ -1078,24 +1078,24 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
     c.on('batch', messages => {
-      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      logger.debug(`onBatch: ${JSON.stringify(messages)}`)
       assert.ok(messages, 'on Batch event received')
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
@@ -1114,11 +1114,11 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.error(error)
+              logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
-              Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+              logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
               // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
               if (Array.isArray(message) && message.length != null && message.length > 0) {
                 message.forEach(msg => {
@@ -1161,24 +1161,24 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
     c.on('batch', messages => {
-      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      logger.debug(`onBatch: ${JSON.stringify(messages)}`)
       assert.ok(messages, 'on Batch event received')
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
@@ -1197,11 +1197,11 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.error(error)
+              logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
-              Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+              logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
               // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
               if (Array.isArray(message) && message.length != null && message.length > 0) {
                 message.forEach(msg => {
@@ -1243,24 +1243,24 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
     c.on('batch', messages => {
-      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      logger.debug(`onBatch: ${JSON.stringify(messages)}`)
       assert.ok(messages, 'on Batch event received')
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
@@ -1279,11 +1279,11 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.error(error)
+              logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
-              Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+              logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
               // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
               if (Array.isArray(message) && message.length != null && message.length > 0) {
                 message.forEach(msg => {
@@ -1326,24 +1326,24 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
     c.on('batch', messages => {
-      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      logger.debug(`onBatch: ${JSON.stringify(messages)}`)
       assert.ok(messages, 'on Batch event received')
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
@@ -1362,11 +1362,11 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.error(error)
+              logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
-              Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+              logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
               // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
               if (Array.isArray(message) && message.length != null && message.length > 0) {
                 message.forEach(msg => {
@@ -1409,24 +1409,24 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
     c.on('batch', messages => {
-      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      logger.debug(`onBatch: ${JSON.stringify(messages)}`)
       assert.ok(messages, 'on Batch event received')
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
@@ -1445,11 +1445,11 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.error(error)
+              logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
-              Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+              logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
               // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
               if (Array.isArray(message) && message.length != null && message.length > 0) {
                 message.forEach(msg => {
@@ -1492,24 +1492,24 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
     c.on('batch', messages => {
-      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      logger.debug(`onBatch: ${JSON.stringify(messages)}`)
       assert.ok(messages, 'on Batch event received')
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
@@ -1528,11 +1528,11 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.error(error)
+              logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
-              Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+              logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
               // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
               if (Array.isArray(message) && message.length != null && message.length > 0) {
                 message.forEach(msg => {
@@ -1574,24 +1574,24 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
     c.on('batch', messages => {
-      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      logger.debug(`onBatch: ${JSON.stringify(messages)}`)
       assert.ok(messages, 'on Batch event received')
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
@@ -1610,11 +1610,11 @@ Test('Consumer test', (consumerTests) => {
             assert.end()
           } else {
             if (error) {
-              Logger.error(error)
+              logger.error(error)
               reject(error)
             }
             if (message) { // check if there is a valid message comming back
-              Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+              logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
               // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
               if (Array.isArray(message) && message.length != null && message.length > 0) {
                 message.forEach(msg => {
@@ -1656,7 +1656,7 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const errorMessageThrown = 'this is an error thrown'
@@ -1666,13 +1666,13 @@ Test('Consumer test', (consumerTests) => {
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     let recursiveCount = 0
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
@@ -1680,7 +1680,7 @@ Test('Consumer test', (consumerTests) => {
     let errorHandledRejected = false
     let processedNextMessage = false
     c.on('error', error => {
-      Logger.debug(`OMG - ${error}`)
+      logger.debug(`OMG - ${error}`)
       if (error instanceof Error) {
         assert.equal(error.message, errorMessageThrown)
         assert.ok(true, 'Error handled by throw')
@@ -1697,7 +1697,7 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.on('batch', messages => {
-      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      logger.debug(`onBatch: ${JSON.stringify(messages)}`)
       assert.ok(messages, 'on Batch event received')
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
@@ -1708,7 +1708,7 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           recursiveCount = recursiveCount + 1
-          Logger.info(`consume::callback[recursiveCount=${recursiveCount}] ${error}, ${JSON.stringify(message)}`)
+          logger.info(`consume::callback[recursiveCount=${recursiveCount}] ${error}, ${JSON.stringify(message)}`)
           if (recursiveCount > 3) {
             c.disconnect()
             assert.ok(true, 'Message processed by the recursive consumer')
@@ -1746,7 +1746,7 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const errorMessageThrown = 'this is an error thrown'
@@ -1756,13 +1756,13 @@ Test('Consumer test', (consumerTests) => {
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     let recursiveCount = 0
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
@@ -1770,7 +1770,7 @@ Test('Consumer test', (consumerTests) => {
     let errorHandledRejected = false
     let processedNextMessage = false
     c.on('error', error => {
-      Logger.debug(`OMG - ${error}`)
+      logger.debug(`OMG - ${error}`)
       if (error instanceof Error) {
         assert.equal(error.message, errorMessageThrown)
         assert.ok(true, 'Error handled by throw')
@@ -1787,7 +1787,7 @@ Test('Consumer test', (consumerTests) => {
     })
 
     c.on('batch', messages => {
-      Logger.debug(`onBatch: ${JSON.stringify(messages)}`)
+      logger.debug(`onBatch: ${JSON.stringify(messages)}`)
       assert.ok(messages, 'on Batch event received')
       assert.ok(Array.isArray(messages), 'batch of messages received')
     })
@@ -1798,7 +1798,7 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           recursiveCount = recursiveCount + 1
-          Logger.info(`consume::callback[recursiveCount=${recursiveCount}] ${error}, ${JSON.stringify(message)}`)
+          logger.info(`consume::callback[recursiveCount=${recursiveCount}] ${error}, ${JSON.stringify(message)}`)
           if (recursiveCount > 3) {
             assert.ok(true, 'Message processed by the recursive consumer')
             resolve(true)
@@ -1838,7 +1838,7 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
@@ -1848,7 +1848,7 @@ Test('Consumer test', (consumerTests) => {
       try {
         c.consume()
       } catch (error) {
-        Logger.error(error)
+        logger.error(error)
         c.disconnect()
         assert.equals(error.message.toString(), 'batchSize option is not valid - Select an integer greater then 0')
         assert.end()
@@ -1873,7 +1873,7 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const errorMessageThrown = 'this is an error thrown'
@@ -1886,7 +1886,7 @@ Test('Consumer test', (consumerTests) => {
     let errorHandledRejected = false
     let processedNextMessage = false
     c.on('error', error => {
-      Logger.debug(`OMG - ${error}`)
+      logger.debug(`OMG - ${error}`)
       if (error instanceof Error) {
         assert.equal(error.message, errorMessageThrown)
         assert.ok(true, 'Error handled by throw')
@@ -1908,7 +1908,7 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           pollCount = pollCount + 1
-          Logger.info(`consume::callback[recursiveCount=${pollCount}] ${error}, ${JSON.stringify(message)}`)
+          logger.info(`consume::callback[recursiveCount=${pollCount}] ${error}, ${JSON.stringify(message)}`)
           if (pollCount > 3) {
             assert.ok(true, 'Message processed by the recursive consumer')
             resolve(true)
@@ -1948,7 +1948,7 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const errorMessageThrown = 'this is an error thrown'
@@ -1961,7 +1961,7 @@ Test('Consumer test', (consumerTests) => {
     let errorHandledRejected = false
     let processedNextMessage = false
     c.on('error', error => {
-      Logger.debug(`OMG - ${error}`)
+      logger.debug(`OMG - ${error}`)
       if (error instanceof Error) {
         assert.equal(error.message, errorMessageThrown)
         assert.ok(true, 'Error handled by throw')
@@ -1983,7 +1983,7 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           pollCount = pollCount + 1
-          Logger.info(`consume::callback[recursiveCount=${pollCount}] ${error}, ${JSON.stringify(message)}`)
+          logger.info(`consume::callback[recursiveCount=${pollCount}] ${error}, ${JSON.stringify(message)}`)
           if (pollCount > 3) {
             assert.ok(true, 'Message processed by the recursive consumer')
             resolve(true)
@@ -2023,7 +2023,7 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
@@ -2033,7 +2033,7 @@ Test('Consumer test', (consumerTests) => {
       try {
         c.consume()
       } catch (error) {
-        Logger.error(error)
+        logger.error(error)
         c.disconnect()
         assert.equals(error.message.toString(), 'batchSize option is not valid - Select an integer greater then 0')
         assert.end()
@@ -2059,19 +2059,19 @@ Test('Consumer test', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     const c = new Consumer(topicsList, config)
 
     // consume 'ready' event
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
     // consume 'message' event
     c.on('message', message => {
-      Logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
+      logger.debug(`onMessage: ${message.offset}, ${JSON.stringify(message.value)}`)
       assert.ok(message, 'on Message event received')
     })
 
@@ -2081,11 +2081,11 @@ Test('Consumer test', (consumerTests) => {
       c.consume((error, message) => {
         return new Promise((resolve, reject) => {
           if (error) {
-            Logger.error(error)
+            logger.error(error)
             reject(error)
           }
           if (message) { // check if there is a valid message comming back
-            Logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
+            logger.info(`Message Received by callback function - ${JSON.stringify(message)}`)
             // lets check if we have received a batch of messages or single. This is dependant on the Consumer Mode
             if (Array.isArray(message) && message.length != null && message.length > 0) {
               message.forEach(msg => {
@@ -2135,7 +2135,7 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
         'enable.auto.commit': false
       },
       topicConf: {},
-      logger: Logger
+      logger
     }
 
     topicsList = ['test']
@@ -2162,18 +2162,18 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
 
     const discoCallback = (err) => {
       if (err) {
-        Logger.error(`Error received: ${err}`)
+        logger.error(`Error received: ${err}`)
       }
     }
 
     // consume 'message' event
     c.on('error', error => {
-      Logger.error(error)
+      logger.error(error)
       assert.ok(Sinon.match(error, 'event.error') || Sinon.match(error, 'event'), 'on Error event received')
     })
 
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
 
@@ -2214,18 +2214,18 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
 
     const discoCallback = (err) => {
       if (err) {
-        Logger.error(`Error received: ${err}`)
+        logger.error(`Error received: ${err}`)
       }
     }
 
     // consume 'message' event
     c.on('error', error => {
-      Logger.error(error)
+      logger.error(error)
       assert.ok(Sinon.match(error, 'event.error') || Sinon.match(error, 'event'), 'on Error event received')
     })
 
     c.on('ready', arg => {
-      Logger.debug(`onReady: ${JSON.stringify(arg)}`)
+      logger.debug(`onReady: ${JSON.stringify(arg)}`)
       assert.ok(arg, 'on Ready event received')
     })
 
