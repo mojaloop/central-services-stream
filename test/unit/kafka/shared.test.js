@@ -10,6 +10,8 @@ Test('trackConnectionHealth', (t) => {
   t.beforeEach((t) => {
     sandbox = Sinon.createSandbox()
     logger = require('../../../src/lib/logger').logger
+    sandbox.stub(Logger, 'isDebugEnabled').value(true)
+    sandbox.stub(Logger, 'isErrorEnabled').value(true)
     sandbox.stub(logger, 'debug')
     sandbox.stub(logger, 'error')
     t.end()
