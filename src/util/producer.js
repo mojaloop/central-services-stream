@@ -108,7 +108,7 @@ const produceMessage = async (messageProtocol, topicConf, config) => {
       logger.debug('Producer::connect::end')
       listOfProducers[topicConf.topicName] = producer
     }
-    logger.debug(`Producer.sendMessage::messageProtocol:'${JSON.stringify(messageProtocol)}'`)
+    logger.debug('Producer.sendMessage::messageProtocol: ', messageProtocol)
     await producer.sendMessage(messageProtocol, topicConf)
     logger.debug('Producer::end')
     updateProducerHealth(topicConf.topicName, true)

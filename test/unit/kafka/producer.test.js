@@ -391,6 +391,22 @@ Test('Producer test', (producerTests) => {
     })
   })
 
+  producerTests.test('Test Producer::getMetadataSync with error', async (assert) => {
+    const p = new Producer(config)
+    await p.connect()
+    // Stub getMetadata to call callback with error
+    const errorStub = new Error('metadata error')
+    const stub = Sinon.stub(p._producer, 'getMetadata').callsFake((opts, cb) => cb(errorStub, null))
+    try {
+      await p.getMetadataSync(null)
+      assert.fail('Should have thrown error')
+    } catch (err) {
+      assert.equal(err, errorStub, 'getMetadataSync rejects with error')
+    }
+    stub.restore()
+    assert.end()
+  })
+
   producerTests.test('Test Producer::getMetadata - no callback function', (assert) => {
     const p = new Producer(config)
     p.connect().then(result => {

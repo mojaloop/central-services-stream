@@ -221,17 +221,17 @@ class Producer extends EventEmitter {
 
     // setup default onReady emit handler
     super.on('ready', arg => {
-      logger.debug(`Producer::onReady()[topics='${this._topics}'] - ${JSON.stringify(arg)}`)
+      logger.debug(`Producer::onReady()[topics='${this._topics}'] - `, arg)
     })
 
     // setup default onError emit handler
     super.on('error', error => {
-      logger.error(`Producer::onError()[topics='${this._topics}'] - ${error.stack || error})`)
+      logger.error(`Producer::onError()[topics='${this._topics}'] - `, error)
     })
 
     // setup default onDisconnect emit handler
     super.on('disconnected', metrics => {
-      logger.warn(`Producer::onDisconnected()[topics='${this._topics}'] - ${JSON.stringify(metrics)}`)
+      logger.warn(`Producer::onDisconnected()[topics='${this._topics}'] - `, metrics)
     })
 
     logger.silly('Producer::constructor() - end')
@@ -289,40 +289,40 @@ class Producer extends EventEmitter {
       }
 
       this._producer.on('event.log', log => {
-        logger.silly(`Producer::onEventLog - ${JSON.stringify(log.message)}`)
+        logger.silly('Producer::onEventLog - ', log)
       })
 
       this._producer.on('event.error', error => {
-        logger.error(`Producer::onEventError - ${JSON.stringify(error)}`)
+        logger.error('Producer::onEventError - ', error)
         super.emit('error', error)
       })
 
       this._producer.on('event.throttle', eventData => {
-        logger.warn(`Producer::onEventThrottle - ${JSON.stringify(eventData)}`)
+        logger.warn('Producer::onEventThrottle - ', eventData)
         super.emit('event.throttle', eventData)
       })
 
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
         this._producer.on('event.stats', (eventData) => {
-          logger.silly(`Producer::onEventStats - ${JSON.stringify(eventData)}`)
+          logger.silly('Producer::onEventStats - ', eventData)
           this._eventStatsConnectionHealthy = trackConnectionHealth(eventData, logger)
           super.emit('event.stats', eventData)
         })
       }
 
       this._producer.on('error', error => {
-        logger.error(`Producer::onError - ${JSON.stringify(error)}`)
+        logger.error('Producer::onError - ', error)
         super.emit('error', error)
       })
 
       this._config.rdkafkaConf.dr_cb && this._producer.on('delivery-report', (err, report) => {
-        logger.debug(`Producer::onDeliveryReport - ${JSON.stringify(report)}`)
+        logger.debug('Producer::onDeliveryReport - ', report)
         super.emit('delivery-report', err, report)
       })
 
       this._producer.on('disconnected', (metrics) => {
         connectedClients.delete(this)
-        logger.warn(`Producer::onDisconnected - ${JSON.stringify(metrics)}`)
+        logger.warn('Producer::onDisconnected - ', metrics)
         super.emit('disconnected', metrics)
       })
 
@@ -417,13 +417,13 @@ class Producer extends EventEmitter {
         throw new Error('message must be a string or an instance of Buffer.')
       }
 
-      logger.debug(`Producer::sendMessage() - start: ${JSON.stringify({
-          topicName: topicConf.topicName,
-          partition: topicConf.partition,
-          key: topicConf.key
-        })}`)
+      logger.debug('Producer::sendMessage() - start:', {
+        topicName: topicConf.topicName,
+        partition: topicConf.partition,
+        key: topicConf.key
+      })
 
-      logger.silly(`Producer::sendMessage() - message: ${JSON.stringify(parsedMessage)}`)
+      logger.silly('Producer::sendMessage() - message: ', parsedMessage)
 
       return this.#produceMessageWithTrace({
         topicConf, parsedMessageBuffer, producedAt, customHeaders
@@ -625,7 +625,7 @@ class Producer extends EventEmitter {
             ...customHeaders,
             ...Object.entries(tracingContext).map(([k, v]) => ({ [k]: v }))
           ]
-          this._config.logger.debug(`Producer::headers: ${JSON.stringify(headers)}`)
+          this._config.logger.debug('Producer::headers: ', headers)
 
           span.setAttributes({
             [SemConv.ATTR_MESSAGING_CLIENT_ID]: this._config.rdkafkaConf['client.id'],

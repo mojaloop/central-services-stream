@@ -14,11 +14,11 @@ function trackConnectionHealth (eventData, logger = contextLogger) {
       try {
         stats = JSON.parse(stats.message)
       } catch (e) {
-        logger.error(`Consumer::onEventStats - error parsing nested stats.message: ${e}`)
+        logger.error('Consumer::onEventStats - error parsing nested stats.message:', e)
         return false
       }
     }
-    logger.debug(`Consumer::onEventStats - stats: ${JSON.stringify(stats)}`)
+    logger.debug('Consumer::onEventStats - stats:', stats)
     if (stats && stats.brokers) {
       let allHealthy = true
       for (const brokerId in stats.brokers) {
@@ -55,7 +55,7 @@ function trackConnectionHealth (eventData, logger = contextLogger) {
     }
     return false
   } catch (err) {
-    logger.error(`Consumer::onEventStats - error parsing stats: ${err}`)
+    logger.error('Consumer::onEventStats - error parsing stats:', err)
     return false
   }
 }
