@@ -277,12 +277,12 @@ class Producer extends EventEmitter {
       })
 
       this._producer.on('event.error', error => {
-        Logger.isDebugEnabled && logger.debug(`Producer::onEventError - ${JSON.stringify(error)}`)
+        Logger.isErrorEnabled && logger.error(`Producer::onEventError - ${JSON.stringify(error)}`)
         super.emit('error', error)
       })
 
       this._producer.on('event.throttle', eventData => {
-        Logger.isDebugEnabled && logger.debug(`Producer::onEventThrottle - ${JSON.stringify(eventData)}`)
+        Logger.isWarnEnabled && logger.warn(`Producer::onEventThrottle - ${JSON.stringify(eventData)}`)
         super.emit('event.throttle', eventData)
       })
 
@@ -295,7 +295,7 @@ class Producer extends EventEmitter {
       }
 
       this._producer.on('error', error => {
-        Logger.isDebugEnabled && logger.debug(`Producer::onError - ${JSON.stringify(error)}`)
+        Logger.isErrorEnabled && logger.error(`Producer::onError - ${JSON.stringify(error)}`)
         super.emit('error', error)
       })
 
@@ -306,7 +306,7 @@ class Producer extends EventEmitter {
 
       this._producer.on('disconnected', (metrics) => {
         connectedClients.delete(this)
-        Logger.isDebugEnabled && logger.debug(`Producer::onDisconnected - ${JSON.stringify(metrics)}`)
+        Logger.isWarnEnabled && logger.warn(`Producer::onDisconnected - ${JSON.stringify(metrics)}`)
         super.emit('disconnected', metrics)
       })
 
@@ -414,7 +414,7 @@ class Producer extends EventEmitter {
       })
       // todo: think, if it's better to wrap the whole sendMessage in a span
     } catch (err) {
-      Logger.isDebugEnabled && logger.debug(err)
+      Logger.isErrorEnabled && logger.error(err)
       throw err
       // think, if we need to reformat error, e.g.  throw ErrorHandler.Factory.reformatFSPIOPError(err)
     }
