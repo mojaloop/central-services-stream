@@ -33,7 +33,7 @@
 
 const Consumer = require('../').Consumer
 const ConsumerEnums = require('../').Consumer.ENUMS
-const Logger = require('@mojaloop/central-services-logger')
+const contextLogger = require('../lib/logger').logger
 
 const testConsumer = async () => {
   console.log('Instantiate consumer')
@@ -53,7 +53,7 @@ const testConsumer = async () => {
       'enable.auto.commit': false
     },
     topicConf: {},
-    logger: Logger
+    logger: contextLogger
   })
 
   console.log('Connect consumer')

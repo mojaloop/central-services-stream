@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [11.8.4](https://github.com/mojaloop/central-services-stream/compare/v11.8.3...v11.8.4) (2025-09-02)
+
 ### [11.8.3](https://github.com/mojaloop/central-services-stream/compare/v11.8.2...v11.8.3) (2025-09-02)
 
 ### [11.8.2](https://github.com/mojaloop/central-services-stream/compare/v11.8.1...v11.8.2) (2025-07-11)

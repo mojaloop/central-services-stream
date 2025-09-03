@@ -34,9 +34,9 @@
  */
 
 const Consumer = require('../../src').Kafka.Consumer
-const Logger = require('@mojaloop/central-services-logger')
 const ErrorHandler = require('@mojaloop/central-services-error-handling')
 const { stateList } = require('../constants')
+const logger = require('../lib/logger').logger
 
 const listOfConsumers = {}
 
@@ -78,7 +78,7 @@ function consumeWithHealthTracking (consumer, topicName, command) {
       if (!consumerHealth[topicName].timer) {
         consumerHealth[topicName].timer = setTimeout(() => {
           consumerHealth[topicName].healthy = false
-          Logger.isWarnEnabled && Logger.warn(`Consumer health timer expired for topic ${topicName}, marking as unhealthy`)
+          logger.warn(`Consumer health timer expired for topic ${topicName}, marking as unhealthy`)
         }, consumerHealthTimerMs)
       }
     } else {
@@ -109,7 +109,7 @@ function consumeWithHealthTracking (consumer, topicName, command) {
  * @throws {Error} -  if failure occurs
  */
 const createHandler = async (topicName, config, command) => {
-  Logger.isDebugEnabled && Logger.debug(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
+  logger.debug(`CreateHandler::connect - creating Consumer for topics: [${topicName}]`)
   const topicNameArray = Array.isArray(topicName)
     ? topicName
     : [topicName]
@@ -127,7 +127,7 @@ const createHandler = async (topicName, config, command) => {
   let connectedTimeStamp = 0
   try {
     await consumer.connect()
-    Logger.isVerboseEnabled && Logger.verbose(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
+    logger.verbose(`CreateHandler::connect - successfully connected to topics: [${topicNameArray}]`)
     connectedTimeStamp = (new Date()).valueOf()
     // Use the health-tracking wrapper
     topicNameArray.forEach(topic => {
@@ -136,7 +136,7 @@ const createHandler = async (topicName, config, command) => {
     consumeWithHealthTracking(consumer, topicNameArray[0], command)
   } catch (e) {
     // Don't throw the error, still keep track of the topic we tried to connect to
-    Logger.isWarnEnabled && Logger.warn(`CreateHandler::connect - error: ${e}`)
+    logger.error('CreateHandler::connect - error: ', e)
   }
 
   topicNameArray.forEach(topicName => {
@@ -214,7 +214,7 @@ const getListOfTopics = () => {
  */
 const isConnected = async (topicName = undefined) => {
   if (!topicName) {
-    Logger.isDebugEnabled && Logger.debug('topicName is undefined.')
+    logger.debug('topicName is undefined.')
     throw ErrorHandler.Factory.createInternalServerFSPIOPError('topicName is undefined.')
   }
   const consumer = getConsumer(topicName)
@@ -260,7 +260,7 @@ const getMetadataPromise = (consumer, topic) => {
 const allConnected = async topicName => {
   // Use the health variable
   if (consumerHealth[topicName] && consumerHealth[topicName].healthy === false) {
-    Logger.isErrorEnabled && Logger.error(`Consumer health variable indicates unhealthy connection for topic ${topicName}`)
+    logger.error(`Consumer health variable indicates unhealthy connection for topic ${topicName}`)
     throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Consumer health variable indicates unhealthy connection for topic ${topicName}`)
   }
 
@@ -269,7 +269,7 @@ const allConnected = async topicName => {
   // Use the isEventStatsConnectionHealthy method from the consumer
   if (typeof consumer.isEventStatsConnectionHealthy === 'function') {
     if (!consumer.isEventStatsConnectionHealthy()) {
-      Logger.isErrorEnabled && Logger.error(`Consumer event.stats indicates unhealthy connection for topic ${topicName}`)
+      logger.error(`Consumer event.stats indicates unhealthy connection for topic ${topicName}`)
       throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Consumer event.stats indicates unhealthy connection for topic ${topicName}`)
     }
   }
@@ -277,7 +277,7 @@ const allConnected = async topicName => {
   // Use the isPollHealthy method from the consumer
   if (typeof consumer.isPollHealthy === 'function') {
     if (!consumer.isPollHealthy()) {
-      Logger.isErrorEnabled && Logger.error(`Consumer poll health indicates unhealthy connection for topic ${topicName}`)
+      logger.error(`Consumer poll health indicates unhealthy connection for topic ${topicName}`)
       throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Consumer poll health indicates unhealthy connection for topic ${topicName}`)
     }
   }
@@ -285,7 +285,7 @@ const allConnected = async topicName => {
   const metadata = await getMetadataPromise(consumer, topicName)
   const foundTopics = metadata.topics.map(topic => topic.name)
   if (!foundTopics.includes(topicName)) {
-    Logger.isErrorEnabled && Logger.error(`Connected to consumer, but ${topicName} not found.`)
+    logger.error(`Connected to consumer, but ${topicName} not found.`)
     throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to consumer, but ${topicName} not found.`)
   }
   return stateList.OK
