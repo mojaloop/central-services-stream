@@ -518,7 +518,7 @@ class Consumer extends EventEmitter {
           super.on('recursive', (error) => {
             logger.silly('Consumer::consume() - onRecursive - start')
             if (error) {
-              logger.error(`Consumer::consume() - onRecursive - error ${error}`)
+              logger.error('Consumer::consume() - onRecursive - error: ', error)
             }
             if (this._status.running) {
               this._consumeRecursive(this._config.options.recursiveTimeout, this._config.options.batchSize, workDoneCb)
