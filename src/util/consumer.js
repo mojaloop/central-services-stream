@@ -258,6 +258,10 @@ const getMetadataPromise = (consumer, topic) => {
  * @throws {Error} - if consumer can't be found or the consumer is not connected
  */
 const allConnected = async topicName => {
+  logger.debug(`allConnected: Checking health for topic: ${topicName}`)
+  // Log current consumerHealth state
+  logger.debug(`allConnected: consumerHealth[${topicName}] =`, consumerHealth[topicName])
+
   // Use the health variable
   if (consumerHealth[topicName] && consumerHealth[topicName].healthy === false) {
     logger.error(`Consumer health variable indicates unhealthy connection for topic ${topicName}`)
@@ -265,21 +269,37 @@ const allConnected = async topicName => {
   }
 
   const consumer = getConsumer(topicName)
+  logger.debug(`allConnected: consumer instance for topic ${topicName}: ${!!consumer}`)
 
   // Use the isEventStatsConnectionHealthy method from the consumer
   if (typeof consumer.isEventStatsConnectionHealthy === 'function') {
-    if (!consumer.isEventStatsConnectionHealthy()) {
+    const eventStatsHealthy = consumer.isEventStatsConnectionHealthy()
+    logger.debug(`allConnected: consumer.isEventStatsConnectionHealthy() = ${eventStatsHealthy}`)
+    if (!eventStatsHealthy) {
       logger.error(`Consumer event.stats indicates unhealthy connection for topic ${topicName}`)
       throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Consumer event.stats indicates unhealthy connection for topic ${topicName}`)
     }
   }
 
+  // Use the isPollHealthy method from the consumer
+  if (typeof consumer.isPollHealthy === 'function') {
+    const pollHealthy = consumer.isPollHealthy()
+    logger.debug(`allConnected: consumer.isPollHealthy() = ${pollHealthy}`)
+    if (!pollHealthy) {
+      logger.error(`Consumer poll health indicates unhealthy connection for topic ${topicName}`)
+      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Consumer poll health indicates unhealthy connection for topic ${topicName}`)
+    }
+  }
+
   const metadata = await getMetadataPromise(consumer, topicName)
+  logger.debug('allConnected: metadata.topics =', metadata.topics)
   const foundTopics = metadata.topics.map(topic => topic.name)
+  logger.debug('allConnected: foundTopics =', foundTopics)
   if (!foundTopics.includes(topicName)) {
     logger.error(`Connected to consumer, but ${topicName} not found.`)
     throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to consumer, but ${topicName} not found.`)
   }
+  logger.debug(`allConnected: topic ${topicName} is healthy and connected.`)
   return stateList.OK
 }
 

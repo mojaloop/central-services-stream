@@ -518,7 +518,7 @@ class Consumer extends EventEmitter {
           super.on('recursive', (error) => {
             logger.silly('Consumer::consume() - onRecursive - start')
             if (error) {
-              logger.error(`Consumer::consume() - onRecursive - error ${error}`)
+              logger.error('Consumer::consume() - onRecursive - error: ', error)
             }
             if (this._status.running) {
               this._consumeRecursive(this._config.options.recursiveTimeout, this._config.options.batchSize, workDoneCb)
@@ -562,6 +562,7 @@ class Consumer extends EventEmitter {
     this._pollInterval = setInterval(() => {
       // if (this._status.running) {
       this._consumer.consume(batchSize, (error, messages) => {
+        this._updateLastPolledTime()
         if (error || !messages.length) {
           if (error) {
             super.emit('error', error)
@@ -631,6 +632,7 @@ class Consumer extends EventEmitter {
   _consumeRecursive (recursiveTimeout = 100, batchSize, workDoneCb) {
     const { logger } = this._config
     this._consumer.consume(batchSize, (error, messages) => {
+      this._updateLastPolledTime()
       if (error || !messages.length) {
         if (error) {
           super.emit('error', error)
@@ -714,6 +716,7 @@ class Consumer extends EventEmitter {
   _consumeFlow (workDoneCb) {
     const { logger } = this._config
     this._consumer.consume((error, message) => {
+      this._updateLastPolledTime()
       if (error || !message) {
         if (error) {
           super.emit('error', error)
@@ -899,6 +902,38 @@ class Consumer extends EventEmitter {
 
   static _parseBuffer (buffer, encoding, asJson) {
     return Protocol.parseValue(buffer, encoding, asJson)
+  }
+
+  /**
+   * Tracks the last time the consumer polled Kafka.
+   * Used for health checks.
+   */
+  _updateLastPolledTime () {
+    this._lastPolledTime = Date.now()
+  }
+
+  /**
+   * Returns the timestamp of the last poll.
+   * @returns {number} - Unix timestamp in ms
+   */
+  getLastPolledTime () {
+    return this._lastPolledTime || 0
+  }
+
+  /**
+   * Returns true if the time since last poll has not exceeded max.poll.interval.ms.
+   * Uses config.rdkafkaConf['max.poll.interval.ms'] if set, otherwise defaults to 5 minutes.
+   * @returns {boolean}
+   */
+  isPollHealthy () {
+    const lastPoll = this.getLastPolledTime()
+    if (!lastPoll) return false
+    const conf = this._config?.rdkafkaConf || {}
+    const maxPollIntervalMs = typeof conf['max.poll.interval.ms'] === 'number'
+      ? conf['max.poll.interval.ms']
+      : 300000 // 5 minutes default
+    const timeSinceLastPoll = Date.now() - lastPoll
+    return timeSinceLastPoll <= maxPollIntervalMs
   }
 }
 

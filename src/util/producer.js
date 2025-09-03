@@ -267,28 +267,39 @@ const getMetadataPromise = async (producer, topic) => {
 
 const allConnected = async () => {
   for (const [key, producer] of Object.entries(listOfProducers)) {
+    logger.debug(`Checking connection for producer topic: ${key}`)
     // Use health variable first
-    if (producerHealth[key] && !producerHealth[key].healthy) {
-      logger.error(`Producer health for topic ${key} is not healthy.`)
-      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Producer health for topic ${key} is not healthy.`)
+    if (producerHealth[key]) {
+      logger.debug(`Producer health for topic ${key}: ${JSON.stringify(producerHealth[key])}`)
+      if (!producerHealth[key].healthy) {
+        logger.error(`Producer health for topic ${key} is not healthy.`)
+        throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Producer health for topic ${key} is not healthy.`)
+      }
+    } else {
+      logger.debug(`No health info for producer topic: ${key}`)
     }
     // Use isEventStatsConnectionHealthy if available, otherwise fallback to metadata check
     if (typeof producer.isEventStatsConnectionHealthy === 'function') {
       const healthy = producer.isEventStatsConnectionHealthy()
+      logger.debug(`isEventStatsConnectionHealthy for topic ${key}: ${healthy}`)
       if (!healthy) {
         logger.error(`Producer connection for topic ${key} is not healthy.`)
         throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Producer connection for topic ${key} is not healthy.`)
       }
     } else {
+      logger.debug(`isEventStatsConnectionHealthy not available for topic ${key}, falling back to metadata check`)
       // Fallback to metadata check
       const metadata = await getMetadataPromise(producer, key)
+      logger.debug(`Metadata for topic ${key}: `, metadata)
       const foundTopics = metadata.topics.map(topic => topic.name)
+      logger.debug(`Found topics in metadata for ${key}: `, foundTopics)
       if (!foundTopics.includes(key)) {
         logger.error(`Connected to producer, but ${key} not found in metadata.`)
         throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Connected to producer, but ${key} not found in metadata.`)
       }
     }
   }
+  logger.debug('All producers are connected and healthy.')
   return stateList.OK
 }
 
