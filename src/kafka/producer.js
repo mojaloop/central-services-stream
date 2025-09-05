@@ -38,8 +38,9 @@
 
 const EventEmitter = require('node:events')
 const Kafka = require('node-rdkafka')
-const contextLogger = require('../lib/logger').logger
+const stringify = require('safe-stable-stringify')
 const ErrorHandler = require('@mojaloop/central-services-error-handling')
+const contextLogger = require('../lib/logger').logger
 
 const Protocol = require('./protocol')
 const getConfig = require('./config')
@@ -359,7 +360,7 @@ class Producer extends EventEmitter {
   }
 
   static _createBuffer (str, encoding) {
-    const bufferResponse = Buffer.from(JSON.stringify(str), encoding)
+    const bufferResponse = Buffer.from(stringify(str), encoding)
     return bufferResponse
   }
 

@@ -32,8 +32,9 @@
  * @module src/handlers/lib/kafka
  */
 
-const Producer = require('../../src').Kafka.Producer
+const stringify = require('safe-stable-stringify')
 const ErrorHandler = require('@mojaloop/central-services-error-handling')
+const Producer = require('../../src').Kafka.Producer
 const { stateList } = require('../constants')
 const logger = require('../lib/logger').logger
 
@@ -190,7 +191,7 @@ const disconnect = async (topicName = null) => {
       }
     }
     if (isError) {
-      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`The following Producers could not be disconnected: ${JSON.stringify(errorTopicList)}`)
+      throw ErrorHandler.Factory.createInternalServerFSPIOPError(`The following Producers could not be disconnected: ${stringify(errorTopicList)}`)
     }
   } else {
     throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Unable to disconnect Producer: ${topicName}`)
@@ -270,7 +271,7 @@ const allConnected = async () => {
     logger.debug(`Checking connection for producer topic: ${key}`)
     // Use health variable first
     if (producerHealth[key]) {
-      logger.debug(`Producer health for topic ${key}: ${JSON.stringify(producerHealth[key])}`)
+      logger.debug(`Producer health for topic ${key}: `, producerHealth[key])
       if (!producerHealth[key].healthy) {
         logger.error(`Producer health for topic ${key} is not healthy.`)
         throw ErrorHandler.Factory.createInternalServerFSPIOPError(`Producer health for topic ${key} is not healthy.`)
