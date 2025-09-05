@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [11.8.6](https://github.com/mojaloop/central-services-stream/compare/v11.8.5...v11.8.6) (2025-09-05)
+
+
+### Bug Fixes
+
+* **csi-1695:** added safe-stable-stringify to avoid circular structures error ([#176](https://github.com/mojaloop/central-services-stream/issues/176)) ([69f3fd2](https://github.com/mojaloop/central-services-stream/commit/69f3fd292ab6a05b1a20a35941353ab28dfe1d64))
+
 ### [11.8.5](https://github.com/mojaloop/central-services-stream/compare/v11.8.4...v11.8.5) (2025-09-03)
 
 ### [11.8.4](https://github.com/mojaloop/central-services-stream/compare/v11.8.3...v11.8.4) (2025-09-02)
