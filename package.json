@@ -57,16 +57,16 @@
     "async": "3.2.6",
     "async-exit-hook": "2.0.1",
     "events": "3.3.0",
-    "node-rdkafka": "3.3.1",
+    "node-rdkafka": "3.5.0",
     "safe-stable-stringify": "2.5.0"
   },
   "devDependencies": {
     "@mojaloop/central-services-error-handling": "13.1.0",
     "@mojaloop/central-services-logger": "11.9.1",
-    "@opentelemetry/auto-instrumentations-node": "0.62.2",
+    "@opentelemetry/auto-instrumentations-node": "0.63.0",
     "@opentelemetry/sdk-node": "0.204.0",
     "audit-ci": "7.1.0",
-    "npm-check-updates": "18.0.3",
+    "npm-check-updates": "18.1.0",
     "nyc": "17.1.0",
     "pre-commit": "1.2.2",
     "replace": "1.2.2",
@@ -82,7 +82,8 @@
   },
   "overrides": {
     "cross-spawn": "7.0.6",
-    "trim": "0.0.3"
+    "trim": "0.0.3",
+    "simple-swizzle": "0.2.2"
   },
   "imports": {
     "#src/*": "./src/*.js",
