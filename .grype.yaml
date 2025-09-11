@@ -1,5 +1,7 @@
 disabled: true
 
+scan-type: source
+
 ignore:
 
 # Set output format defaults

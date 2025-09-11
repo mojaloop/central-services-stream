@@ -61,10 +61,10 @@
     "safe-stable-stringify": "2.5.0"
   },
   "devDependencies": {
-    "@mojaloop/central-services-error-handling": "13.1.0",
-    "@mojaloop/central-services-logger": "11.9.1",
-    "@opentelemetry/auto-instrumentations-node": "0.63.0",
-    "@opentelemetry/sdk-node": "0.204.0",
+    "@mojaloop/central-services-error-handling": "13.1.1",
+    "@mojaloop/central-services-logger": "11.9.3",
+    "@opentelemetry/auto-instrumentations-node": "0.64.0",
+    "@opentelemetry/sdk-node": "0.205.0",
     "audit-ci": "7.1.0",
     "npm-check-updates": "18.1.0",
     "nyc": "17.1.0",
