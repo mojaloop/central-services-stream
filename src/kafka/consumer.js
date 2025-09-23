@@ -266,6 +266,7 @@ class Consumer extends EventEmitter {
     this._status.runningInConsumeMode = false
     this._status.running = false
     this._eventStatsConnectionHealthy = true
+    this._lastPolledTime = Date.now()
 
     // setup default onReady emit handler
     super.on('ready', arg => {
@@ -917,7 +918,7 @@ class Consumer extends EventEmitter {
    * @returns {number} - Unix timestamp in ms
    */
   getLastPolledTime () {
-    return this._lastPolledTime || 0
+    return this._lastPolledTime
   }
 
   /**
