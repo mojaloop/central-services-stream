@@ -2256,9 +2256,11 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
     })
   }))
 
-  consumerTests.test('Test Consumer::getLastPolledTime - returns 0 when never polled', (assert) => {
+  consumerTests.test('Test Consumer::isPollHealthy - returns true on first run (never polled)', (assert) => {
     const c = new Consumer(topicsList, config)
-    assert.equal(c.getLastPolledTime(), 0, 'getLastPolledTime returns 0 if never polled')
+    // On first run, _lastPolledTime is set in constructor to Date.now()
+    // So isPollHealthy should return true
+    assert.equal(c.isPollHealthy(), true, 'isPollHealthy returns true on first run')
     assert.end()
   })
 
@@ -2267,12 +2269,6 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
     const now = Date.now()
     c._lastPolledTime = now
     assert.equal(c.getLastPolledTime(), now, 'getLastPolledTime returns last polled timestamp')
-    assert.end()
-  })
-
-  consumerTests.test('Test Consumer::isPollHealthy - returns false if never polled', (assert) => {
-    const c = new Consumer(topicsList, config)
-    assert.equal(c.isPollHealthy(), false, 'isPollHealthy returns false if never polled')
     assert.end()
   })
 
