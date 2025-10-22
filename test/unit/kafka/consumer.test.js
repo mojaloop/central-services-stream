@@ -2272,33 +2272,48 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
     assert.end()
   })
 
-  consumerTests.test('Test Consumer::isPollHealthy - returns true if within max.poll.interval.ms', (assert) => {
+  consumerTests.test('Test Consumer::isPollHealthy - returns true if within healthCheckPollInterval', (assert) => {
     const c = new Consumer(topicsList, config)
     const now = Date.now()
     c._lastPolledTime = now
-    c._config.rdkafkaConf['max.poll.interval.ms'] = 10000
-    assert.equal(c.isPollHealthy(), true, 'isPollHealthy returns true if within max.poll.interval.ms')
+    c._config.options.healthCheckPollInterval = 10000
+    assert.equal(c.isPollHealthy(), true, 'isPollHealthy returns true if within healthCheckPollInterval')
     assert.end()
   })
 
-  consumerTests.test('Test Consumer::isPollHealthy - returns false if outside max.poll.interval.ms', (assert) => {
+  consumerTests.test('Test Consumer::isPollHealthy - returns false if outside healthCheckPollInterval', (assert) => {
     const c = new Consumer(topicsList, config)
     const now = Date.now() - 10001
     c._lastPolledTime = now
-    c._config.rdkafkaConf['max.poll.interval.ms'] = 10000
-    assert.equal(c.isPollHealthy(), false, 'isPollHealthy returns false if outside max.poll.interval.ms')
+    c._config.options.healthCheckPollInterval = 10000
+    assert.equal(c.isPollHealthy(), false, 'isPollHealthy returns false if outside healthCheckPollInterval')
     assert.end()
   })
 
-  consumerTests.test('Test Consumer::isPollHealthy - uses default 5 min if max.poll.interval.ms not set', (assert) => {
+  consumerTests.test('Test Consumer::isPollHealthy - returns false if _lastPolledTime is undefined', (assert) => {
     const c = new Consumer(topicsList, config)
-    const now = Date.now() - 299999
-    c._lastPolledTime = now
-    delete c._config.rdkafkaConf['max.poll.interval.ms']
-    assert.equal(c.isPollHealthy(), true, 'isPollHealthy uses default 5 min if max.poll.interval.ms not set')
-    c._lastPolledTime = Date.now() - 300001
-    assert.equal(c.isPollHealthy(), false, 'isPollHealthy returns false if outside default 5 min')
+    c._lastPolledTime = undefined
+    assert.equal(c.isPollHealthy(), false, 'isPollHealthy returns false if _lastPolledTime is undefined')
     assert.end()
   })
+
+  consumerTests.test('Test Consumer::isPollHealthy - returns false if _lastPolledTime is null', (assert) => {
+    const c = new Consumer(topicsList, config)
+    c._lastPolledTime = null
+    assert.equal(c.isPollHealthy(), false, 'isPollHealthy returns false if _lastPolledTime is null')
+    assert.end()
+  })
+
+  consumerTests.test('Test Consumer::isPollHealthy - works with custom healthCheckPollInterval', (assert) => {
+    const c = new Consumer(topicsList, config)
+    c._config.options.healthCheckPollInterval = 5000
+    const now = Date.now()
+    c._lastPolledTime = now - 4000
+    assert.equal(c.isPollHealthy(), true, 'isPollHealthy returns true for custom interval')
+    c._lastPolledTime = now - 6000
+    assert.equal(c.isPollHealthy(), false, 'isPollHealthy returns false for custom interval')
+    assert.end()
+  })
+
   consumerTests.end()
 })

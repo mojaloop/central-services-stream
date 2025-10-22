@@ -231,6 +231,9 @@ class Consumer extends EventEmitter {
     if (!config.options.messageCharset) {
       config.options.messageCharset = 'utf8'
     }
+    if (!config.options.healthCheckPollInterval) {
+      config.options.healthCheckPollInterval = 25000
+    }
     if (!config.options.deserializeFn) {
       const defaultDeserializeFn = (buffer, opts) => {
         return Consumer._parseBuffer(buffer, opts.messageCharset, opts.messageAsJSON)
@@ -922,19 +925,17 @@ class Consumer extends EventEmitter {
   }
 
   /**
-   * Returns true if the time since last poll has not exceeded max.poll.interval.ms.
-   * Uses config.rdkafkaConf['max.poll.interval.ms'] if set, otherwise defaults to 5 minutes.
+   * Returns true if the time since last poll has not exceeded healthCheckPollInterval.
+   * Uses config.options.healthCheckPollInterval if set, otherwise defaults to 25000 ms.
    * @returns {boolean}
    */
   isPollHealthy () {
     const lastPoll = this.getLastPolledTime()
     if (!lastPoll) return false
-    const conf = this._config?.rdkafkaConf || {}
-    const maxPollIntervalMs = typeof conf['max.poll.interval.ms'] === 'number'
-      ? conf['max.poll.interval.ms']
-      : 300000 // 5 minutes default
+    const opts = this._config?.options || {}
+    const healthCheckPollInterval = opts.healthCheckPollInterval
     const timeSinceLastPoll = Date.now() - lastPoll
-    return timeSinceLastPoll <= maxPollIntervalMs
+    return timeSinceLastPoll <= healthCheckPollInterval
   }
 }
 
