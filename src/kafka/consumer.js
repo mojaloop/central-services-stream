@@ -942,10 +942,6 @@ class Consumer extends EventEmitter {
     const timeSinceLastPoll = Date.now() - lastPoll
     return timeSinceLastPoll <= healthCheckPollInterval
   }
-
-  #validateBatchSize(batchSize) {
-    return batchSize > 0
-  }
 }
 
 //
