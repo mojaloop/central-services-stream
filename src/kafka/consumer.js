@@ -272,18 +272,18 @@ class Consumer extends EventEmitter {
     this._lastPolledTime = Date.now()
 
     // setup default onReady emit handler
-    super.on('ready', arg => {
-      logger.debug(`Consumer::onReady()[topics='${this._topics}'] - `, arg)
+    super.on('ready', (...args) => {
+      logger.debug(`Consumer::onReady() [topics: ${this._topics}]`, { args })
     })
 
     // setup default onError emit handler
     super.on('error', error => {
-      logger.error(`Consumer::onError()[topics='${this._topics}'] - `, error)
+      logger.error(`Consumer::onError() [topics: ${this._topics}]`, error)
     })
 
     // setup default onDisconnect emit handler
-    super.on('disconnected', metrics => {
-      logger.warn(`Consumer::onDisconnected()[topics='${this._topics}'] - `, metrics)
+    super.on('disconnected', (...metrics) => {
+      logger.warn(`Consumer::onDisconnected() [topics: ${this._topics}]`, { metrics })
     })
 
     logger.silly('Consumer::constructor() - end')
@@ -317,8 +317,8 @@ class Consumer extends EventEmitter {
 
       this._consumer.setDefaultConsumeTimeout(this._config.options.consumeTimeout)
 
-      this._consumer.on('warning', warn => {
-        logger.warn('Consumer::onWarning - ', warn)
+      this._consumer.on('warning', (...args) => {
+        logger.warn('Consumer::onWarning - ', { args })
       })
 
       this._consumer.on('event.log', log => {
@@ -345,7 +345,7 @@ class Consumer extends EventEmitter {
       }
 
       this._consumer.on('error', error => {
-        logger.error('Consumer::onError - ', error)
+        logger.error('Consumer::onError: ', error)
         super.emit('error', error)
       })
 
@@ -354,14 +354,14 @@ class Consumer extends EventEmitter {
         super.emit('partition.eof', eof)
       })
 
-      this._consumer.on('disconnected', (metrics) => {
+      this._consumer.on('disconnected', (...metrics) => {
         connectedClients.delete(this)
         logger.warn('Consumer::onDisconnected - ', { metrics })
         super.emit('disconnected', metrics)
       })
 
       this._consumer.on('ready', args => {
-        logger.debug(`Consumer::onReady - node-rdkafka v${Kafka.librdkafkaVersion} ready - `, { args })
+        logger.verbose(`Consumer::onReady - node-rdkafka v${Kafka.librdkafkaVersion} ready - `, { args })
         this.subscribe()
         const readyResponse = {
           ...args,
@@ -376,12 +376,12 @@ class Consumer extends EventEmitter {
       logger.silly('Consumer::connect() - Connecting...')
       this._consumer.connect(null, (error, metadata) => {
         if (error) {
+          logger.warn('Consumer::connect() - error: ', error)
           super.emit('error', error)
-          logger.silly('Consumer::connect() - end')
           return reject(error)
         }
         connectedClients.add(this)
-        logger.silly('Consumer::connect() - metadata:  ', { metadata })
+        logger.verbose('Consumer::connect() - metadata:  ', { metadata })
       })
     })
   }
@@ -444,10 +444,10 @@ class Consumer extends EventEmitter {
     }
 
     if (this._topics) {
-      logger.silly(`Consumer::subscribe() - subscribing too [${this._topics}]`)
+      logger.verbose(`Consumer::subscribe() - subscribing to [${this._topics}]`)
       this._consumer.subscribe(this._topics)
     }
-    logger.silly('Consumer::subscribe() - end')
+    logger.debug('Consumer::subscribe() - end')
   }
 
   /**
@@ -477,7 +477,7 @@ class Consumer extends EventEmitter {
     // setup queues to ensure sync processing of messages if options.sync is true
     if (this._config.options.sync) {
       this._syncQueue = async.queue((task, callbackDone) => {
-        logger.silly(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - Sync Process - `, { task })
+        logger.verbose(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - Sync Process - `, { task })
         const payload = this._config.options.mode === ENUMS.CONSUMER_MODES.flow
           ? task.message
           : task.messages
@@ -504,7 +504,12 @@ class Consumer extends EventEmitter {
 
       // a callback function, invoked when queue is empty.
       this._syncQueue.drain(() => {
-        this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
+        try {
+          this._consumer.resume(this._topics) // resume listening new messages from the Kafka consumer group
+        } catch (err) {
+          logger.error('Consumer::syncQueue.drain() - error resuming consumer: ', err)
+          super.emit('error', err)
+        }
       })
     }
 
@@ -543,7 +548,7 @@ class Consumer extends EventEmitter {
       default:
         this._consumeFlow(workDoneCb)
     }
-    logger.silly('Consumer::consume() - end')
+    logger.verbose('Consumer::consume() - end')
   }
 
   /**
@@ -936,6 +941,10 @@ class Consumer extends EventEmitter {
     const healthCheckPollInterval = opts.healthCheckPollInterval
     const timeSinceLastPoll = Date.now() - lastPoll
     return timeSinceLastPoll <= healthCheckPollInterval
+  }
+
+  #validateBatchSize(batchSize) {
+    return batchSize > 0
   }
 }
 
