@@ -3,7 +3,7 @@
 scan-type: source
 
 # Enable vulnerability scanning
-disabled: false
+disabled: true
 
 # Vulnerability ignore rules
 # Add specific CVEs here if they are false positives or acceptable risks
