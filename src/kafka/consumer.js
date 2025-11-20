@@ -477,7 +477,7 @@ class Consumer extends EventEmitter {
     // setup queues to ensure sync processing of messages if options.sync is true
     if (this._config.options.sync) {
       this._syncQueue = async.queue((task, callbackDone) => {
-        logger.verbose(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - Sync Process - `, { task })
+        logger.silly(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - Sync Process - `, { task })
         const payload = this._config.options.mode === ENUMS.CONSUMER_MODES.flow
           ? task.message
           : task.messages
