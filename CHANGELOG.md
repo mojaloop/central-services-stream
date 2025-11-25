@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [11.8.12](https://github.com/mojaloop/central-services-stream/compare/v11.8.11...v11.8.12) (2025-11-25)
+
+
+### Bug Fixes
+
+* **csi-1938:** added try/catch to _syncQueue.drain() ([#182](https://github.com/mojaloop/central-services-stream/issues/182)) ([9f416d8](https://github.com/mojaloop/central-services-stream/commit/9f416d8ae1b948f752bb81eeea56fe00ee3f531a))
+
 ### [11.8.11](https://github.com/mojaloop/central-services-stream/compare/v11.8.10...v11.8.11) (2025-11-21)
 
 ### [11.8.10](https://github.com/mojaloop/central-services-stream/compare/v11.8.9...v11.8.10) (2025-10-23)
