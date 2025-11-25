@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "11.8.11",
+  "version": "11.8.12-snapshot.3",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -20,17 +20,16 @@
     "Valentin Genev <valentin.genev@modusbox.com>"
   ],
   "keywords": [
-    "shared",
-    "central",
-    "services",
-    "mojaloop"
+    "mojaloop",
+    "kafka",
+    "stream"
   ],
   "main": "src/index.js",
   "pre-commit": [
     "lint",
+    "test",
     "dep:check",
-    "audit:check",
-    "test"
+    "audit:check"
   ],
   "scripts": {
     "test": "npm run test:unit",
@@ -84,7 +83,7 @@
     "cross-spawn": "7.0.6",
     "trim": "0.0.3",
     "simple-swizzle": "0.2.2",
-    "js-yaml": "4.1.1"
+    "js-yaml": ">=4.1.1"
   },
   "imports": {
     "#src/*": "./src/*.js",
