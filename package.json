@@ -56,13 +56,13 @@
     "async": "3.2.6",
     "async-exit-hook": "2.0.1",
     "events": "3.3.0",
-    "node-rdkafka": "3.6.0",
+    "node-rdkafka": "3.6.1",
     "safe-stable-stringify": "2.5.0"
   },
   "devDependencies": {
-    "@mojaloop/central-services-error-handling": "13.1.4",
-    "@mojaloop/central-services-logger": "11.10.1",
-    "@opentelemetry/auto-instrumentations-node": "0.67.0",
+    "@mojaloop/central-services-error-handling": "13.1.5",
+    "@mojaloop/central-services-logger": "11.10.2",
+    "@opentelemetry/auto-instrumentations-node": "0.67.2",
     "@opentelemetry/sdk-node": "0.208.0",
     "audit-ci": "7.1.0",
     "npm-check-updates": "19.1.2",
