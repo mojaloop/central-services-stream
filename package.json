@@ -65,7 +65,7 @@
     "@opentelemetry/auto-instrumentations-node": "0.67.2",
     "@opentelemetry/sdk-node": "0.208.0",
     "audit-ci": "7.1.0",
-    "npm-check-updates": "19.1.2",
+    "npm-check-updates": "19.2.0",
     "nyc": "17.1.0",
     "pre-commit": "1.2.2",
     "replace": "1.2.2",

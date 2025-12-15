@@ -373,7 +373,7 @@ class Consumer extends EventEmitter {
         resolve(true)
       })
 
-      logger.silly('Consumer::connect() - Connecting...')
+      logger.silly('Consumer::connect() - connecting...')
       this._consumer.connect(null, (error, metadata) => {
         if (error) {
           logger.warn('Consumer::connect() - error: ', error)
@@ -381,7 +381,7 @@ class Consumer extends EventEmitter {
           return reject(error)
         }
         connectedClients.add(this)
-        logger.verbose('Consumer::connect() - metadata:  ', { metadata })
+        logger.verbose('Consumer::connect() - connected')
       })
     })
   }
@@ -941,6 +941,23 @@ class Consumer extends EventEmitter {
     const healthCheckPollInterval = opts.healthCheckPollInterval
     const timeSinceLastPoll = Date.now() - lastPoll
     return timeSinceLastPoll <= healthCheckPollInterval
+  }
+
+  /* istanbul ignore next */
+  async isHealthy (timeout = 5000) {
+    const isConnected = this.isConnected();
+    const isAssigned = this._consumer.assignments().length > 0; // todo: support multiple topics
+    const isPollHealthy = this.isPollHealthy();
+
+    const topic = this._topics[0] // todo: support multiple topics
+    const metaData = await this.getMetadataSync({ topic, timeout });
+    const isTopicHealthy = metaData.topics.some(t => t.name === topic);
+
+    const isHealthy = isConnected && isAssigned && isPollHealthy && isTopicHealthy;
+    if (!isHealthy) {
+      this._config.logger.warn(`consumer is NOT healthy  [topic: ${topic}]`, { isConnected, isPollHealthy, isTopicHealthy, isAssigned, topic });
+    }
+    return isHealthy;
   }
 }
 
