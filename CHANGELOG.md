@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [11.8.14](https://github.com/mojaloop/central-services-stream/compare/v11.8.13...v11.8.14) (2025-12-16)
+
+
+### Bug Fixes
+
+* **csi-1997:** added isHealthy method to Consumer ([#185](https://github.com/mojaloop/central-services-stream/issues/185)) ([c1a366d](https://github.com/mojaloop/central-services-stream/commit/c1a366dc36afab96811f97eab1b92b3ffc3bf912))
+
 ### [11.8.13](https://github.com/mojaloop/central-services-stream/compare/v11.8.12...v11.8.13) (2025-12-05)
 
 ### [11.8.12](https://github.com/mojaloop/central-services-stream/compare/v11.8.11...v11.8.12) (2025-11-25)
