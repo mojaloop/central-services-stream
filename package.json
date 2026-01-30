@@ -61,16 +61,16 @@
   },
   "devDependencies": {
     "@mojaloop/central-services-error-handling": "13.1.5",
-    "@mojaloop/central-services-logger": "11.10.2",
-    "@opentelemetry/auto-instrumentations-node": "0.67.2",
-    "@opentelemetry/sdk-node": "0.208.0",
+    "@mojaloop/central-services-logger": "11.10.3",
+    "@opentelemetry/auto-instrumentations-node": "0.69.0",
+    "@opentelemetry/sdk-node": "0.211.0",
     "audit-ci": "7.1.0",
-    "npm-check-updates": "19.2.0",
+    "npm-check-updates": "19.3.2",
     "nyc": "17.1.0",
     "pre-commit": "1.2.2",
     "replace": "1.2.2",
     "rewire": "9.0.1",
-    "sinon": "21.0.0",
+    "sinon": "21.0.1",
     "standard": "17.1.2",
     "standard-version": "9.5.0",
     "tap-spec": "5.0.0",
@@ -83,7 +83,8 @@
     "cross-spawn": "7.0.6",
     "trim": "0.0.3",
     "simple-swizzle": "0.2.2",
-    "js-yaml": ">=4.1.1"
+    "js-yaml": ">=4.1.1",
+    "lodash": "4.17.23"
   },
   "imports": {
     "#src/*": "./src/*.js",

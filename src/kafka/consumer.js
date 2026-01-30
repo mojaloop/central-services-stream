@@ -947,16 +947,23 @@ class Consumer extends EventEmitter {
   async isHealthy (timeout = 5000) {
     try {
       const isConnected = this.isConnected()
-      const isAssigned = this._consumer.assignments().length > 0 // todo: support multiple topics
+      const isAssigned = this._consumer.assignments().length > 0 // not necessary for all topics to be assigned a partition
       const isPollHealthy = this.isPollHealthy()
 
-      const topic = this._topics[0] // todo: support multiple topics
-      const metaData = await this.getMetadataSync({ topic, timeout })
-      const isTopicHealthy = metaData.topics.some(t => t.name === topic)
+      // Check metadata health for all topics
+      const unhealthyTopics = []
+      for (const topic of this._topics) {
+        const metaData = await this.getMetadataSync({ topic, timeout })
+        const topicHealthy = metaData.topics.some(t => t.name === topic)
+        if (!topicHealthy) {
+          unhealthyTopics.push(topic)
+        }
+      }
+      const isTopicHealthy = unhealthyTopics.length === 0
 
       const isHealthy = isConnected && isAssigned && isPollHealthy && isTopicHealthy
       if (!isHealthy) {
-        this._config.logger.warn(`consumer is NOT healthy  [topic: ${topic}]`, { isConnected, isPollHealthy, isTopicHealthy, isAssigned, topic })
+        this._config.logger.warn(`consumer is NOT healthy  [topics: ${this._topics}]`, { isConnected, isPollHealthy, isTopicHealthy, isAssigned, unhealthyTopics })
       }
       return isHealthy
     } catch (err) {

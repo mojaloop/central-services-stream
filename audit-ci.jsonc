@@ -4,6 +4,6 @@
     // Only use one of ["low": true, "moderate": true, "high": true, "critical": true]
     "moderate": true,
     "allowlist": [
-      
+        "GHSA-p5wg-g6qr-c7cg" // is incompatible with standard@17.1.2. ESLint 9 removed several options (extensions, useEslintrc, resolvePluginsRelativeTo) that standard-engine relies on. The standard package requires eslint@^8.41.0      
     ]
 }
