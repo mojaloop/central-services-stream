@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.9.0](https://github.com/mojaloop/central-services-stream/compare/v11.8.14...v11.9.0) (2026-01-30)
+
+
+### Features
+
+* inHealthy support for multiple topics ([#186](https://github.com/mojaloop/central-services-stream/issues/186)) ([f9628dc](https://github.com/mojaloop/central-services-stream/commit/f9628dc67a33f84757764c62b4b4f0691bc8b1d2))
+
 ### [11.8.14](https://github.com/mojaloop/central-services-stream/compare/v11.8.13...v11.8.14) (2025-12-16)
 
 
