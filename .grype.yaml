@@ -16,6 +16,8 @@ ignore:
   #     name: "package-name"
   #     version: "1.0.0"
   #   reason: "Not exploitable in our usage context"
+  - vulnerability: "GHSA-p5wg-g6qr-c7cg"
+    reason: "is incompatible with standard@17.1.2. ESLint 9 removed several options (extensions, useEslintrc, resolvePluginsRelativeTo) that standard-engine relies on. The standard package requires eslint@^8.41.0"
 
 # Output formats for scan results
 output:
