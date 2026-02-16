@@ -1,5 +1,6 @@
 const { propagation, context, SpanKind, trace, SpanStatusCode } = require('@opentelemetry/api')
 const { OTEL_HEADERS, SemConv } = require('../constants')
+const { logger } = require('../lib/logger')
 
 const tracer = trace.getTracer('kafka')
 
@@ -37,8 +38,12 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
   )
   const spanCtx = trace.setSpan(activeContext, span)
 
-  if (consumerConfig) span.setAttributes(makeConsumerAttributes(consumerConfig, topic, payload))
-  if (spanAttrs) span.setAttributes(spanAttrs)
+  const attributes = {
+    ...(consumerConfig && makeConsumerAttributes(consumerConfig, topic, payload)),
+    ...spanAttrs
+  }
+  span.setAttributes(attributes)
+  logger.info('consumer span attributes: ', { attributes })
 
   return {
     span,
@@ -67,7 +72,7 @@ const executeAndSetSpanStatus = async (fn, span, withSpanEnd, rethrowError) => {
 const makeConsumerAttributes = (config, topic, payload = null) => {
   const actualCount = Array.isArray(payload) ? payload.length : (payload ? 1 : null)
   return {
-    [SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: actualCount || config.options.batchSize,
+    [SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: actualCount || config.options.batchSize, // recheck the logic
     [SemConv.ATTR_MESSAGING_CLIENT_ID]: config.rdkafkaConf['client.id'],
     [SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME]: config.rdkafkaConf['group.id'],
     [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topic,

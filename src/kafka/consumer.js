@@ -38,7 +38,6 @@
 'use strict'
 
 const EventEmitter = require('node:events')
-const { randomUUID } = require('node:crypto')
 const Kafka = require('node-rdkafka')
 const async = require('async')
 const contextLogger = require('../lib/logger').logger
@@ -562,15 +561,22 @@ class Consumer extends EventEmitter {
 
     const durationSec = (Date.now() - meta.startTime) / 1000
     this._config.logger.info(`[<=> msg] kafka processing end  [durationSec: ${durationSec},  batchId: ${meta.batchId}]`)
-    this._config.logger.debug('_executeWithOtelSpan is done:', { results, meta })
+    this._config.logger.debug('_executeWithOtelSpan is done:', { results })
 
     return results
   }
 
-  _extractPayloadDetails (payload) { // think better name, include error into the logic
-    const batchSize = Array.isArray(payload) ? payload.length : 1
+  // todo: - include error into the logic
+  //       - think better name
+  _extractPayloadDetails (payload) {
+    const payloadArr = Array.isArray(payload) ? payload : [payload]
+    const batchSize = payloadArr.length
 
-    const batchId = randomUUID() // todo: sue data from payload (partition/offsets)
+    const firstOffset = payloadArr[0]?.offset
+    const lastOffset = payloadArr[batchSize - 1]?.offset
+
+    const batchId = `${payloadArr[0]?.partition}.${firstOffset}-${lastOffset}` // think if we need to have another logic
+
     const meta = {
       batchId, batchSize, startTime: Date.now()
     } // think which other meta data we might need in handler (workDoneCb)

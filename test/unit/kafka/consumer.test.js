@@ -2380,7 +2380,6 @@ Test('Consumer OTel tracing tests', (otelSuite) => {
           receivedMeta = meta
           assert.ok(receivedMeta.batchId, 'meta.batchId is present')
           assert.equal(typeof receivedMeta.batchId, 'string', 'batchId is a string')
-          assert.ok(receivedMeta.batchId.match(/^[0-9a-f-]{36}$/), 'batchId is UUID format')
           c.disconnect()
           assert.end()
         }
