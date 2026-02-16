@@ -120,9 +120,9 @@ Test('otel Tests -->', (otelTests) => {
       test.equal(attrs['messaging.batch.message_count'], 1, 'count should be 1 for single message')
     }))
 
-    attrTests.test('should fall back to config.options.batchSize when no payload', tryCatchEndTest((test) => {
+    attrTests.test('should return 0 count when no payload', tryCatchEndTest((test) => {
       const attrs = otel.makeConsumerAttributes(baseConfig, 'test-topic')
-      test.equal(attrs['messaging.batch.message_count'], 5, 'count should fall back to batchSize=5')
+      test.equal(attrs['messaging.batch.message_count'], 0, 'count should be 0 when no payload')
     }))
 
     attrTests.test('should set all standard consumer attributes', tryCatchEndTest((test) => {
@@ -130,7 +130,7 @@ Test('otel Tests -->', (otelTests) => {
       test.equal(attrs['messaging.client.id'], 'test-client')
       test.equal(attrs['messaging.consumer.group.name'], 'test-group')
       test.equal(attrs['messaging.destination.name'], 'test-topic')
-      test.equal(attrs['messaging.operation.name'], 'receive')
+      test.equal(attrs['messaging.operation.name'], 'consume')
       test.equal(attrs['messaging.system'], 'kafka')
       test.equal(attrs['server.address'], 'localhost:9092')
     }))

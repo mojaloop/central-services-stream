@@ -1,4 +1,5 @@
 const { propagation, context, SpanKind, trace, SpanStatusCode } = require('@opentelemetry/api')
+const { ATTR_SERVER_ADDRESS } = require('@opentelemetry/semantic-conventions')
 const { OTEL_HEADERS, SemConv } = require('../constants')
 const { logger } = require('../lib/logger')
 
@@ -70,15 +71,15 @@ const executeAndSetSpanStatus = async (fn, span, withSpanEnd, rethrowError) => {
 }
 
 const makeConsumerAttributes = (config, topic, payload = null) => {
-  const actualCount = Array.isArray(payload) ? payload.length : (payload ? 1 : null)
+  const actualCount = Array.isArray(payload) ? payload.length : (payload ? 1 : 0)
   return {
-    [SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: actualCount || config.options.batchSize, // recheck the logic
+    [SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: actualCount,
     [SemConv.ATTR_MESSAGING_CLIENT_ID]: config.rdkafkaConf['client.id'],
     [SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME]: config.rdkafkaConf['group.id'],
     [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topic,
-    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'receive',
+    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'consume',
     [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka',
-    [SemConv.ATTR_SERVER_ADDRESS]: config.rdkafkaConf['metadata.broker.list']
+    [ATTR_SERVER_ADDRESS]: config.rdkafkaConf['metadata.broker.list']
   }
 }
 

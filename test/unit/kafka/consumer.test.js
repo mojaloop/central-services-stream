@@ -2471,9 +2471,9 @@ Test('Consumer OTel tracing tests', (otelSuite) => {
     c.connect().then(() => {
       c.consume((_error, messages, meta) => {
         assert.ok(otelStub.called, 'startConsumerTracingSpan was called')
-        const [, , , spanAttrs] = otelStub.firstCall.args
-        assert.ok(spanAttrs['batch.id'], 'batch.id span attribute set')
-        assert.ok(spanAttrs['batch.size'], 'batch.size span attribute set')
+        const [payload, cfg] = otelStub.firstCall.args
+        assert.ok(payload, 'payload passed to startConsumerTracingSpan')
+        assert.ok(cfg, 'config passed to startConsumerTracingSpan')
         c.disconnect()
         assert.end()
         return Promise.resolve()

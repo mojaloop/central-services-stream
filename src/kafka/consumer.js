@@ -548,19 +548,19 @@ class Consumer extends EventEmitter {
    * If disableOtelSpanAutoCreation is true, executes workDoneCb directly.
    */
   async _executeWithOtelSpan (error, payload, workDoneCb) {
-    const { meta, spanAttrs } = this._extractPayloadDetails(payload)
-    this._config.logger.info(`[=>> msg] kafka processing start  [batchSize: ${meta.batchSize},  batchId: ${meta.batchId}]...`, { meta }) // todo: add topic details
+    const { meta } = this._extractPayloadDetails(payload)
+    this._config.logger.info(`[=>> msg] kafka processing start  [batchSize: ${meta.batchSize},  batchId: ${meta.batchId}]...`, { meta })
 
     let results
     if (this._config.options.disableOtelSpanAutoCreation) {
       results = await Promise.resolve(workDoneCb(error, payload, meta))
     } else {
-      const { executeInsideSpanContext } = otel.startConsumerTracingSpan(payload, this._config, '', spanAttrs)
+      const { executeInsideSpanContext } = otel.startConsumerTracingSpan(payload, this._config)
       results = await executeInsideSpanContext(() => workDoneCb(error, payload, meta), true, true)
     }
 
     const durationSec = (Date.now() - meta.startTime) / 1000
-    this._config.logger.info(`[<=> msg] kafka processing end  [durationSec: ${durationSec},  batchId: ${meta.batchId}]`)
+    this._config.logger.info(`[<=> msg] kafka processing end  [durationSec: ${durationSec},  batchId: ${meta.batchId}]`, { meta })
     this._config.logger.debug('_executeWithOtelSpan is done:', { results })
 
     return results
@@ -569,22 +569,20 @@ class Consumer extends EventEmitter {
   // todo: - include error into the logic
   //       - think better name
   _extractPayloadDetails (payload) {
-    const payloadArr = Array.isArray(payload) ? payload : [payload]
+    const payloadArr = Array.isArray(payload) ? payload : [payload] // we're doing it inside startConsumerTracingSpan()
     const batchSize = payloadArr.length
 
     const firstOffset = payloadArr[0]?.offset
     const lastOffset = payloadArr[batchSize - 1]?.offset
-
     const batchId = `${payloadArr[0]?.partition}.${firstOffset}-${lastOffset}` // think if we need to have another logic
 
     const meta = {
-      batchId, batchSize, startTime: Date.now()
-    } // think which other meta data we might need in handler (workDoneCb)
+      batchId,
+      batchSize,
+      startTime: Date.now()
+    } // think which other metadata we might need in handler (workDoneCb)
 
-    const spanAttrs = { 'batch.id': batchId, 'batch.size': batchSize }
-    // todo: use otel ATTRS_NAMES... instead of string literals
-
-    return { meta, spanAttrs }
+    return { meta }
   }
 
   /**

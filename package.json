@@ -53,6 +53,7 @@
   },
   "dependencies": {
     "@opentelemetry/api": "1.9.0",
+    "@opentelemetry/semantic-conventions": "1.39.0",
     "async": "3.2.6",
     "async-exit-hook": "2.0.1",
     "events": "3.3.0",
