@@ -548,25 +548,37 @@ class Consumer extends EventEmitter {
    * Generates a batchId and passes it to the handler as a 3rd argument.
    * If disableOtelSpanAutoCreation is true, executes workDoneCb directly.
    */
-  _executeWithOtelSpan (error, payload, workDoneCb) {
-    const batchId = randomUUID()
-    const meta = { batchId } // think which other meta data we might need in handler (workDoneCb)
+  async _executeWithOtelSpan (error, payload, workDoneCb) {
+    const { meta, spanAttrs } = this._extractPayloadDetails(payload)
+    this._config.logger.info(`[=>> msg] kafka processing start  [batchSize: ${meta.batchSize},  batchId: ${meta.batchId}]...`, { meta }) // todo: add topic details
 
+    let results
     if (this._config.options.disableOtelSpanAutoCreation) {
-      return Promise.resolve(workDoneCb(error, payload, meta))
+      results = await Promise.resolve(workDoneCb(error, payload, meta))
+    } else {
+      const { executeInsideSpanContext } = otel.startConsumerTracingSpan(payload, this._config, '', spanAttrs)
+      results = await executeInsideSpanContext(() => workDoneCb(error, payload, meta), true, true)
     }
 
-    const actualCount = Array.isArray(payload) ? payload.length : 1
-    const { executeInsideSpanContext } = otel.startConsumerTracingSpan(
-      payload, this._config, '',
-      { 'batch.id': batchId, 'batch.size': actualCount }
-      // todo: use otel ATTRS_NAMES... instead of string literls
-    )
-    return executeInsideSpanContext(
-      () => workDoneCb(error, payload, meta),
-      true,
-      true
-    )
+    const durationSec = (Date.now() - meta.startTime) / 1000
+    this._config.logger.info(`[<=> msg] kafka processing end  [durationSec: ${durationSec},  batchId: ${meta.batchId}]`)
+    this._config.logger.debug('_executeWithOtelSpan is done:', { results, meta })
+
+    return results
+  }
+
+  _extractPayloadDetails (payload) { // think better name, include error into the logic
+    const batchSize = Array.isArray(payload) ? payload.length : 1
+
+    const batchId = randomUUID() // todo: sue data from payload (partition/offsets)
+    const meta = {
+      batchId, batchSize, startTime: Date.now()
+    } // think which other meta data we might need in handler (workDoneCb)
+
+    const spanAttrs = { 'batch.id': batchId, 'batch.size': batchSize }
+    // todo: use otel ATTRS_NAMES... instead of string literals
+
+    return { meta, spanAttrs }
   }
 
   /**
