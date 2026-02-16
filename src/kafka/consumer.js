@@ -549,21 +549,26 @@ class Consumer extends EventEmitter {
    */
   async _executeWithOtelSpan (error, payload, workDoneCb) {
     const { meta } = this._extractPayloadDetails(payload)
-    this._config.logger.info(`[=>> msg] message processing start  [batchSize: ${meta.batchSize},  batchId: ${meta.batchId}]...`, { meta })
+    const log = this._config.logger.child({ meta })
 
-    let results
-    if (this._config.options.disableOtelSpanAutoCreation) {
-      results = await Promise.resolve(workDoneCb(error, payload, meta))
-    } else {
-      const { executeInsideSpanContext } = otel.startConsumerTracingSpan(payload, this._config)
-      results = await executeInsideSpanContext(() => workDoneCb(error, payload, meta), true, true)
+    const executeAndLog = async () => {
+      log.info(`[=>> msg] message processing start  [batchSize: ${meta.batchSize},  batchId: ${meta.batchId}]...`)
+      try {
+        const results = await workDoneCb(error, payload, meta)
+        log.debug('_executeWithOtelSpan is done:', { results })
+        return results
+      } finally {
+        const durationSec = (Date.now() - meta.startTime) / 1000
+        log.info(`[<#> msg] message processing end  [durationSec: ${durationSec},  batchId: ${meta.batchId}]`)
+      }
     }
 
-    const durationSec = (Date.now() - meta.startTime) / 1000
-    this._config.logger.info(`[<#> msg] message processing end  [durationSec: ${durationSec},  batchId: ${meta.batchId}]`, { meta })
-    this._config.logger.debug('_executeWithOtelSpan is done:', { results })
+    if (this._config.options.disableOtelSpanAutoCreation) {
+      return executeAndLog()
+    }
 
-    return results
+    const { executeInsideSpanContext } = otel.startConsumerTracingSpan(payload, this._config)
+    return executeInsideSpanContext(executeAndLog, true, true)
   }
 
   // todo: - include error into the logic
