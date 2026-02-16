@@ -44,7 +44,6 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
     ...spanAttrs
   }
   span.setAttributes(attributes)
-  logger.info('consumer span attributes: ', { attributes })
 
   return {
     span,
@@ -56,8 +55,9 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
   }
 }
 
-const executeAndSetSpanStatus = async (fn, span, withSpanEnd, rethrowError) => {
+const executeAndSetSpanStatus = async (fn, span, withSpanEnd, rethrowError, spanAttrs = null) => {
   try {
+    if (spanAttrs) logger.info('consumer span attributes: ', { attributes: spanAttrs })
     const result = await fn()
     span.setStatus({ code: SpanStatusCode.OK })
     return result
