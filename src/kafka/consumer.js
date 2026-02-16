@@ -549,7 +549,7 @@ class Consumer extends EventEmitter {
    */
   async _executeWithOtelSpan (error, payload, workDoneCb) {
     const { meta } = this._extractPayloadDetails(payload)
-    this._config.logger.info(`[=>> msg] kafka processing start  [batchSize: ${meta.batchSize},  batchId: ${meta.batchId}]...`, { meta })
+    this._config.logger.info(`[=>> msg] message processing start  [batchSize: ${meta.batchSize},  batchId: ${meta.batchId}]...`, { meta })
 
     let results
     if (this._config.options.disableOtelSpanAutoCreation) {
@@ -560,7 +560,7 @@ class Consumer extends EventEmitter {
     }
 
     const durationSec = (Date.now() - meta.startTime) / 1000
-    this._config.logger.info(`[<=> msg] kafka processing end  [durationSec: ${durationSec},  batchId: ${meta.batchId}]`, { meta })
+    this._config.logger.info(`[<#> msg] message processing end  [durationSec: ${durationSec},  batchId: ${meta.batchId}]`, { meta })
     this._config.logger.debug('_executeWithOtelSpan is done:', { results })
 
     return results
