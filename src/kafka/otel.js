@@ -50,7 +50,7 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
     topic,
     executeInsideSpanContext: async (fn, withSpanEnd = true, rethrowError = true) => context.with(
       spanCtx,
-      () => executeAndSetSpanStatus(fn, span, withSpanEnd, rethrowError)
+      () => executeAndSetSpanStatus(fn, span, withSpanEnd, rethrowError, attributes)
     )
   }
 }
