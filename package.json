@@ -53,6 +53,7 @@
   },
   "dependencies": {
     "@opentelemetry/api": "1.9.0",
+    "@opentelemetry/semantic-conventions": "1.39.0",
     "async": "3.2.6",
     "async-exit-hook": "2.0.1",
     "events": "3.3.0",
@@ -61,8 +62,8 @@
   },
   "devDependencies": {
     "@mojaloop/central-services-error-handling": "13.1.6",
-    "@mojaloop/central-services-logger": "11.10.4",
-    "@opentelemetry/auto-instrumentations-node": "0.69.0",
+    "@mojaloop/central-services-logger": "11.11.0-infitx.0",
+    "@opentelemetry/auto-instrumentations-node": "0.70.0",
     "@opentelemetry/sdk-node": "0.212.0",
     "audit-ci": "7.1.0",
     "npm-check-updates": "19.3.2",

@@ -51,6 +51,7 @@ require('async-exit-hook')(callback => Promise.allSettled(
 ).finally(callback))
 
 const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
+const { ATTR_SERVER_ADDRESS } = require('@opentelemetry/semantic-conventions')
 const { SemConv } = require('../constants')
 const { trackConnectionHealth } = require('./shared')
 
@@ -633,7 +634,7 @@ class Producer extends EventEmitter {
             [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topicConf.topicName,
             [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'send',
             [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka',
-            [SemConv.ATTR_SERVER_ADDRESS]: this._config.rdkafkaConf['metadata.broker.list']
+            [ATTR_SERVER_ADDRESS]: this._config.rdkafkaConf['metadata.broker.list']
             // think, if we need to add more attributes
           })
 

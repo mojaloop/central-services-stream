@@ -779,5 +779,34 @@ Test('Consumer', ConsumerTest => {
     healthTimerTest.end()
   })
 
+  ConsumerTest.test('consumeWithHealthTracking should forward extra args to command', async test => {
+    // Arrange
+    const ConsumerProxy = rewire(`${src}/util/consumer`)
+    const topicName = 'testTopicForward'
+    const config = { rdkafkaConf: {} }
+    let consumeCallback
+    let receivedArgs = null
+
+    function FakeConsumer () {}
+    FakeConsumer.prototype.connect = async () => {}
+    FakeConsumer.prototype.consume = cb => { consumeCallback = cb }
+    ConsumerProxy.__set__('Consumer', FakeConsumer)
+
+    const command = (error, messages, ...rest) => {
+      receivedArgs = { error, messages, rest }
+    }
+    await ConsumerProxy.createHandler(topicName, config, command)
+
+    // Act - simulate consumer passing a 3rd meta argument
+    const meta = { batchId: 'test-uuid-123' }
+    consumeCallback(null, [{ value: 'msg1' }], meta)
+
+    // Assert
+    test.ok(receivedArgs, 'command should be called')
+    test.equal(receivedArgs.rest.length, 1, 'extra args should be forwarded')
+    test.deepEqual(receivedArgs.rest[0], meta, 'meta should be forwarded as extra arg')
+    test.end()
+  })
+
   ConsumerTest.end()
 })

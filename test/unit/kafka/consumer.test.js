@@ -43,6 +43,7 @@ const Sinon = require('sinon')
 const logger = require('../../../src/lib/logger').logger
 const Consumer = require('../../../src/kafka').Consumer
 const ConsumerEnums = require('../../../src/kafka').Consumer.ENUMS
+const otel = require('../../../src/kafka/otel')
 const KafkaStubs = require('./KafkaStub')
 const { tryCatchEndTest } = require('#test/utils')
 
@@ -2316,4 +2317,169 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
   })
 
   consumerTests.end()
+})
+
+Test('Consumer OTel tracing tests', (otelSuite) => {
+  let sandbox
+  let config
+  const topicsList = ['test']
+
+  const createSpanStub = () => ({
+    setStatus: Sinon.stub(),
+    setAttributes: Sinon.stub(),
+    recordException: Sinon.stub(),
+    end: Sinon.stub(),
+    spanContext: Sinon.stub().returns({ traceId: 'abc', spanId: '123' })
+  })
+
+  otelSuite.beforeEach((test) => {
+    sandbox = Sinon.createSandbox()
+
+    sandbox.stub(logger, 'isErrorEnabled').value(true)
+    sandbox.stub(logger, 'isWarnEnabled').value(true)
+    sandbox.stub(logger, 'isDebugEnabled').value(true)
+    sandbox.stub(logger, 'isSillyEnabled').value(true)
+
+    config = { // todo: move to a separare DTO (or test fixtures)
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.recursive,
+        batchSize: 1,
+        recursiveTimeout: 100,
+        messageCharset: 'utf8',
+        messageAsJSON: true,
+        sync: false,
+        consumeTimeout: 1000
+      },
+      rdkafkaConf: {
+        'client.id': 'default-client',
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger
+    }
+
+    sandbox.stub(Kafka, 'KafkaConsumer').callsFake(() => new KafkaStubs.KafkaConsumer())
+
+    test.end()
+  })
+
+  otelSuite.afterEach((test) => {
+    sandbox.restore()
+    test.end()
+  })
+
+  otelSuite.test('workDoneCb receives meta with batchId as 3rd arg (recursive, non-sync)', (assert) => {
+    const c = new Consumer(topicsList, config)
+    let receivedMeta = null
+
+    c.connect().then(() => {
+      c.consume((_error, messages, meta) => {
+        if (!receivedMeta && meta) {
+          receivedMeta = meta
+          assert.ok(receivedMeta.batchId, 'meta.batchId is present')
+          assert.equal(typeof receivedMeta.batchId, 'string', 'batchId is a string')
+          c.disconnect()
+          assert.end()
+        }
+        return Promise.resolve()
+      })
+    })
+  })
+
+  otelSuite.test('workDoneCb receives meta with batchId (flow, non-sync)', (assert) => {
+    config.options.mode = ConsumerEnums.CONSUMER_MODES.flow
+    const c = new Consumer(topicsList, config)
+
+    c.connect().then(() => {
+      c.consume((_error, message, meta) => {
+        assert.ok(meta, 'meta is passed')
+        assert.ok(meta.batchId, 'meta.batchId is present')
+        assert.equal(typeof meta.batchId, 'string', 'batchId is a string')
+        c.disconnect()
+        assert.end()
+        return Promise.resolve()
+      })
+    })
+  })
+
+  otelSuite.test('workDoneCb receives meta with batchId (poll, non-sync)', (assert) => {
+    config.options.mode = ConsumerEnums.CONSUMER_MODES.poll
+    config.options.batchSize = 1
+    const c = new Consumer(topicsList, config)
+    let checked = false
+
+    c.connect().then(() => {
+      c.consume((_error, messages, meta) => {
+        if (!checked && meta) {
+          checked = true
+          assert.ok(meta.batchId, 'meta.batchId is present')
+          c.disconnect()
+          assert.end()
+        }
+        return Promise.resolve()
+      })
+    })
+  })
+
+  otelSuite.test('workDoneCb receives meta with batchId (sync mode)', (assert) => {
+    config.options.sync = true
+    const c = new Consumer(topicsList, config)
+
+    c.on('message', () => {})
+
+    c.connect().then(() => {
+      c.consume((_error, messages, meta) => {
+        assert.ok(meta, 'meta is passed in sync mode')
+        assert.ok(meta.batchId, 'meta.batchId is present in sync mode')
+        c.disconnect()
+        assert.end()
+        return Promise.resolve()
+      })
+    })
+  })
+
+  otelSuite.test('disableOtelSpanAutoCreation skips otel span but still passes batchId', (assert) => {
+    config.options.disableOtelSpanAutoCreation = true
+    const otelStub = sandbox.stub(otel, 'startConsumerTracingSpan')
+
+    const c = new Consumer(topicsList, config)
+
+    c.connect().then(() => {
+      c.consume((_error, messages, meta) => {
+        assert.ok(meta, 'meta is passed when otel disabled')
+        assert.ok(meta.batchId, 'meta.batchId is present when otel disabled')
+        assert.false(otelStub.called, 'startConsumerTracingSpan should NOT be called')
+        c.disconnect()
+        assert.end()
+        return Promise.resolve()
+      })
+    })
+  })
+
+  otelSuite.test('OTel span is created for non-sync recursive path', (assert) => {
+    const spanStub = createSpanStub()
+    const otelStub = sandbox.stub(otel, 'startConsumerTracingSpan').returns({
+      span: spanStub,
+      topic: 'test',
+      executeInsideSpanContext: async (fn) => fn()
+    })
+
+    const c = new Consumer(topicsList, config)
+
+    c.connect().then(() => {
+      c.consume((_error, messages, meta) => {
+        assert.ok(otelStub.called, 'startConsumerTracingSpan was called')
+        const [payload, cfg] = otelStub.firstCall.args
+        assert.ok(payload, 'payload passed to startConsumerTracingSpan')
+        assert.ok(cfg, 'config passed to startConsumerTracingSpan')
+        c.disconnect()
+        assert.end()
+        return Promise.resolve()
+      })
+    })
+  })
+
+  otelSuite.end()
 })

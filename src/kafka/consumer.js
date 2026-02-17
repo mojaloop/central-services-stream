@@ -37,10 +37,10 @@
 
 'use strict'
 
-const EventEmitter = require('events')
+const EventEmitter = require('node:events')
+const Kafka = require('node-rdkafka')
 const async = require('async')
 const contextLogger = require('../lib/logger').logger
-const Kafka = require('node-rdkafka')
 
 const Protocol = require('./protocol')
 const getConfig = require('./config')
@@ -482,24 +482,15 @@ class Consumer extends EventEmitter {
           ? task.message
           : task.messages
 
-        const workProcessing = () => Promise.resolve(workDoneCb(task.error, payload))
+        this._executeWithOtelSpan(task.error, payload, workDoneCb)
           .then((result) => {
-            callbackDone(task.error, result) // this marks the completion of the processing by the worker
+            callbackDone(task.error, result)
           })
           .catch((err) => {
             logger.error(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - workDoneCb - error: `, err)
             super.emit('error', err)
             callbackDone(err)
           })
-
-        const skipOtelSpan = this._config.options.disableOtelSpanAutoCreation || (payload.length > 1)
-        if (skipOtelSpan) {
-          logger.debug('OTel tracing logic can be implemented inside workDoneCb using otel.startConsumerTracingSpan')
-          workProcessing()
-        } else {
-          const { executeInsideSpanContext } = otel.startConsumerTracingSpan(payload, this._config)
-          executeInsideSpanContext(workProcessing)
-        }
       }, this._config.options.syncConcurrency)
 
       // a callback function, invoked when queue is empty.
@@ -552,6 +543,54 @@ class Consumer extends EventEmitter {
   }
 
   /**
+   * Wraps workDoneCb execution inside an OTel consumer span context.
+   * Generates a batchId and passes it to the handler as a 3rd argument.
+   * If disableOtelSpanAutoCreation is true, executes workDoneCb directly.
+   */
+  async _executeWithOtelSpan (error, payload, workDoneCb) {
+    const { meta } = this._extractPayloadDetails(payload)
+    const log = this._config.logger.child({ meta })
+
+    const executeAndLog = async () => {
+      log.info(`[=>> msg] message processing start  [batchSize: ${meta.batchSize},  batchId: ${meta.batchId}]...`)
+      try {
+        const results = await workDoneCb(error, payload, meta)
+        log.debug('_executeWithOtelSpan is done:', { results })
+        return results
+      } finally {
+        const durationSec = (Date.now() - meta.startTime) / 1000
+        log.info(`[<#> msg] message processing end  [durationSec: ${durationSec},  batchId: ${meta.batchId}]`)
+      }
+    }
+
+    if (this._config.options.disableOtelSpanAutoCreation) {
+      return executeAndLog()
+    }
+
+    const { executeInsideSpanContext } = otel.startConsumerTracingSpan(payload, this._config)
+    return executeInsideSpanContext(executeAndLog, true, true)
+  }
+
+  // todo: - include error into the logic
+  //       - think better name
+  _extractPayloadDetails (payload) {
+    const payloadArr = Array.isArray(payload) ? payload : [payload] // we're doing it inside startConsumerTracingSpan()
+    const batchSize = payloadArr.length
+
+    const firstOffset = payloadArr[0]?.offset
+    const lastOffset = payloadArr[batchSize - 1]?.offset
+    const batchId = `${payloadArr[0]?.partition}.${firstOffset}-${lastOffset}` // think if we need to have another logic
+
+    const meta = {
+      batchId,
+      batchSize,
+      startTime: Date.now()
+    } // think which other metadata we might need in handler (workDoneCb)
+
+    return { meta }
+  }
+
+  /**
    * (Internal) Consume Poller
    *
    * This function will also emit the following events:
@@ -587,21 +626,17 @@ class Consumer extends EventEmitter {
             super.emit('message', msg)
           })
 
-          if (this._config.options.messageAsJSON) {
-            logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: `, messages)
-          } else {
-            logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: `, messages)
-          }
+          logger.debug(`Consumer::_consumePoller() - messages[${messages.length}]: `, { messages })
 
           if (this._config.options.sync) {
+            // todo: think if we need any OTel changes here?
             this._syncQueue.push({ error, messages }, function (err) {
               if (err) {
                 logger.error('Consumer::_consumePoller()::syncQueue.push - error: ', err)
               }
             })
           } else {
-            // todo: think how to start tracing span here (each message in the batch should have its own span?)
-            Promise.resolve(workDoneCb(error, messages))
+            this._executeWithOtelSpan(error, messages, workDoneCb)
               .then((response) => {
                 logger.debug('Consumer::_consumePoller() - non-sync wokDoneCb response - ', response)
               })
@@ -693,8 +728,7 @@ class Consumer extends EventEmitter {
             }
           }
         } else {
-          // todo: think how to start tracing span here (each message in the batch should have its own span?)
-          Promise.resolve(workDoneCb(error, messages))
+          this._executeWithOtelSpan(error, messages, workDoneCb)
             .then((response) => {
               logger.debug('Consumer::_consumerRecursive() - non-sync wokDoneCb response - ', response)
               super.emit('recursive', error, messages)
@@ -746,8 +780,7 @@ class Consumer extends EventEmitter {
             if (err) { logger.error('Consumer::_consumerFlow()::syncQueue.push - error: ', err) }
           })
         } else {
-          // todo: think how to start tracing span here (each message in the batch should have its own span?)
-          Promise.resolve(workDoneCb(error, message))
+          this._executeWithOtelSpan(error, message, workDoneCb)
             .then((response) => {
               logger.debug('Consumer::_consumerFlow() - non-sync wokDoneCb response - ', response)
             }).catch((err) => {
@@ -848,7 +881,6 @@ class Consumer extends EventEmitter {
   getWatermarkOffsets (topic, partition) {
     const { logger } = this._config
     logger.silly('Consumer::getWatermarkOffsets() - start')
-    logger.silly('Consumer::getWatermarkOffsets() - end')
     return this._consumer.getWatermarkOffsets(topic, partition)
   }
 

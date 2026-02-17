@@ -1,11 +1,11 @@
-const SemConv = Object.freeze({ // https://www.npmjs.com/package/@opentelemetry/semantic-conventions#unstable-semconv
+// Incubating OTel semantic conventions for messaging (not yet in stable @opentelemetry/semantic-conventions)
+const SemConv = Object.freeze({
   ATTR_MESSAGING_BATCH_MESSAGE_COUNT: 'messaging.batch.message_count',
   ATTR_MESSAGING_CLIENT_ID: 'messaging.client.id',
   ATTR_MESSAGING_CONSUMER_GROUP_NAME: 'messaging.consumer.group.name',
   ATTR_MESSAGING_DESTINATION_NAME: 'messaging.destination.name',
   ATTR_MESSAGING_OPERATION_NAME: 'messaging.operation.name',
-  ATTR_MESSAGING_SYSTEM: 'messaging.system',
-  ATTR_SERVER_ADDRESS: 'server.address'
+  ATTR_MESSAGING_SYSTEM: 'messaging.system'
 })
 
 const OTEL_HEADERS = ['traceparent', 'tracestate', 'baggage']

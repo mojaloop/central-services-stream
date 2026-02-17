@@ -71,7 +71,7 @@ function setConsumerHealthTimerMs (ms) {
  */
 function consumeWithHealthTracking (consumer, topicName, command) {
   // Wrap the original command to track health
-  const wrappedCommand = async (error, messages) => {
+  const wrappedCommand = async (error, messages, ...rest) => {
     if (error) {
       // Start a timer if not already started
       if (!consumerHealth[topicName]) consumerHealth[topicName] = { healthy: true, timer: null }
@@ -91,7 +91,7 @@ function consumeWithHealthTracking (consumer, topicName, command) {
       consumerHealth[topicName].healthy = true
     }
     // Call the original command
-    return command(error, messages)
+    return command(error, messages, ...rest)
   }
   consumer.consume(wrappedCommand)
 }

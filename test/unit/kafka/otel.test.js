@@ -98,5 +98,45 @@ Test('otel Tests -->', (otelTests) => {
     executeMethodTests.end()
   })
 
+  otelTests.test('makeConsumerAttributes Tests -->', (attrTests) => {
+    const baseConfig = { // move to DTO or fixtures
+      options: { batchSize: 5 },
+      rdkafkaConf: {
+        'client.id': 'test-client',
+        'group.id': 'test-group',
+        'metadata.broker.list': 'localhost:9092'
+      }
+    }
+
+    attrTests.test('should use actual count from array payload', tryCatchEndTest((test) => {
+      const payload = [{ value: 1 }, { value: 2 }, { value: 3 }]
+      const attrs = otel.makeConsumerAttributes(baseConfig, 'test-topic', payload)
+      test.equal(attrs['messaging.batch.message_count'], 3, 'count should be 3 for array of 3')
+    }))
+
+    attrTests.test('should use count=1 for single message payload', tryCatchEndTest((test) => {
+      const payload = { value: 1 }
+      const attrs = otel.makeConsumerAttributes(baseConfig, 'test-topic', payload)
+      test.equal(attrs['messaging.batch.message_count'], 1, 'count should be 1 for single message')
+    }))
+
+    attrTests.test('should return 0 count when no payload', tryCatchEndTest((test) => {
+      const attrs = otel.makeConsumerAttributes(baseConfig, 'test-topic')
+      test.equal(attrs['messaging.batch.message_count'], 0, 'count should be 0 when no payload')
+    }))
+
+    attrTests.test('should set all standard consumer attributes', tryCatchEndTest((test) => {
+      const attrs = otel.makeConsumerAttributes(baseConfig, 'test-topic')
+      test.equal(attrs['messaging.client.id'], 'test-client')
+      test.equal(attrs['messaging.consumer.group.name'], 'test-group')
+      test.equal(attrs['messaging.destination.name'], 'test-topic')
+      test.equal(attrs['messaging.operation.name'], 'consume')
+      test.equal(attrs['messaging.system'], 'kafka')
+      test.equal(attrs['server.address'], 'localhost:9092')
+    }))
+
+    attrTests.end()
+  })
+
   otelTests.end()
 })
