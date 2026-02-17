@@ -6,7 +6,7 @@
 [![NPM Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/npm/@mojaloop/central-services-stream.svg?style=flat)](https://www.npmjs.com/package/@mojaloop/central-services-stream)
 [![CircleCI](https://circleci.com/gh/mojaloop/central-services-stream.svg?style=svg)](https://circleci.com/gh/mojaloop/central-services-stream)
 
-Streaming library for central services
+Streaming library for central services, with OpenTelemetry tracing and structured logging for Kafka consumers and producers.
 
 ## CI/CD
 
