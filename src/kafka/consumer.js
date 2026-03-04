@@ -119,7 +119,10 @@ exports.ENUMS = ENUMS
  * @property {boolean} messageAsJSON - Parse processed message from Kafka into a JSON object. Defaults: true
  * @property {boolean} sync - Ensures that messages are processed in order via a single thread. This may impact performance. Defaults: false
  * @property {number} consumeTimeout - Set the default consume timeout (milliseconds) provided to RDKafka c++land. Defaults: 1000
- * @property {boolean} [disableOtelSpanAutoCreation] - Defines if kafka-stream lib should create OTel span automatically. Defaults: false
+ * @property {boolean} [disableOtelSpanAutoCreation=false] - Defines if kafka-stream lib should create OTel span automatically. Defaults: false
+ * @property {boolean} [otelSpanPerMessage=false] - When true and disableOtelSpanAutoCreation is false,
+ *   creates a separate OTel span per message in a batch. Calls workDoneCb once per message with a
+ *   single message (not array) and message-specific meta. Fail-fast on error. Defaults: false
  *
  */
 
@@ -222,7 +225,8 @@ class Consumer extends EventEmitter {
         syncConcurrency: 1, // only applicable when sync=true
         syncSingleMessage: false, // only applicable when sync=true, and only applicable when mode=2 (i.e. RECURSIVE)
         consumeTimeout: 1000,
-        disableOtelSpanAutoCreation: false
+        disableOtelSpanAutoCreation: false,
+        otelSpanPerMessage: false
       }
     }
     if (!config.options.syncConcurrency) {
@@ -548,27 +552,44 @@ class Consumer extends EventEmitter {
    * If disableOtelSpanAutoCreation is true, executes workDoneCb directly.
    */
   async _executeWithOtelSpan (error, payload, workDoneCb) {
-    const { meta } = this._extractPayloadDetails(payload)
+    const { otelSpanPerMessage, disableOtelSpanAutoCreation } = this._config.options
+
+    if (otelSpanPerMessage && !disableOtelSpanAutoCreation) {
+      const messages = Array.isArray(payload) ? payload : [payload]
+      let lastResult
+      for (const msg of messages) {
+        const executeAndLog = this._buildExecuteAndLog(error, msg, workDoneCb)
+        const { executeInsideSpanContext } = otel.startConsumerTracingSpan(msg, this._config)
+        lastResult = await executeInsideSpanContext(executeAndLog, true, true)
+      }
+      return lastResult
+    }
+
+    const executeAndLog = this._buildExecuteAndLog(error, payload, workDoneCb)
+
+    if (disableOtelSpanAutoCreation) {
+      return executeAndLog()
+    }
+
+    const { executeInsideSpanContext } = otel.startConsumerTracingSpan(payload, this._config)
+    return executeInsideSpanContext(executeAndLog, true, true)
+  }
+
+  _buildExecuteAndLog (error, msgOrPayload, workDoneCb) {
+    const { meta } = this._extractPayloadDetails(msgOrPayload)
     const log = this._config.logger.child({ meta })
 
-    const executeAndLog = async () => {
+    return async () => {
       log.info(`[=>> msg] message processing start  [batchSize: ${meta.batchSize},  batchId: ${meta.batchId}]...`)
       try {
-        const results = await workDoneCb(error, payload, meta)
-        log.debug('_executeWithOtelSpan is done:', { results })
+        const results = await workDoneCb(error, msgOrPayload, meta)
+        log.debug('workDoneCb is done:', { results })
         return results
       } finally {
         const durationSec = (Date.now() - meta.startTime) / 1000
         log.info(`[<#> msg] message processing end  [durationSec: ${durationSec},  batchId: ${meta.batchId}]`)
       }
     }
-
-    if (this._config.options.disableOtelSpanAutoCreation) {
-      return executeAndLog()
-    }
-
-    const { executeInsideSpanContext } = otel.startConsumerTracingSpan(payload, this._config)
-    return executeInsideSpanContext(executeAndLog, true, true)
   }
 
   // todo: - include error into the logic
