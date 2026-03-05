@@ -30,6 +30,7 @@ const { SpanStatusCode } = require('@opentelemetry/api')
 const otel = require('#src/kafka/otel')
 const { SemConv } = require('#src/constants')
 const { tryCatchEndTest } = require('#test/utils')
+const mocks = require('../mocks')
 
 const createSpanStub = () => Object.freeze({
   setAttribute: sinon.stub(),
@@ -113,14 +114,13 @@ Test('otel Tests -->', (otelSuite) => {
   })
 
   otelSuite.test('makeConsumerAttributes Tests -->', (attrTests) => {
-    const baseConfig = { // move to DTO or fixtures
+    const baseConfig = mocks.kafkaConfigMockDto({
       options: { batchSize: 5 },
-      rdkafkaConf: {
-        'client.id': 'test-client',
-        'group.id': 'test-group',
-        'metadata.broker.list': 'localhost:9092'
-      }
-    }
+      rdkafkaConf: mocks.rdkafkaConfMockDto({
+        clientId: 'test-client',
+        groupId: 'test-group'
+      })
+    })
 
     attrTests.test('should use actual count from array payload', tryCatchEndTest((assert) => {
       const payload = [{ value: 1 }, { value: 2 }, { value: 3 }]
@@ -181,12 +181,7 @@ Test('otel Tests -->', (otelSuite) => {
   })
 
   otelSuite.test('makeProducerAttributes Tests -->', (attrTests) => {
-    const baseConfig = {
-      rdkafkaConf: {
-        'client.id': 'producer-client',
-        'metadata.broker.list': 'localhost:9092'
-      }
-    }
+    const baseConfig = mocks.kafkaConfigMockDto()
 
     attrTests.test('should set all standard producer attributes', tryCatchEndTest((assert) => {
       const topicConf = { topicName: 'test-topic' }
@@ -246,12 +241,7 @@ Test('otel Tests -->', (otelSuite) => {
   })
 
   otelSuite.test('startProducerTracingSpan Tests -->', (spanTests) => {
-    const config = {
-      rdkafkaConf: {
-        'client.id': 'producer-client',
-        'metadata.broker.list': 'localhost:9092'
-      }
-    }
+    const config = mocks.kafkaConfigMockDto()
 
     spanTests.test('should call produceFn with headers and return its result', tryCatchEndTest(async (assert) => {
       const topicConf = { topicName: 'test-topic' }
