@@ -54,6 +54,26 @@ const { trackConnectionHealth } = require('./shared')
 const otel = require('./otel')
 
 /**
+ * @typedef {object} MessageProtocol - contains message related data to be converted into a LIME protocol message
+ * @property {object} content - value object for the message
+ * @property {string} id - unique identifier for message
+ * @property {string} from - uri of the initiating fsp
+ * @property {string} to - uri of the receiving fsp
+ * @property {object} metadata -  data relevant to the context of the message
+ * @property {string} type - MIME declaration of the content type of the message
+ * @property {string} pp - Optional for the sender, when is considered the identity of the session. Is mandatory in the destination if the identity of the originator is different of the identity of the from property.*
+ */
+
+/**
+ * @typedef {object} TopicConf - contains Kafka topic related data
+ * @property {string} topicName - name of the topic to produce to
+ * @property {*} opaqueKey - optional opaque token, which gets passed along to your delivery reports
+ * @property {string} [key] - optional message key
+ * @property {number} [partition] - optional partition to produce to
+ * @property {Array<{ [key: string]: string | Buffer }>} [customHeaders] - optional list of headers
+ */
+
+/**
  * Producer ENUMs
  *
  * This ENUM is for the events for the produced message
@@ -74,9 +94,9 @@ const METHOD = {
   put: 'put',
   del: 'delete'
 }
+
 /**
  * The status of the process being posted to the topic
- *
  * This ENUM is for the STATUS of the message being produced
  *
  * @typedef {object} ENUMS~STATUS
@@ -89,6 +109,7 @@ const STATUS = {
   failure: 'failed',
   pending: 'pending'
 }
+
 /**
  * ENUMS
  *
@@ -363,27 +384,13 @@ class Producer extends EventEmitter {
   /**
    * @async
    * produces a kafka message to a certain topic
-   * @typedef {object} messageProtocol, contains message related data to be converted into a LIME protocol message
-   * @property {object} content - value object for the message
-   * @property {string} id - unique identifier for message
-   * @property {string} from - uri of the initiating fsp
-   * @property {string} to - uri of the receiving fsp
-   * @property {object} metadata -  data relevant to the context of the message
-   * @property {string} type - MIME declaration of the content type of the message
-   * @property {string} pp - Optional for the sender, when is considered the identity of the session. Is mandatory in the destination if the identity of the originator is different of the identity of the from property.
    *
-   *
-   * @typedef {object} topicConf - contains Kafka topic related data
-   * @property {*} opaqueKey - optional opaque token, which gets passed along to your delivery reports
-   * @property {string} topicName - name of the topic to produce to
-   * @property {string} key - optional message key
-   * @property {number} partition - optional partition to produce to
-   *
-   * @property {Array<{ [key: string]: string | Buffer }>} [customHeaders] - optional list of headers
+   * @param {MessageProtocol} messageProtocol - Optional for the sender, when is considered the identity of the session. Is mandatory in the destination if the identity of the originator is different of the identity of the from property.
+   * @param {TopicConf} topicConf - Topic configuration object.
+   * @param {Array<{ [key: string]: string | Buffer }>} [customHeaders] - optional list of headers
    *
    * @todo Validate messageProtocol
    * @todo Validate topicConf
-   *
    *
    * @returns {boolean} or if failed {Error}
    */
@@ -585,6 +592,8 @@ class Producer extends EventEmitter {
     topicConf, parsedMessageBuffer, producedAt, headers
   }) {
     const { logger } = this._config
+    logger.debug('Producer::produce() - headers: ', { headers })
+
     return new Promise((resolve, reject) => {
       if (this._config.options.sync) {
         this._producer.produce(
@@ -616,15 +625,12 @@ class Producer extends EventEmitter {
     topicConf, parsedMessageBuffer, producedAt, customHeaders = []
   }) {
     return otel.startProducerTracingSpan(
-      topicConf.topicName,
       this._config,
+      topicConf,
       customHeaders,
-      (headers) => {
-        this._config.logger.debug('Producer::headers: ', headers)
-        return this.#produceMessage({
-          topicConf, parsedMessageBuffer, producedAt, headers
-        })
-      }
+      (headers) => this.#produceMessage({
+        topicConf, parsedMessageBuffer, producedAt, headers
+      })
     )
   }
 }

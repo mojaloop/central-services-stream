@@ -27,7 +27,7 @@
 const { LOG_LEVEL_KAFKA = 'info' } = require('node:process').env
 const { loggerFactory } = require('@mojaloop/central-services-logger/src/contextLogger')
 
-const logger = loggerFactory('kafka') // global logger
+const logger = loggerFactory('ml-kafka') // global logger
 logger.setLevel(LOG_LEVEL_KAFKA)
 
 module.exports = {

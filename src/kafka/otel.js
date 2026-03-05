@@ -1,3 +1,30 @@
+/*****
+ License
+ --------------
+ Copyright © 2020-2026 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+ Contributors
+ --------------
+ This is the official list of the Mojaloop project contributors for this file.
+ Names of the original copyright holders (individuals or organizations)
+ should be listed with a '*' in the first column. People who have
+ contributed from an organization can be listed under the organization
+ that actually holds the copyright for their contributions (see the
+ Mojaloop Foundation for an example). Those individuals should have
+ their names indented and be marked with a '-'. Email address can be added
+ optionally within square brackets <email>.
+
+ * Mojaloop Foundation
+ * Eugen Klymniuk <eugen.klymniuk@infitx.com>
+
+ --------------
+ ******/
+
 const { propagation, context, SpanKind, trace, SpanStatusCode } = require('@opentelemetry/api')
 const { ATTR_SERVER_ADDRESS } = require('@opentelemetry/semantic-conventions')
 const { OTEL_HEADERS, SemConv, SpanPrefixes } = require('../constants')
@@ -57,13 +84,14 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
 
 const executeAndSetSpanStatus = async (fn, span, withSpanEnd, rethrowError, spanAttrs = null) => {
   try {
-    if (spanAttrs) logger.info('kafka span attributes: ', { attributes: spanAttrs })
+    if (spanAttrs) logger.verbose('kafka span attributes: ', { attributes: spanAttrs })
     const result = await fn()
     span.setStatus({ code: SpanStatusCode.OK })
     return result
   } catch (err) {
     span.setStatus({ code: SpanStatusCode.ERROR })
     span.recordException(err)
+    span.setAttribute(SemConv.ATTR_ERROR_TYPE, err?.code || err?.name || 'UnknownError')
     if (rethrowError) throw err
   } finally {
     if (withSpanEnd) span.end()
@@ -74,16 +102,26 @@ const makeConsumerAttributes = (config, topic, payload = null) => {
   const messages = Array.isArray(payload) ? payload : (payload ? [payload] : [])
 
   return {
-    [ATTR_SERVER_ADDRESS]: config.rdkafkaConf['metadata.broker.list'],
-    [SemConv.ATTR_MESSAGING_CLIENT_ID]: config.rdkafkaConf['client.id'],
+    ...makeCommonKafkaAttributes(config, topic),
+    ...makeMessageCountAttrs(messages),
     [SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME]: config.rdkafkaConf['group.id'],
-    [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topic,
-    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'consume',
-    [SemConv.ATTR_MESSAGING_OPERATION_TYPE]: 'process',
-    [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka',
-    ...makeMessageCountAttrs(messages)
+    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'receive'
   }
 }
+
+const makeProducerAttributes = (config, topicConf) => ({
+  ...makeCommonKafkaAttributes(config, topicConf.topicName),
+  [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'send',
+  ...(topicConf.partition != null && { [SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID]: String(topicConf.partition) }),
+  ...(topicConf.key != null && { [SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: String(topicConf.key) })
+})
+
+const makeCommonKafkaAttributes = (config, topicName) => ({
+  [ATTR_SERVER_ADDRESS]: config.rdkafkaConf['metadata.broker.list'],
+  [SemConv.ATTR_MESSAGING_CLIENT_ID]: config.rdkafkaConf['client.id'],
+  [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topicName,
+  [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka'
+})
 
 const makeMessageCountAttrs = (messages) => {
   if (messages.length > 1) {
@@ -100,14 +138,6 @@ const makeMessageCountAttrs = (messages) => {
   return {}
 }
 
-const makeProducerAttributes = (config, topicName) => ({
-  [ATTR_SERVER_ADDRESS]: config.rdkafkaConf['metadata.broker.list'],
-  [SemConv.ATTR_MESSAGING_CLIENT_ID]: config.rdkafkaConf['client.id'],
-  [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topicName,
-  [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'send',
-  [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka'
-})
-
 const injectTraceHeaders = (customHeaders = []) => {
   const tracingContext = {}
   propagation.inject(context.active(), tracingContext)
@@ -117,12 +147,12 @@ const injectTraceHeaders = (customHeaders = []) => {
   ]
 }
 
-const startProducerTracingSpan = async (topicName, config, customHeaders, produceFn) => {
+const startProducerTracingSpan = async (config, topicConf, customHeaders, produceFn) => {
   return tracer.startActiveSpan(
-    `${SpanPrefixes.SEND}:${topicName}`,
+    `${SpanPrefixes.SEND}:${topicConf.topicName}`,
     { kind: SpanKind.PRODUCER },
     async (span) => {
-      const attributes = makeProducerAttributes(config, topicName)
+      const attributes = makeProducerAttributes(config, topicConf)
       span.setAttributes(attributes)
       const headers = injectTraceHeaders(customHeaders)
       return executeAndSetSpanStatus(

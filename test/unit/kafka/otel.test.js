@@ -32,6 +32,7 @@ const { SemConv } = require('#src/constants')
 const { tryCatchEndTest } = require('#test/utils')
 
 const createSpanStub = () => Object.freeze({
+  setAttribute: sinon.stub(),
   setStatus: sinon.stub(),
   setAttributes: sinon.stub(),
   recordException: sinon.stub(),
@@ -86,6 +87,17 @@ Test('otel Tests -->', (otelTests) => {
       await otel.executeAndSetSpanStatus(fn, span, withSpanEnd, rethrowError)
       test.true(span.setStatus.calledWith({ code: SpanStatusCode.ERROR }), 'span.setStatus() was called with error code')
       test.true(span.recordException.calledWith(error), 'span.recordException() was called with error')
+      test.true(span.setAttribute.calledWith(SemConv.ATTR_ERROR_TYPE, 'Error'), 'error.type set to err.name')
+    }))
+
+    executeMethodTests.test('should prefer err.code for error.type attribute', tryCatchEndTest(async (test) => {
+      const error = new Error('kafka transport failed')
+      error.code = 'ERR__TRANSPORT'
+      const fn = () => { throw error }
+      const span = createSpanStub()
+
+      await otel.executeAndSetSpanStatus(fn, span, false, false)
+      test.true(span.setAttribute.calledWith(SemConv.ATTR_ERROR_TYPE, 'ERR__TRANSPORT'), 'uses err.code')
     }))
 
     executeMethodTests.test('should call span.end() if withSpanEnd === true', tryCatchEndTest(async (test) => {
@@ -132,8 +144,7 @@ Test('otel Tests -->', (otelTests) => {
       test.equal(attrs[SemConv.ATTR_MESSAGING_CLIENT_ID], 'test-client')
       test.equal(attrs[SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME], 'test-group')
       test.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_NAME], 'test-topic')
-      test.equal(attrs[SemConv.ATTR_MESSAGING_OPERATION_NAME], 'consume')
-      test.equal(attrs[SemConv.ATTR_MESSAGING_OPERATION_TYPE], 'process')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_OPERATION_NAME], 'receive')
       test.equal(attrs[SemConv.ATTR_MESSAGING_SYSTEM], 'kafka')
       test.equal(attrs[ATTR_SERVER_ADDRESS], 'localhost:9092')
     }))
@@ -178,7 +189,8 @@ Test('otel Tests -->', (otelTests) => {
     }
 
     attrTests.test('should set all standard producer attributes', tryCatchEndTest((test) => {
-      const attrs = otel.makeProducerAttributes(baseConfig, 'test-topic')
+      const topicConf = { topicName: 'test-topic' }
+      const attrs = otel.makeProducerAttributes(baseConfig, topicConf)
       test.equal(attrs[SemConv.ATTR_MESSAGING_CLIENT_ID], 'producer-client')
       test.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_NAME], 'test-topic')
       test.equal(attrs[SemConv.ATTR_MESSAGING_OPERATION_NAME], 'send')
@@ -187,10 +199,31 @@ Test('otel Tests -->', (otelTests) => {
     }))
 
     attrTests.test('should not include consumer-specific attributes', tryCatchEndTest((test) => {
-      const attrs = otel.makeProducerAttributes(baseConfig, 'test-topic')
+      const topicConf = { topicName: 'test-topic' }
+      const attrs = otel.makeProducerAttributes(baseConfig, topicConf)
       test.equal(attrs[SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME], undefined, 'no consumer group')
-      test.equal(attrs[SemConv.ATTR_MESSAGING_OPERATION_TYPE], undefined, 'no operation type')
       test.equal(attrs[SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT], undefined, 'no batch count')
+    }))
+
+    attrTests.test('should set partition and key when available', tryCatchEndTest((test) => {
+      const topicConf = { topicName: 'test-topic', partition: 3, key: 'order-456' }
+      const attrs = otel.makeProducerAttributes(baseConfig, topicConf)
+      test.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID], '3', 'partition as string')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY], 'order-456', 'key as string')
+    }))
+
+    attrTests.test('should set partition when it is 0', tryCatchEndTest((test) => {
+      const topicConf = { topicName: 'test-topic', partition: 0 }
+      const attrs = otel.makeProducerAttributes(baseConfig, topicConf)
+      test.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID], '0', 'partition 0 is set')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY], undefined, 'key not set when absent')
+    }))
+
+    attrTests.test('should not set partition and key when not provided', tryCatchEndTest((test) => {
+      const topicConf = { topicName: 'test-topic' }
+      const attrs = otel.makeProducerAttributes(baseConfig, topicConf)
+      test.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID], undefined, 'partition not set')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY], undefined, 'key not set')
     }))
 
     attrTests.end()
@@ -221,18 +254,20 @@ Test('otel Tests -->', (otelTests) => {
     }
 
     spanTests.test('should call produceFn with headers and return its result', tryCatchEndTest(async (test) => {
+      const topicConf = { topicName: 'test-topic' }
       const produceFn = sinon.stub().resolves('produce-result')
-      const result = await otel.startProducerTracingSpan('test-topic', config, [], produceFn)
+      const result = await otel.startProducerTracingSpan(config, topicConf, [], produceFn)
       test.equal(result, 'produce-result', 'returns produceFn result')
       test.true(produceFn.calledOnce, 'produceFn called once')
       test.ok(Array.isArray(produceFn.firstCall.args[0]), 'produceFn called with headers array')
     }))
 
     spanTests.test('should propagate error from produceFn', tryCatchEndTest(async (test) => {
+      const topicConf = { topicName: 'test-topic' }
       const error = new Error('produce failed')
       const produceFn = sinon.stub().rejects(error)
       try {
-        await otel.startProducerTracingSpan('test-topic', config, [], produceFn)
+        await otel.startProducerTracingSpan(config, topicConf, [], produceFn)
         test.fail('should have thrown')
       } catch (err) {
         test.equal(err.message, 'produce failed', 'error propagated')
@@ -240,9 +275,10 @@ Test('otel Tests -->', (otelTests) => {
     }))
 
     spanTests.test('should merge custom headers with trace headers', tryCatchEndTest(async (test) => {
+      const topicConf = { topicName: 'test-topic' }
       const customHeaders = [{ 'x-request-id': 'abc' }]
       const produceFn = sinon.stub().resolves(true)
-      await otel.startProducerTracingSpan('test-topic', config, customHeaders, produceFn)
+      await otel.startProducerTracingSpan(config, topicConf, customHeaders, produceFn)
       const headers = produceFn.firstCall.args[0]
       test.ok(headers.some(h => h['x-request-id'] === 'abc'), 'custom header included')
     }))
