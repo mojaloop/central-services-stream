@@ -2458,6 +2458,37 @@ Test('Consumer OTel tracing tests', (otelSuite) => {
     })
   })
 
+  otelSuite.test('_extractPayloadDetails batchId format for single-partition batch', tryCatchEndTest((assert) => {
+    const c = new Consumer(topicsList, config)
+    const payload = [
+      { partition: 0, offset: 100 },
+      { partition: 0, offset: 101 },
+      { partition: 0, offset: 102 }
+    ]
+    const { meta } = c._extractPayloadDetails(payload)
+    assert.equal(meta.batchId, 'p0:100-p0:102', 'batchId has correct format for single-partition batch')
+    assert.equal(meta.batchSize, 3)
+  }))
+
+  otelSuite.test('_extractPayloadDetails batchId format for multi-partition batch', tryCatchEndTest((assert) => {
+    const c = new Consumer(topicsList, config)
+    const payload = [
+      { partition: 0, offset: 100 },
+      { partition: 0, offset: 101 },
+      { partition: 1, offset: 50 }
+    ]
+    const { meta } = c._extractPayloadDetails(payload)
+    assert.equal(meta.batchId, 'p0:100-p1:50', 'batchId has correct format for multi-partition batch')
+  }))
+
+  otelSuite.test('_extractPayloadDetails batchId format for single message', tryCatchEndTest((assert) => {
+    const c = new Consumer(topicsList, config)
+    const payload = { partition: 3, offset: 42 }
+    const { meta } = c._extractPayloadDetails(payload)
+    assert.equal(meta.batchId, 'p3:42-p3:42', 'batchId has correct format for single message')
+    assert.equal(meta.batchSize, 1)
+  }))
+
   otelSuite.test('OTel span is created for non-sync recursive path', (assert) => {
     const spanStub = createSpanStub()
     const otelStub = sandbox.stub(otel, 'startConsumerTracingSpan').returns({

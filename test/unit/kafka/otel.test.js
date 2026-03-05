@@ -26,7 +26,9 @@
 const Test = require('tapes')(require('tape'))
 const sinon = require('sinon')
 const { SpanStatusCode } = require('@opentelemetry/api')
+const { ATTR_SERVER_ADDRESS } = require('@opentelemetry/semantic-conventions')
 const otel = require('#src/kafka/otel')
+const { SemConv } = require('#src/constants')
 const { tryCatchEndTest } = require('#test/utils')
 
 const createSpanStub = () => Object.freeze({
@@ -111,31 +113,141 @@ Test('otel Tests -->', (otelTests) => {
     attrTests.test('should use actual count from array payload', tryCatchEndTest((test) => {
       const payload = [{ value: 1 }, { value: 2 }, { value: 3 }]
       const attrs = otel.makeConsumerAttributes(baseConfig, 'test-topic', payload)
-      test.equal(attrs['messaging.batch.message_count'], 3, 'count should be 3 for array of 3')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT], 3, 'count should be 3 for array of 3')
     }))
 
-    attrTests.test('should use count=1 for single message payload', tryCatchEndTest((test) => {
-      const payload = { value: 1 }
+    attrTests.test('should not set batch count for single message payload', tryCatchEndTest((test) => {
+      const payload = { value: 1, partition: 0, offset: 42, key: 'msg-key' }
       const attrs = otel.makeConsumerAttributes(baseConfig, 'test-topic', payload)
-      test.equal(attrs['messaging.batch.message_count'], 1, 'count should be 1 for single message')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT], undefined, 'batch count should not be set for single message')
     }))
 
-    attrTests.test('should return 0 count when no payload', tryCatchEndTest((test) => {
+    attrTests.test('should not set batch count when no payload', tryCatchEndTest((test) => {
       const attrs = otel.makeConsumerAttributes(baseConfig, 'test-topic')
-      test.equal(attrs['messaging.batch.message_count'], 0, 'count should be 0 when no payload')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT], undefined, 'batch count should not be set for empty payload')
     }))
 
     attrTests.test('should set all standard consumer attributes', tryCatchEndTest((test) => {
       const attrs = otel.makeConsumerAttributes(baseConfig, 'test-topic')
-      test.equal(attrs['messaging.client.id'], 'test-client')
-      test.equal(attrs['messaging.consumer.group.name'], 'test-group')
-      test.equal(attrs['messaging.destination.name'], 'test-topic')
-      test.equal(attrs['messaging.operation.name'], 'consume')
-      test.equal(attrs['messaging.system'], 'kafka')
-      test.equal(attrs['server.address'], 'localhost:9092')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_CLIENT_ID], 'test-client')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME], 'test-group')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_NAME], 'test-topic')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_OPERATION_NAME], 'consume')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_OPERATION_TYPE], 'process')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_SYSTEM], 'kafka')
+      test.equal(attrs[ATTR_SERVER_ADDRESS], 'localhost:9092')
+    }))
+
+    attrTests.test('should set Kafka-specific attrs for single message', tryCatchEndTest((test) => {
+      const payload = { value: 'test', partition: 2, offset: 99, key: 'order-123' }
+      const attrs = otel.makeConsumerAttributes(baseConfig, 'test-topic', payload)
+      test.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID], '2', 'partition as string')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_KAFKA_OFFSET], 99, 'offset preserved as number')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY], 'order-123', 'key as string')
+    }))
+
+    attrTests.test('should set Kafka-specific attrs when partition is 0 and offset is 0', tryCatchEndTest((test) => {
+      const payload = { value: 'test', partition: 0, offset: 0, key: null }
+      const attrs = otel.makeConsumerAttributes(baseConfig, 'test-topic', payload)
+      test.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID], '0', 'partition 0 is set')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_KAFKA_OFFSET], 0, 'offset 0 is set')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY], undefined, 'null key is not set')
+    }))
+
+    attrTests.test('should not set Kafka-specific attrs for batch payload', tryCatchEndTest((test) => {
+      const payload = [
+        { value: 'a', partition: 0, offset: 10, key: 'k1' },
+        { value: 'b', partition: 0, offset: 11, key: 'k2' },
+        { value: 'c', partition: 1, offset: 5, key: 'k3' }
+      ]
+      const attrs = otel.makeConsumerAttributes(baseConfig, 'test-topic', payload)
+      test.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID], undefined, 'partition not set for batch')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_KAFKA_OFFSET], undefined, 'offset not set for batch')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY], undefined, 'key not set for batch')
     }))
 
     attrTests.end()
+  })
+
+  otelTests.test('makeProducerAttributes Tests -->', (attrTests) => {
+    const baseConfig = {
+      rdkafkaConf: {
+        'client.id': 'producer-client',
+        'metadata.broker.list': 'localhost:9092'
+      }
+    }
+
+    attrTests.test('should set all standard producer attributes', tryCatchEndTest((test) => {
+      const attrs = otel.makeProducerAttributes(baseConfig, 'test-topic')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_CLIENT_ID], 'producer-client')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_NAME], 'test-topic')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_OPERATION_NAME], 'send')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_SYSTEM], 'kafka')
+      test.equal(attrs[ATTR_SERVER_ADDRESS], 'localhost:9092')
+    }))
+
+    attrTests.test('should not include consumer-specific attributes', tryCatchEndTest((test) => {
+      const attrs = otel.makeProducerAttributes(baseConfig, 'test-topic')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME], undefined, 'no consumer group')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_OPERATION_TYPE], undefined, 'no operation type')
+      test.equal(attrs[SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT], undefined, 'no batch count')
+    }))
+
+    attrTests.end()
+  })
+
+  otelTests.test('injectTraceHeaders Tests -->', (headerTests) => {
+    headerTests.test('should return custom headers when no trace context is active', tryCatchEndTest((test) => {
+      const customHeaders = [{ 'x-custom': 'value' }]
+      const headers = otel.injectTraceHeaders(customHeaders)
+      test.ok(Array.isArray(headers), 'returns array')
+      test.ok(headers.some(h => h['x-custom'] === 'value'), 'custom header preserved')
+    }))
+
+    headerTests.test('should return empty array when called with no args and no trace context', tryCatchEndTest((test) => {
+      const headers = otel.injectTraceHeaders()
+      test.ok(Array.isArray(headers), 'returns array')
+    }))
+
+    headerTests.end()
+  })
+
+  otelTests.test('startProducerTracingSpan Tests -->', (spanTests) => {
+    const config = {
+      rdkafkaConf: {
+        'client.id': 'producer-client',
+        'metadata.broker.list': 'localhost:9092'
+      }
+    }
+
+    spanTests.test('should call produceFn with headers and return its result', tryCatchEndTest(async (test) => {
+      const produceFn = sinon.stub().resolves('produce-result')
+      const result = await otel.startProducerTracingSpan('test-topic', config, [], produceFn)
+      test.equal(result, 'produce-result', 'returns produceFn result')
+      test.true(produceFn.calledOnce, 'produceFn called once')
+      test.ok(Array.isArray(produceFn.firstCall.args[0]), 'produceFn called with headers array')
+    }))
+
+    spanTests.test('should propagate error from produceFn', tryCatchEndTest(async (test) => {
+      const error = new Error('produce failed')
+      const produceFn = sinon.stub().rejects(error)
+      try {
+        await otel.startProducerTracingSpan('test-topic', config, [], produceFn)
+        test.fail('should have thrown')
+      } catch (err) {
+        test.equal(err.message, 'produce failed', 'error propagated')
+      }
+    }))
+
+    spanTests.test('should merge custom headers with trace headers', tryCatchEndTest(async (test) => {
+      const customHeaders = [{ 'x-request-id': 'abc' }]
+      const produceFn = sinon.stub().resolves(true)
+      await otel.startProducerTracingSpan('test-topic', config, customHeaders, produceFn)
+      const headers = produceFn.firstCall.args[0]
+      test.ok(headers.some(h => h['x-request-id'] === 'abc'), 'custom header included')
+    }))
+
+    spanTests.end()
   })
 
   otelTests.end()

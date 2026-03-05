@@ -50,12 +50,8 @@ require('async-exit-hook')(callback => Promise.allSettled(
   Array.from(connectedClients).map(client => new Promise(resolve => client.disconnect(resolve)))
 ).finally(callback))
 
-const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
-const { ATTR_SERVER_ADDRESS } = require('@opentelemetry/semantic-conventions')
-const { SemConv } = require('../constants')
 const { trackConnectionHealth } = require('./shared')
-
-const tracer = trace.getTracer('kafka-producer') // think, if we need to change it to clientId
+const otel = require('./otel')
 
 /**
  * Producer ENUMs
@@ -347,12 +343,11 @@ class Producer extends EventEmitter {
       this._producer.connect(null, (error, metadata) => {
         if (error) {
           super.emit('error', error)
-          logger.silly('Producer::connect() - end')
+          logger.warn('Producer::connect() - end:', error)
           return reject(error)
         }
         connectedClients.add(this)
-        logger.silly('Producer::connect() - metadata:')
-        logger.silly(metadata)
+        logger.silly('Producer::connect() - metadata:', { metadata })
         resolve(true)
       })
     })
@@ -561,6 +556,7 @@ class Producer extends EventEmitter {
   }
 
   async _monitorLag () {
+    const { logger } = this._config
     this.lag = 0
     if (!this._config.lagMonitor?.consumerGroup || !this._config.lagMonitor?.topic) return
     this._consumer = new Kafka.KafkaConsumer({
@@ -573,6 +569,7 @@ class Producer extends EventEmitter {
     await new Promise((resolve, reject) => {
       this._consumer.connect({ topic: this._config.lagMonitor.topic }, (err, metadata) => {
         if (err) {
+          logger.warn('error in _monitorLag during connect: ', err)
           reject(err)
         } else {
           const partitionIds = metadata.topics.find(topic => topic.name === this._config.lagMonitor.topic).partitions.map(partition => partition.id)
@@ -618,41 +615,17 @@ class Producer extends EventEmitter {
   async #produceMessageWithTrace ({
     topicConf, parsedMessageBuffer, producedAt, customHeaders = []
   }) {
-    return new Promise((resolve, reject) => {
-      tracer.startActiveSpan(`SEND:${topicConf.topicName}`, { kind: SpanKind.PRODUCER }, async (span) => {
-        try {
-          const tracingContext = {}
-          propagation.inject(context.active(), tracingContext)
-          const headers = [
-            ...customHeaders,
-            ...Object.entries(tracingContext).map(([k, v]) => ({ [k]: v }))
-          ]
-          this._config.logger.debug('Producer::headers: ', headers)
-
-          span.setAttributes({
-            [SemConv.ATTR_MESSAGING_CLIENT_ID]: this._config.rdkafkaConf['client.id'],
-            [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topicConf.topicName,
-            [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'send',
-            [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka',
-            [ATTR_SERVER_ADDRESS]: this._config.rdkafkaConf['metadata.broker.list']
-            // think, if we need to add more attributes
-          })
-
-          const result = await this.#produceMessage({
-            topicConf, parsedMessageBuffer, producedAt, headers
-          })
-
-          span.setStatus({ code: SpanStatusCode.OK })
-          resolve(result)
-        } catch (err) {
-          span.setStatus({ code: SpanStatusCode.ERROR, message: err.message })
-          span.recordException(err)
-          reject(err)
-        } finally {
-          span.end()
-        }
-      })
-    })
+    return otel.startProducerTracingSpan(
+      topicConf.topicName,
+      this._config,
+      customHeaders,
+      (headers) => {
+        this._config.logger.debug('Producer::headers: ', headers)
+        return this.#produceMessage({
+          topicConf, parsedMessageBuffer, producedAt, headers
+        })
+      }
+    )
   }
 }
 

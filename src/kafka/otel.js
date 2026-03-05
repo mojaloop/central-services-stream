@@ -1,9 +1,9 @@
 const { propagation, context, SpanKind, trace, SpanStatusCode } = require('@opentelemetry/api')
 const { ATTR_SERVER_ADDRESS } = require('@opentelemetry/semantic-conventions')
-const { OTEL_HEADERS, SemConv } = require('../constants')
+const { OTEL_HEADERS, SemConv, SpanPrefixes } = require('../constants')
 const { logger } = require('../lib/logger')
 
-const tracer = trace.getTracer('kafka')
+const tracer = trace.getTracer('ml-kafka')
 
 /* istanbul ignore next */
 const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '', spanAttrs = null) => {
@@ -33,7 +33,7 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
   }
 
   const span = tracer.startSpan(
-    spanName || `RECEIVE:${topic}`,
+    spanName || `${SpanPrefixes.RECEIVE}:${topic}`,
     { kind: SpanKind.CONSUMER, links },
     activeContext
   )
@@ -57,7 +57,7 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
 
 const executeAndSetSpanStatus = async (fn, span, withSpanEnd, rethrowError, spanAttrs = null) => {
   try {
-    if (spanAttrs) logger.info('consumer span attributes: ', { attributes: spanAttrs })
+    if (spanAttrs) logger.info('kafka span attributes: ', { attributes: spanAttrs })
     const result = await fn()
     span.setStatus({ code: SpanStatusCode.OK })
     return result
@@ -71,16 +71,66 @@ const executeAndSetSpanStatus = async (fn, span, withSpanEnd, rethrowError, span
 }
 
 const makeConsumerAttributes = (config, topic, payload = null) => {
-  const actualCount = Array.isArray(payload) ? payload.length : (payload ? 1 : 0)
+  const messages = Array.isArray(payload) ? payload : (payload ? [payload] : [])
+
   return {
-    [SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: actualCount,
+    [ATTR_SERVER_ADDRESS]: config.rdkafkaConf['metadata.broker.list'],
     [SemConv.ATTR_MESSAGING_CLIENT_ID]: config.rdkafkaConf['client.id'],
     [SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME]: config.rdkafkaConf['group.id'],
     [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topic,
     [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'consume',
+    [SemConv.ATTR_MESSAGING_OPERATION_TYPE]: 'process',
     [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka',
-    [ATTR_SERVER_ADDRESS]: config.rdkafkaConf['metadata.broker.list']
+    ...makeMessageCountAttrs(messages)
   }
+}
+
+const makeMessageCountAttrs = (messages) => {
+  if (messages.length > 1) {
+    return { [SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: messages.length }
+  }
+  if (messages.length === 1) {
+    const msg = messages[0]
+    return {
+      ...(msg.partition != null && { [SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID]: String(msg.partition) }),
+      ...(msg.offset != null && { [SemConv.ATTR_MESSAGING_KAFKA_OFFSET]: msg.offset }),
+      ...(msg.key != null && { [SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: String(msg.key) })
+    }
+  }
+  return {}
+}
+
+const makeProducerAttributes = (config, topicName) => ({
+  [ATTR_SERVER_ADDRESS]: config.rdkafkaConf['metadata.broker.list'],
+  [SemConv.ATTR_MESSAGING_CLIENT_ID]: config.rdkafkaConf['client.id'],
+  [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topicName,
+  [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'send',
+  [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka'
+})
+
+const injectTraceHeaders = (customHeaders = []) => {
+  const tracingContext = {}
+  propagation.inject(context.active(), tracingContext)
+  return [
+    ...customHeaders,
+    ...Object.entries(tracingContext).map(([k, v]) => ({ [k]: v }))
+  ]
+}
+
+const startProducerTracingSpan = async (topicName, config, customHeaders, produceFn) => {
+  return tracer.startActiveSpan(
+    `${SpanPrefixes.SEND}:${topicName}`,
+    { kind: SpanKind.PRODUCER },
+    async (span) => {
+      const attributes = makeProducerAttributes(config, topicName)
+      span.setAttributes(attributes)
+      const headers = injectTraceHeaders(customHeaders)
+      return executeAndSetSpanStatus(
+        () => produceFn(headers),
+        span, true, true, attributes
+      )
+    }
+  )
 }
 
 const extractOtelHeaders = (headers) =>
@@ -96,6 +146,9 @@ const extractOtelHeaders = (headers) =>
 module.exports = {
   executeAndSetSpanStatus,
   extractOtelHeaders,
+  injectTraceHeaders,
   makeConsumerAttributes,
-  startConsumerTracingSpan
+  makeProducerAttributes,
+  startConsumerTracingSpan,
+  startProducerTracingSpan
 }

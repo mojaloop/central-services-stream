@@ -1,7 +1,3 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Overview
 
 `@mojaloop/central-services-stream` is a Kafka streaming library for Mojaloop services. It wraps `node-rdkafka` to provide Consumer and Producer classes with support for multiple consumption modes, OpenTelemetry tracing, and LIME protocol-based message formatting.
@@ -13,14 +9,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm test
 
 # Run a single test file
-npx tapes 'test/unit/kafka/consumer.test.js' | tap-spec
+npx tapes 'test/unit/kafka/consumer.test.js'
 
 # Lint
 npm run lint
 npm run lint:fix
 
 # Coverage
-npm run test:coverage
 npm run test:coverage-check
 
 # Dependency management
@@ -81,6 +76,16 @@ Requires these Mojaloop packages as peer dependencies:
 Tests use `tapes` (tape wrapper) with Sinon for mocking. Test files are in `test/unit/` mirroring the src structure.
 
 Mock Kafka clients via `test/unit/kafka/KafkaStub.js`.
+
+## Key Gotcha: `sync` option
+
+- **Consumer** `sync: true` → uses `async.queue` for ordered message processing (still uses same Kafka client)
+- **Producer** `sync: true` → switches from `Producer` to `HighLevelProducer` (different Kafka client with delivery callbacks)
+
+## Documentation
+
+Generated docs in `_cc/docs/`. Start with `01-overview.md` for complete project reference.
+How-to guides in `_cc/how-to/`.
 
 ## Librdkafka
 
