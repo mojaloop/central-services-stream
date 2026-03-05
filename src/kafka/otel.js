@@ -26,8 +26,7 @@
  ******/
 
 const { propagation, context, SpanKind, trace, SpanStatusCode } = require('@opentelemetry/api')
-const { ATTR_SERVER_ADDRESS } = require('@opentelemetry/semantic-conventions')
-const { OTEL_HEADERS, SemConv, SpanPrefixes } = require('../constants')
+const { SemConv, SpanPrefixes, OTEL_HEADERS } = require('../constants')
 const { logger } = require('../lib/logger')
 
 const tracer = trace.getTracer('ml-kafka')
@@ -112,27 +111,39 @@ const makeConsumerAttributes = (config, topic, payload = null) => {
 const makeProducerAttributes = (config, topicConf) => ({
   ...makeCommonKafkaAttributes(config, topicConf.topicName),
   [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'send',
-  ...(topicConf.partition != null && { [SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID]: String(topicConf.partition) }),
-  ...(topicConf.key != null && { [SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: String(topicConf.key) })
+  ...(topicConf.partition != null && {
+    [SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID]: String(topicConf.partition)
+  }),
+  ...(topicConf.key != null && {
+    [SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: String(topicConf.key)
+  })
 })
 
 const makeCommonKafkaAttributes = (config, topicName) => ({
-  [ATTR_SERVER_ADDRESS]: config.rdkafkaConf['metadata.broker.list'],
+  [SemConv.ATTR_SERVER_ADDRESS]: config.rdkafkaConf['metadata.broker.list'],
   [SemConv.ATTR_MESSAGING_CLIENT_ID]: config.rdkafkaConf['client.id'],
   [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topicName,
   [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka'
 })
 
-const makeMessageCountAttrs = (messages) => {
+const makeMessageCountAttrs = (messages = []) => {
   if (messages.length > 1) {
-    return { [SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: messages.length }
+    return {
+      [SemConv.ATTR_MESSAGING_BATCH_MESSAGE_COUNT]: messages.length
+    }
   }
   if (messages.length === 1) {
     const msg = messages[0]
     return {
-      ...(msg.partition != null && { [SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID]: String(msg.partition) }),
-      ...(msg.offset != null && { [SemConv.ATTR_MESSAGING_KAFKA_OFFSET]: msg.offset }),
-      ...(msg.key != null && { [SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: String(msg.key) })
+      ...(msg.partition != null && {
+        [SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID]: String(msg.partition)
+      }),
+      ...(msg.offset != null && {
+        [SemConv.ATTR_MESSAGING_KAFKA_OFFSET]: msg.offset
+      }),
+      ...(msg.key != null && {
+        [SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY]: String(msg.key)
+      })
     }
   }
   return {}

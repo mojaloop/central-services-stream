@@ -1,5 +1,9 @@
-// Incubating OTel semantic conventions for messaging (not yet in stable @opentelemetry/semantic-conventions)
+const { ATTR_SERVER_ADDRESS, ATTR_ERROR_TYPE } = require('@opentelemetry/semantic-conventions')
+
 const SemConv = Object.freeze({
+  ATTR_SERVER_ADDRESS,
+  ATTR_ERROR_TYPE,
+  // messaging OTel semantic conventions are not yet in stable @opentelemetry/semantic-conventions
   ATTR_MESSAGING_BATCH_MESSAGE_COUNT: 'messaging.batch.message_count',
   ATTR_MESSAGING_CLIENT_ID: 'messaging.client.id',
   ATTR_MESSAGING_CONSUMER_GROUP_NAME: 'messaging.consumer.group.name',
@@ -8,8 +12,7 @@ const SemConv = Object.freeze({
   ATTR_MESSAGING_SYSTEM: 'messaging.system',
   ATTR_MESSAGING_DESTINATION_PARTITION_ID: 'messaging.destination.partition.id',
   ATTR_MESSAGING_KAFKA_OFFSET: 'messaging.kafka.offset',
-  ATTR_MESSAGING_KAFKA_MESSAGE_KEY: 'messaging.kafka.message.key',
-  ATTR_ERROR_TYPE: 'error.type'
+  ATTR_MESSAGING_KAFKA_MESSAGE_KEY: 'messaging.kafka.message.key'
 })
 
 const SpanPrefixes = Object.freeze({
