@@ -47,7 +47,7 @@
     "audit:fix": "npm audit fix",
     "audit:check": "npx audit-ci --config ./audit-ci.jsonc",
     "dep:check": "npx ncu -e 2",
-    "dep:update": "npx ncu -u",
+    "dep:update": "npx ncu -u --target @minor-infitx",
     "release": "npx standard-version --no-verify --releaseCommitMessageFormat 'chore(release): {{currentTag}} [skip ci]'",
     "snapshot": "npx standard-version --no-verify --skip.changelog --prerelease snapshot --releaseCommitMessageFormat 'chore(snapshot): {{currentTag}}'"
   },
@@ -62,8 +62,8 @@
   },
   "devDependencies": {
     "@mojaloop/central-services-error-handling": "13.1.6",
-    "@mojaloop/central-services-logger": "11.11.0-infitx.0",
-    "@opentelemetry/auto-instrumentations-node": "0.70.1",
+    "@mojaloop/central-services-logger": "11.11.0-infitx.2",
+    "@opentelemetry/auto-instrumentations-node": "0.71.0",
     "@opentelemetry/sdk-node": "0.213.0",
     "audit-ci": "7.1.0",
     "npm-check-updates": "19.6.3",
@@ -96,7 +96,7 @@
   },
   "peerDependencies": {
     "@mojaloop/central-services-error-handling": ">=13.x.x",
-    "@mojaloop/central-services-logger": ">=11.x.x"
+    "@mojaloop/central-services-logger": ">=11.11.0-infitx.0 <=11.11.0-infitx.9999"
   },
   "peerDependenciesMeta": {
     "@mojaloop/central-services-error-handling": {
