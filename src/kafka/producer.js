@@ -629,13 +629,14 @@ class Producer extends EventEmitter {
   async #produceMessageWithTrace ({
     topicConf, parsedMessageBuffer, producedAt, customHeaders = []
   }) {
+    const produceFn = (headers, spanAttrs) => this.#produceMessage({
+      topicConf, parsedMessageBuffer, producedAt, headers, spanAttrs
+    })
     return otel.startProducerTracingSpan(
       this._config,
       topicConf,
       customHeaders,
-      (headers) => this.#produceMessage({
-        topicConf, parsedMessageBuffer, producedAt, headers
-      })
+      produceFn
     )
   }
 }
