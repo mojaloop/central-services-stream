@@ -264,6 +264,30 @@ Test('otel Tests -->', (otelSuite) => {
       }
     }))
 
+    spanTests.test('should call produceFn with headers and producer attributes', tryCatchEndTest(async (assert) => {
+      const topicConf = { topicName: 'test-topic', partition: 2, key: 'msg-key' }
+      const produceFn = sinon.stub().resolves('ok')
+      await otel.startProducerTracingSpan(config, topicConf, [], produceFn)
+      const [headers, attrs] = produceFn.firstCall.args
+      assert.ok(Array.isArray(headers), 'first arg is headers array')
+      assert.ok(attrs, 'second arg (attributes) is provided')
+      assert.equal(attrs[SemConv.ATTR_MESSAGING_SYSTEM], 'kafka', 'attributes contain messaging.system')
+      assert.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_NAME], 'test-topic', 'attributes contain topic name')
+      assert.equal(attrs[SemConv.ATTR_MESSAGING_OPERATION_NAME], 'send', 'attributes contain operation name')
+      assert.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID], '2', 'attributes contain partition')
+      assert.equal(attrs[SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY], 'msg-key', 'attributes contain message key')
+    }))
+
+    spanTests.test('should call produceFn with attributes without optional fields when partition and key are null', tryCatchEndTest(async (assert) => {
+      const topicConf = { topicName: 'test-topic' }
+      const produceFn = sinon.stub().resolves('ok')
+      await otel.startProducerTracingSpan(config, topicConf, [], produceFn)
+      const attrs = produceFn.firstCall.args[1]
+      assert.ok(attrs, 'attributes object is provided')
+      assert.equal(attrs[SemConv.ATTR_MESSAGING_DESTINATION_PARTITION_ID], undefined, 'no partition when not specified')
+      assert.equal(attrs[SemConv.ATTR_MESSAGING_KAFKA_MESSAGE_KEY], undefined, 'no key when not specified')
+    }))
+
     spanTests.test('should merge custom headers with trace headers', tryCatchEndTest(async (assert) => {
       const topicConf = { topicName: 'test-topic' }
       const customHeaders = [{ 'x-request-id': 'abc' }]

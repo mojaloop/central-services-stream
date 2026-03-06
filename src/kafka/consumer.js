@@ -600,13 +600,17 @@ class Consumer extends EventEmitter {
 
     const first = payloadArr[0]
     const last = payloadArr[batchSize - 1]
-    const batchId = `p${first?.partition}:${first?.offset}-p${last?.partition}:${last?.offset}`
+    const partitionOffset = (msg) => `p${msg?.partition}.${msg?.offset}`
+
+    const batchId = `${partitionOffset(first)}-${partitionOffset(last)}`
 
     const meta = {
       batchId,
       batchSize,
       startTime: Date.now()
-    } // think which other metadata we might need in handler (workDoneCb)
+    }
+    // - think which other metadata we might need in handler (workDoneCb)
+    // - use DTO
 
     return { meta }
   }

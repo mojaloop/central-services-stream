@@ -164,7 +164,7 @@ const startProducerTracingSpan = async (config, topicConf, customHeaders, produc
     span.setAttributes(attributes)
     const headers = injectTraceHeaders(customHeaders)
     return executeAndSetSpanStatus(
-      () => produceFn(headers),
+      () => produceFn(headers, attributes),
       span, true, true, attributes
     )
   }

@@ -63,7 +63,7 @@
   },
   "devDependencies": {
     "@mojaloop/central-services-error-handling": "13.1.6",
-    "@mojaloop/central-services-logger": "11.11.0-infitx.1",
+    "@mojaloop/central-services-logger": "11.11.0-infitx.2",
     "@opentelemetry/auto-instrumentations-node": "0.71.0",
     "@opentelemetry/sdk-node": "0.213.0",
     "audit-ci": "7.1.0",

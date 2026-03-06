@@ -432,7 +432,6 @@ class Producer extends EventEmitter {
       return this.#produceMessageWithTrace({
         topicConf, parsedMessageBuffer, producedAt, customHeaders
       })
-      // todo: think, if it's better to wrap the whole sendMessage in a span
     } catch (err) {
       logger.error(`Producer error has occurred for ${topicConf.topicName}: `, err)
       throw err
@@ -589,10 +588,15 @@ class Producer extends EventEmitter {
   }
 
   async #produceMessage ({
-    topicConf, parsedMessageBuffer, producedAt, headers
+    topicConf,
+    parsedMessageBuffer,
+    producedAt,
+    headers,
+    spanAttrs = null
   }) {
-    const { logger } = this._config
-    logger.debug('Producer::produce() - headers: ', { headers })
+    const log = this._config.logger.child({ attributes: spanAttrs })
+    const LOG_PREFIX = '[msg =>>] producing'
+    log.debug(`${LOG_PREFIX}...  - headers: `, { headers, topicConf, producedAt })
 
     return new Promise((resolve, reject) => {
       if (this._config.options.sync) {
@@ -606,16 +610,17 @@ class Producer extends EventEmitter {
           (err, offset) => {
             // The offset if our acknowledgement level allows us to receive delivery offsets
             if (err) {
-              logger.warn('Producer::produce() - error: ', err)
+              log.warn(`${LOG_PREFIX} failed with error: `, err)
               reject(err)
             } else {
-              logger.debug(`Producer::produce() - delivery-callback offset=${offset}`)
+              log.verbose(`${LOG_PREFIX} is done: `, { offset, topicConf })
               resolve(offset)
             }
           })
       } else {
         // NOTE: this is the old way of producing a message, we should use the new one
         this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey, headers)
+        log.verbose(`${LOG_PREFIX} is done in old way`)
         resolve(true)
       }
     })
