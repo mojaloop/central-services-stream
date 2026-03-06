@@ -159,10 +159,13 @@ const injectTraceHeaders = (customHeaders = []) => {
 }
 
 const startProducerTracingSpan = async (config, topicConf, customHeaders, produceFn) => {
+  const spanName = `${SpanPrefixes.SEND}:${topicConf.topicName}`
+
   const executeFn = async (span) => { // think better naming
     const attributes = makeProducerAttributes(config, topicConf)
     span.setAttributes(attributes)
     const headers = injectTraceHeaders(customHeaders)
+
     return executeAndSetSpanStatus(
       () => produceFn(headers, attributes),
       span, true, true, attributes
@@ -170,7 +173,7 @@ const startProducerTracingSpan = async (config, topicConf, customHeaders, produc
   }
 
   return tracer.startActiveSpan(
-    `${SpanPrefixes.SEND}:${topicConf.topicName}`,
+    spanName,
     { kind: SpanKind.PRODUCER },
     executeFn
   )

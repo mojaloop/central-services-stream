@@ -364,7 +364,7 @@ class Producer extends EventEmitter {
       this._producer.connect(null, (error, metadata) => {
         if (error) {
           super.emit('error', error)
-          logger.warn('Producer::connect() - end:', error)
+          logger.warn('Producer::connect() - error:', error)
           return reject(error)
         }
         connectedClients.add(this)
