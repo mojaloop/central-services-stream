@@ -98,7 +98,9 @@ const executeAndSetSpanStatus = async (fn, span, withSpanEnd, rethrowError, span
 }
 
 const makeConsumerAttributes = (config, topic, payload = null) => {
-  const messages = Array.isArray(payload) ? payload : (payload ? [payload] : [])
+  const messages = Array.isArray(payload)
+    ? payload
+    : (payload ? [payload] : [])
 
   return {
     ...makeCommonKafkaAttributes(config, topic),
