@@ -25,7 +25,7 @@
  --------------
  ******/
 
-const { propagation, context, SpanKind, trace, SpanStatusCode } = require('@opentelemetry/api')
+const { trace, propagation, context, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
 const { SemConv, SpanPrefixes, OTEL_HEADERS } = require('../constants')
 const { logger } = require('../lib/logger')
 
