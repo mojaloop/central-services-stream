@@ -46,7 +46,7 @@
     "test:integration": "echo 'No integration tests defined'",
     "audit:fix": "npm audit fix",
     "audit:check": "npx audit-ci --config ./audit-ci.jsonc",
-    "dep:check": "npx ncu -e 2",
+    "dep:check": "npx ncu -e 2 --target @minor-infitx",
     "dep:update": "npx ncu -u --target @minor-infitx",
     "release": "npx standard-version --no-verify --releaseCommitMessageFormat 'chore(release): {{currentTag}} [skip ci]'",
     "snapshot": "npx standard-version --no-verify --skip.changelog --prerelease snapshot --releaseCommitMessageFormat 'chore(snapshot): {{currentTag}}'"
@@ -62,7 +62,7 @@
   },
   "devDependencies": {
     "@mojaloop/central-services-error-handling": "13.1.6",
-    "@mojaloop/central-services-logger": "11.11.0-infitx.2",
+    "@mojaloop/central-services-logger": "11.11.0-infitx.4",
     "@opentelemetry/auto-instrumentations-node": "0.71.0",
     "@opentelemetry/sdk-node": "0.213.0",
     "audit-ci": "7.1.0",
