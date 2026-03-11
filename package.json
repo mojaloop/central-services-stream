@@ -47,8 +47,8 @@
     "test:integration": "echo 'No integration tests defined'",
     "audit:fix": "npm audit fix",
     "audit:check": "npx audit-ci --config ./audit-ci.jsonc",
-    "dep:check": "npx ncu -e 2",
-    "dep:update": "npx ncu -u",
+    "dep:check": "npx ncu -e 2 --target @minor-infitx",
+    "dep:update": "npx ncu -u --target @minor-infitx",
     "release": "npx standard-version --no-verify --releaseCommitMessageFormat 'chore(release): {{currentTag}} [skip ci]'",
     "snapshot": "npx standard-version --no-verify --skip.changelog --prerelease snapshot --releaseCommitMessageFormat 'chore(snapshot): {{currentTag}}'"
   },
@@ -97,7 +97,7 @@
   },
   "peerDependencies": {
     "@mojaloop/central-services-error-handling": ">=13.x.x",
-    "@mojaloop/central-services-logger": ">=11.x.x"
+    "@mojaloop/central-services-logger": ">=11.11.0-infitx.0 <=11.11.0-infitx.9999"
   },
   "peerDependenciesMeta": {
     "@mojaloop/central-services-error-handling": {
