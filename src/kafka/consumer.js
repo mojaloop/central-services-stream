@@ -598,15 +598,19 @@ class Consumer extends EventEmitter {
     const payloadArr = Array.isArray(payload) ? payload : [payload] // we're doing it inside startConsumerTracingSpan()
     const batchSize = payloadArr.length
 
-    const firstOffset = payloadArr[0]?.offset
-    const lastOffset = payloadArr[batchSize - 1]?.offset
-    const batchId = `${payloadArr[0]?.partition}.${firstOffset}-${lastOffset}` // think if we need to have another logic
+    const first = payloadArr[0]
+    const last = payloadArr[batchSize - 1]
+    const partitionOffset = (msg) => `p${msg?.partition}.${msg?.offset}`
+
+    const batchId = `${partitionOffset(first)}-${partitionOffset(last)}`
 
     const meta = {
       batchId,
       batchSize,
       startTime: Date.now()
-    } // think which other metadata we might need in handler (workDoneCb)
+    }
+    // - think which other metadata we might need in handler (workDoneCb)
+    // - use DTO
 
     return { meta }
   }
