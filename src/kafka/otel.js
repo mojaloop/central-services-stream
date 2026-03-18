@@ -66,7 +66,8 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
   const messageContexts = isBatch ? new Map() : null
 
   if (isBatch) {
-    messageContexts.set(primaryMsg, activeContext)
+    if (primaryHeaders.traceparent) messageContexts.set(primaryMsg, activeContext)
+
     const seenTraceparents = new Set([primaryHeaders.traceparent])
 
     for (const [msg, headers] of msgHeaders) {
@@ -100,7 +101,7 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
   return {
     span,
     topic,
-    messageContexts,
+    messageContexts: messageContexts?.size ? messageContexts : null,
     executeInsideSpanContext: async (fn, withSpanEnd = true, rethrowError = true) => context.with(
       spanCtx,
       () => executeAndSetSpanStatus(fn, span, withSpanEnd, rethrowError, attributes)

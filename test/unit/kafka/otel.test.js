@@ -452,6 +452,27 @@ Test('otel Tests -->', (otelSuite) => {
       assert.false(result.messageContexts.has(msgNoHeaders), 'message without headers is NOT in Map')
     }))
 
+    msgCtxTests.test('should not include primaryMsg (messages[0]) without OTel headers in map', tryCatchEndTest((assert) => {
+      const msgNoHeaders = { topic: 'topic-no-headers', headers: [], value: 'first' }
+      const msgWithHeaders = makeMsg(TRACE_A, SPAN_1, '01')
+      const batch = [msgNoHeaders, msgWithHeaders]
+      const result = otel.startConsumerTracingSpan(batch, batchConsumerConfig)
+      assert.ok(result.messageContexts instanceof Map, 'messageContexts is a Map')
+      assert.ok(result.messageContexts.has(msgWithHeaders), 'message with headers is in Map')
+      assert.false(result.messageContexts.has(msgNoHeaders), 'primaryMsg without headers is NOT in Map')
+      assert.equal(result.messageContexts.size, 1, 'Map has only 1 entry')
+    }))
+
+    msgCtxTests.test('should return messageContexts as null when no messages have OTel headers', tryCatchEndTest((assert) => {
+      const batch = [
+        { topic: 'topic-1', headers: [], value: 'a' },
+        { topic: 'topic-2', headers: null, value: 'b' },
+        { topic: 'topic-3', headers: [{ 'content-type': 'application/json' }], value: 'c' }
+      ]
+      const result = otel.startConsumerTracingSpan(batch, batchConsumerConfig)
+      assert.equal(result.messageContexts, null, 'messageContexts is null when no messages have OTel headers')
+    }))
+
     msgCtxTests.test('should store separate entries for messages with same traceparent', tryCatchEndTest((assert) => {
       const msg1 = makeMsg(TRACE_A, SPAN_1, '01')
       const msg2 = makeMsg(TRACE_A, SPAN_1, '01')
