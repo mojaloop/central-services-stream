@@ -136,7 +136,7 @@ exports.ENUMS = ENUMS
  * @prop {Map<object, import('@opentelemetry/api').Context>} [messageContexts] -
  *   Per-message OTel contexts for trace propagation. Keyed by original message
  *   object reference. Only present for batch payloads (messages.length > 1).
- *   Use with `otel.withMessageContext(meta, message, fn)` to wrap produce calls.
+ *   Use with `otel.withMessageContext(message, meta, fn)` to wrap produce calls.
  */
 
 /**

@@ -223,12 +223,12 @@ const extractOtelHeaders = (headers) =>
  * Use in batch handlers to restore per-message trace context before producing.
  * Falls back to running fn directly if no context is found.
  *
- * @param {ConsumerCallbackMeta} meta - meta from consumer callback (3rd arg)
  * @param {object} message - original Kafka message object from the consumed batch
+ * @param {ConsumerCallbackMeta} meta - meta from consumer callback (3rd arg)
  * @param {Function} fn - async function to execute inside the message's OTel context
  * @returns {*} result of fn
  */
-const withMessageContext = (meta, message, fn) => {
+const withMessageContext = (message, meta, fn) => {
   const msgContext = meta?.messageContexts?.get(message)
   if (msgContext) return context.with(msgContext, fn)
   return fn()

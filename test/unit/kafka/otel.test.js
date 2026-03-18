@@ -477,7 +477,7 @@ Test('otel Tests -->', (otelSuite) => {
       try {
         const fn = sinon.stub().returns('result')
         const meta = { messageContexts }
-        const result = otel.withMessageContext(meta, message, fn)
+        const result = otel.withMessageContext(message, meta, fn)
         assert.true(contextWithStub.calledOnce, 'context.with called once')
         assert.equal(contextWithStub.firstCall.args[0], mockContext, 'context.with called with correct context')
         assert.equal(result, 'result', 'returns fn result')
@@ -496,7 +496,7 @@ Test('otel Tests -->', (otelSuite) => {
       try {
         const fn = sinon.stub().returns('direct-result')
         const meta = { messageContexts }
-        const result = otel.withMessageContext(meta, message, fn)
+        const result = otel.withMessageContext(message, meta, fn)
         assert.true(fn.calledOnce, 'fn called once')
         assert.false(contextWithStub.called, 'context.with not called')
         assert.equal(result, 'direct-result', 'returns fn result directly')
@@ -511,7 +511,7 @@ Test('otel Tests -->', (otelSuite) => {
         const fn = sinon.stub().returns('fallback-result')
         const meta = { batchId: 'p0.0-p0.1', batchSize: 2 }
         const message = { topic: 'test', value: 'data' }
-        const result = otel.withMessageContext(meta, message, fn)
+        const result = otel.withMessageContext(message, meta, fn)
         assert.true(fn.calledOnce, 'fn called once')
         assert.false(contextWithStub.called, 'context.with not called')
         assert.equal(result, 'fallback-result', 'returns fn result directly')
@@ -524,12 +524,12 @@ Test('otel Tests -->', (otelSuite) => {
       const contextWithStub = sinon.stub(context, 'with')
       try {
         const fn = sinon.stub().returns('null-meta-result')
-        const result = otel.withMessageContext(null, { topic: 'test' }, fn)
+        const result = otel.withMessageContext({ topic: 'test' }, null, fn)
         assert.true(fn.calledOnce, 'fn called once with null meta')
         assert.false(contextWithStub.called, 'context.with not called with null meta')
         assert.equal(result, 'null-meta-result', 'returns fn result directly')
 
-        const resultUndefined = otel.withMessageContext(undefined, { topic: 'test' }, fn)
+        const resultUndefined = otel.withMessageContext({ topic: 'test' }, undefined, fn)
         assert.equal(fn.callCount, 2, 'fn called again with undefined meta')
         assert.equal(resultUndefined, 'null-meta-result', 'returns fn result for undefined meta')
       } finally {
