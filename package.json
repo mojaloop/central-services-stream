@@ -82,6 +82,7 @@
     "uuid4": "2.0.3"
   },
   "overrides": {
+    "flatted": "3.4.1",
     "cross-spawn": "7.0.6",
     "trim": "0.0.3",
     "simple-swizzle": "0.2.2",

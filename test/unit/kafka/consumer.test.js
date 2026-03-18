@@ -2644,5 +2644,72 @@ Test('Consumer OTel tracing tests', (otelSuite) => {
     assert.end()
   })
 
+  otelSuite.test('messageContexts in meta Tests -->', (msgCtxMetaTests) => {
+    msgCtxMetaTests.test('should pass messageContexts in meta for batch payload', tryCatchEndTest(async (assert) => {
+      const mockMessageContexts = new Map()
+      const spanStub = createSpanStub()
+      sandbox.stub(otel, 'startConsumerTracingSpan').returns({
+        span: spanStub,
+        topic: 'test',
+        messageContexts: mockMessageContexts,
+        executeInsideSpanContext: async (fn) => fn()
+      })
+
+      const c = new Consumer(topicsList, config)
+      const payload = [
+        { value: '1', topic: 'test', partition: 0, offset: 0, key: 'k1', size: 1, timestamp: Date.now() },
+        { value: '2', topic: 'test', partition: 0, offset: 1, key: 'k2', size: 1, timestamp: Date.now() }
+      ]
+      const workDoneCb = Sinon.stub().resolves('ok')
+
+      await c._executeWithOtelSpan(null, payload, workDoneCb)
+
+      const [, , meta] = workDoneCb.firstCall.args
+      assert.ok(meta, 'meta is passed to workDoneCb')
+      assert.equal(meta.messageContexts, mockMessageContexts, 'meta.messageContexts is the Map from startConsumerTracingSpan')
+    }))
+
+    msgCtxMetaTests.test('should not pass messageContexts in meta for single message', tryCatchEndTest(async (assert) => {
+      const spanStub = createSpanStub()
+      sandbox.stub(otel, 'startConsumerTracingSpan').returns({
+        span: spanStub,
+        topic: 'test',
+        messageContexts: null,
+        executeInsideSpanContext: async (fn) => fn()
+      })
+
+      const c = new Consumer(topicsList, config)
+      const singleMsg = { value: '1', topic: 'test', partition: 0, offset: 0, key: 'k1', size: 1, timestamp: Date.now() }
+      const workDoneCb = Sinon.stub().resolves('ok')
+
+      await c._executeWithOtelSpan(null, singleMsg, workDoneCb)
+
+      const [, , meta] = workDoneCb.firstCall.args
+      assert.ok(meta, 'meta is passed to workDoneCb')
+      assert.equal(meta.messageContexts, undefined, 'meta.messageContexts is not set for single message')
+    }))
+
+    msgCtxMetaTests.test('should not pass messageContexts when disableOtelSpanAutoCreation is true', tryCatchEndTest(async (assert) => {
+      config.options.disableOtelSpanAutoCreation = true
+      const otelStub = sandbox.stub(otel, 'startConsumerTracingSpan')
+
+      const c = new Consumer(topicsList, config)
+      const payload = [
+        { value: '1', topic: 'test', partition: 0, offset: 0, key: 'k1', size: 1, timestamp: Date.now() },
+        { value: '2', topic: 'test', partition: 0, offset: 1, key: 'k2', size: 1, timestamp: Date.now() }
+      ]
+      const workDoneCb = Sinon.stub().resolves('ok')
+
+      await c._executeWithOtelSpan(null, payload, workDoneCb)
+
+      assert.false(otelStub.called, 'startConsumerTracingSpan should NOT be called')
+      const [, , meta] = workDoneCb.firstCall.args
+      assert.ok(meta, 'meta is passed to workDoneCb')
+      assert.equal(meta.messageContexts, undefined, 'meta.messageContexts is not set when OTel disabled')
+    }))
+
+    msgCtxMetaTests.end()
+  })
+
   otelSuite.end()
 })

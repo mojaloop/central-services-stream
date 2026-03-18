@@ -127,6 +127,19 @@ exports.ENUMS = ENUMS
  */
 
 /**
+ * Metadata passed to consumer handler callbacks as the 3rd argument.
+ *
+ * @typedef {object} ConsumerCallbackMeta
+ * @prop {string} batchId - Offset range identifier (e.g., 'p0.100-p0.199')
+ * @prop {number} batchSize - Number of messages in the batch
+ * @prop {number} startTime - Timestamp when batch processing started (ms)
+ * @prop {Map<object, import('@opentelemetry/api').Context>} [messageContexts] -
+ *   Per-message OTel contexts for trace propagation. Keyed by original message
+ *   object reference. Only present for batch payloads (messages.length > 1).
+ *   Use with `otel.withMessageContext(meta, message, fn)` to wrap produce calls.
+ */
+
+/**
  * Batch event.
  *
  * @event Consumer#batch
@@ -558,26 +571,30 @@ class Consumer extends EventEmitter {
       const messages = Array.isArray(payload) ? payload : [payload]
       let lastResult
       for (const msg of messages) {
-        const executeAndLog = this._buildExecuteAndLog(error, msg, workDoneCb)
+        const executeAndLog = this._buildExecuteAndLog(error, msg, null, workDoneCb)
         const { executeInsideSpanContext } = otel.startConsumerTracingSpan(msg, this._config)
         lastResult = await executeInsideSpanContext(executeAndLog, true, true)
       }
       return lastResult
     }
 
-    const executeAndLog = this._buildExecuteAndLog(error, payload, workDoneCb)
-
     if (disableOtelSpanAutoCreation) {
+      const executeAndLog = this._buildExecuteAndLog(error, payload, null, workDoneCb)
       return executeAndLog()
     }
 
-    const { executeInsideSpanContext } = otel.startConsumerTracingSpan(payload, this._config)
+    const { executeInsideSpanContext, messageContexts } = otel.startConsumerTracingSpan(payload, this._config)
+    const extraMeta = messageContexts ? { messageContexts } : null
+    const executeAndLog = this._buildExecuteAndLog(error, payload, extraMeta, workDoneCb)
     return executeInsideSpanContext(executeAndLog, true, true)
   }
 
-  _buildExecuteAndLog (error, msgOrPayload, workDoneCb) {
+  /** wraps workDoneCb with start/end logging, meta enrichment, and duration tracking. */
+  _buildExecuteAndLog (error, msgOrPayload, extraMeta, workDoneCb) {
     const { meta } = this._extractPayloadDetails(msgOrPayload)
-    const log = this._config.logger.child({ meta })
+    const log = this._config.logger.child({ meta: { ...meta } })
+
+    if (extraMeta) Object.assign(meta, extraMeta)
 
     return async () => {
       log.info(`[=>> msg] message processing start  [batchSize: ${meta.batchSize},  batchId: ${meta.batchId}]...`)
