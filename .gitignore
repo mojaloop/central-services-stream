@@ -73,3 +73,6 @@ typings/
 **/test/results/*
 
 .rush
+
+# Docker volume data (created by containers with root ownership)
+docker/**/tempo-data/

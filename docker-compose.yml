@@ -1,0 +1,103 @@
+networks:
+  css-net:
+    name: css-net
+
+services:
+  kafka:
+    image: docker.io/bitnamilegacy/kafka:3.5
+    container_name: css_kafka
+    networks:
+      - css-net
+    ports:
+      - "9092:9092"
+    environment:
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_CFG_LISTENERS: CONTROLLER://:9093,LISTENER_DOCKER://:29092,LISTENER_EXTERN://:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: LISTENER_DOCKER://kafka:29092,LISTENER_EXTERN://localhost:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,LISTENER_DOCKER:PLAINTEXT,LISTENER_EXTERN:PLAINTEXT
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: LISTENER_DOCKER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@127.0.0.1:9093
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_ENABLE_KRAFT: "true"
+    healthcheck:
+      test: ["CMD", "/opt/bitnami/kafka/bin/kafka-broker-api-versions.sh", "--bootstrap-server", "kafka:29092"]
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 30s
+
+  tempo:
+    image: grafana/tempo:2.7.0
+    container_name: css_tempo
+    networks:
+      - css-net
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./docker/otel/tempo.yaml:/etc/tempo.yaml
+      - ./docker/otel/tempo-data:/var/tempo
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+      - "4318:4318"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - init
+      - memcached
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3200/ready"]
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+      interval: 5s
+
+  # Tempo runs as user 10001, and docker compose creates the volume as root.
+  # chown the volume so Tempo can start correctly.
+  init:
+    image: alpine:3.20
+    container_name: css_init
+    entrypoint:
+      - "chown"
+      - "10001:10001"
+      - "/var/tempo"
+    volumes:
+      - ./docker/otel/tempo-data:/var/tempo
+    networks:
+      - css-net
+
+  memcached:
+    image: memcached:1.6
+    container_name: css_memcached
+    networks:
+      - css-net
+    environment:
+      - MEMCACHED_MAX_MEMORY=64m
+      - MEMCACHED_THREADS=4
+
+  grafana:
+    image: grafana/grafana:11.5.0
+    container_name: css_grafana
+    networks:
+      - css-net
+    volumes:
+      - ./docker/otel/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor metricsSummary
+      - GF_INSTALL_PLUGINS=https://storage.googleapis.com/integration-artifacts/grafana-exploretraces-app/grafana-exploretraces-app-latest.zip;grafana-traces-app
+    ports:
+      - "3003:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      tempo:
+        condition: service_healthy
+#    profiles:
+#      - debug

@@ -25,20 +25,22 @@
 
 const Test = require('tapes')(require('tape'))
 const sinon = require('sinon')
-const { SpanStatusCode, propagation, context } = require('@opentelemetry/api')
+const { trace, SpanStatusCode, propagation, context } = require('@opentelemetry/api')
 
 const otel = require('#src/kafka/otel')
-const { SemConv } = require('#src/constants')
+const { SemConv, SpanPrefixes } = require('#src/constants')
 const { tryCatchEndTest } = require('#test/utils')
 const mocks = require('../mocks')
 
-const createSpanStub = () => Object.freeze({
+const spanStubProps = () => ({
   setAttribute: sinon.stub(),
   setStatus: sinon.stub(),
   setAttributes: sinon.stub(),
   recordException: sinon.stub(),
-  end: sinon.stub()
+  end: sinon.stub(),
+  spanContext: sinon.stub().returns({ traceId: 'a'.repeat(32), spanId: 'b'.repeat(16), traceFlags: 0 })
 })
+const createSpanStub = () => Object.freeze(spanStubProps())
 
 Test('otel Tests -->', (otelSuite) => {
   otelSuite.test('should return empty object if kafkaHeaders is not array with elements', tryCatchEndTest((assert) => {
@@ -559,6 +561,108 @@ Test('otel Tests -->', (otelSuite) => {
     }))
 
     withCtxTests.end()
+  })
+
+  otelSuite.test('RECEIVE/PROCESS span split Tests -->', (splitTests) => {
+    const tracerProto = Object.getPrototypeOf(trace.getTracer('ml-kafka'))
+
+    const BASE_TIMESTAMP = 1_700_000_000_000
+
+    splitTests.test('should use message timestamp as RECEIVE startTime and create both spans eagerly', tryCatchEndTest((assert) => {
+      const startSpanStub = sinon.stub(tracerProto, 'startSpan').callThrough()
+      try {
+        const msg = {
+          topic: 'test-topic',
+          headers: [],
+          value: 'test',
+          timestamp: BASE_TIMESTAMP
+        }
+        otel.startConsumerTracingSpan(msg, batchConsumerConfig)
+        assert.equal(startSpanStub.callCount, 2, 'both RECEIVE and PROCESS spans created eagerly')
+
+        const receiveOptions = startSpanStub.firstCall.args[1]
+        assert.equal(receiveOptions.startTime, BASE_TIMESTAMP, 'RECEIVE span uses message timestamp as startTime')
+
+        const processSpanName = startSpanStub.secondCall.args[0]
+        assert.equal(processSpanName, `${SpanPrefixes.PROCESS}:test-topic`, 'PROCESS span name is PROCESS:{topic}')
+        const processSpanParentCtx = startSpanStub.secondCall.args[2]
+        assert.ok(processSpanParentCtx, 'PROCESS span receives parent context (receiveSpanCtx)')
+      } finally {
+        startSpanStub.restore()
+      }
+    }))
+
+    splitTests.test('should return processSpan as span property', tryCatchEndTest((assert) => {
+      const receiveSpanStub = spanStubProps()
+      const processSpanStub = spanStubProps()
+
+      const startSpanStub = sinon.stub(tracerProto, 'startSpan')
+        .onFirstCall().returns(receiveSpanStub)
+        .onSecondCall().returns(processSpanStub)
+      try {
+        const msg = { topic: 'test-topic', headers: [], value: 'test', timestamp: BASE_TIMESTAMP }
+        const result = otel.startConsumerTracingSpan(msg, batchConsumerConfig)
+        assert.equal(result.span, processSpanStub, 'span property is the PROCESS span, not RECEIVE')
+      } finally {
+        startSpanStub.restore()
+      }
+    }))
+
+    splitTests.test('should end RECEIVE eagerly and end PROCESS after handler', tryCatchEndTest(async (assert) => {
+      const callOrder = []
+      const receiveSpanStub = spanStubProps()
+      receiveSpanStub.end = sinon.stub().callsFake(() => callOrder.push('receive-end'))
+      const processSpanStub = spanStubProps()
+      processSpanStub.end = sinon.stub().callsFake(() => callOrder.push('process-end'))
+
+      const startSpanStub = sinon.stub(tracerProto, 'startSpan')
+        .onFirstCall().returns(receiveSpanStub)
+        .onSecondCall().returns(processSpanStub)
+      try {
+        const msg = { topic: 'test-topic', headers: [], value: 'test', timestamp: BASE_TIMESTAMP }
+        const result = otel.startConsumerTracingSpan(msg, batchConsumerConfig)
+        assert.deepEqual(callOrder, ['receive-end'], 'RECEIVE ends eagerly during startConsumerTracingSpan')
+
+        const handler = () => { callOrder.push('handler') }
+        await result.executeInsideSpanContext(handler)
+        assert.deepEqual(callOrder, ['receive-end', 'handler', 'process-end'], 'handler runs then PROCESS ends')
+      } finally {
+        startSpanStub.restore()
+      }
+    }))
+
+    splitTests.test('should run handler inside PROCESS span context', tryCatchEndTest(async (assert) => {
+      const startSpanStub = sinon.stub(tracerProto, 'startSpan').callThrough()
+      try {
+        const msg = { topic: 'test-topic', headers: [], value: 'test', timestamp: BASE_TIMESTAMP }
+        const result = otel.startConsumerTracingSpan(msg, batchConsumerConfig)
+
+        await result.executeInsideSpanContext(() => 'ok')
+        assert.equal(startSpanStub.callCount, 2, 'two spans created: RECEIVE and PROCESS')
+        const processSpanName = startSpanStub.secondCall.args[0]
+        assert.equal(processSpanName, `${SpanPrefixes.PROCESS}:test-topic`, 'handler runs inside PROCESS context')
+      } finally {
+        startSpanStub.restore()
+      }
+    }))
+
+    splitTests.test('should use earliest timestamp from batch messages', tryCatchEndTest((assert) => {
+      const startSpanStub = sinon.stub(tracerProto, 'startSpan').callThrough()
+      try {
+        const batch = [
+          { topic: 'test-topic', headers: [], value: 'a', timestamp: BASE_TIMESTAMP + 2_000 },
+          { topic: 'test-topic', headers: [], value: 'b', timestamp: BASE_TIMESTAMP + 1_000 },
+          { topic: 'test-topic', headers: [], value: 'c', timestamp: BASE_TIMESTAMP + 3_000 }
+        ]
+        otel.startConsumerTracingSpan(batch, batchConsumerConfig)
+        const spanOptions = startSpanStub.firstCall.args[1]
+        assert.equal(spanOptions.startTime, BASE_TIMESTAMP + 1_000, 'RECEIVE span uses earliest batch timestamp')
+      } finally {
+        startSpanStub.restore()
+      }
+    }))
+
+    splitTests.end()
   })
 
   otelSuite.end()

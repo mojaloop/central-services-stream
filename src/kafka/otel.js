@@ -40,6 +40,7 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
   // Prefer first message with a sampled traceparent so batch spans inherit the sampled flag under parentbased_traceidratio sampler.
   let primaryMsg = messages[0]
   let primaryHeaders = null
+  let receiveStartTime = primaryMsg?.timestamp || Date.now()
   const msgHeaders = isBatch ? new Map() : null
 
   if (isBatch) {
@@ -49,6 +50,9 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
       if (!primaryHeaders && isTraceSampled(extracted.traceparent)) {
         primaryMsg = msg
         primaryHeaders = extracted
+      }
+      if (msg.timestamp != null && msg.timestamp < receiveStartTime) {
+        receiveStartTime = msg.timestamp
       }
     }
   }
@@ -85,26 +89,39 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
 
   const { topic } = primaryMsg
 
-  const span = tracer.startSpan(
-    spanName || `${SpanPrefixes.RECEIVE}:${topic}`,
-    { kind: SpanKind.CONSUMER, links },
+  const receiveSpan = tracer.startSpan(
+    spanName || `${SpanPrefixes.RECEIVE}:${topic}`, // think if we need to have custom spanName param
+    { kind: SpanKind.CONSUMER, links, startTime: receiveStartTime },
     activeContext
   )
-  const spanCtx = trace.setSpan(activeContext, span)
-
-  const attributes = {
+  receiveSpan.setAttributes({
     ...(consumerConfig && makeConsumerAttributes(consumerConfig, topic, payload)),
     ...spanAttrs
+  })
+  receiveSpan.setStatus({ code: SpanStatusCode.OK }) // measures broker transit, not handler success
+  receiveSpan.end()
+
+  // PROCESS span: sibling of RECEIVE (same parent), measures handler execution time
+  const processSpan = tracer.startSpan(
+    `${SpanPrefixes.PROCESS}:${topic}`,
+    { kind: SpanKind.CONSUMER },
+    activeContext
+  )
+  const processAttributes = {
+    ...(consumerConfig && makeConsumerAttributes(consumerConfig, topic, payload)),
+    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'process',
+    ...spanAttrs
   }
-  span.setAttributes(attributes)
+  processSpan.setAttributes(processAttributes)
+  const processSpanCtx = trace.setSpan(activeContext, processSpan)
 
   return {
-    span,
+    span: processSpan,
     topic,
     messageContexts: messageContexts?.size ? messageContexts : null,
     executeInsideSpanContext: async (fn, withSpanEnd = true, rethrowError = true) => context.with(
-      spanCtx,
-      () => executeAndSetSpanStatus(fn, span, withSpanEnd, rethrowError, attributes)
+      processSpanCtx,
+      () => executeAndSetSpanStatus(fn, processSpan, withSpanEnd, rethrowError, processAttributes)
     )
   }
 }
@@ -125,7 +142,7 @@ const executeAndSetSpanStatus = async (fn, span, withSpanEnd, rethrowError, span
   }
 }
 
-const makeConsumerAttributes = (config, topic, payload = null) => {
+const makeConsumerAttributes = (config, topic, payload = null, operationName = 'receive') => {
   const messages = Array.isArray(payload)
     ? payload
     : (payload ? [payload] : [])
@@ -134,7 +151,7 @@ const makeConsumerAttributes = (config, topic, payload = null) => {
     ...makeCommonKafkaAttributes(config, topic),
     ...makeMessageCountAttrs(messages),
     [SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME]: config.rdkafkaConf['group.id'],
-    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'receive'
+    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: operationName
   }
 }
 

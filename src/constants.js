@@ -16,8 +16,9 @@ const SemConv = Object.freeze({
 })
 
 const SpanPrefixes = Object.freeze({
+  SEND: 'SEND',
   RECEIVE: 'RECEIVE',
-  SEND: 'SEND'
+  PROCESS: 'PROCESS'
 })
 
 const OTEL_HEADERS = ['traceparent', 'tracestate', 'baggage']
