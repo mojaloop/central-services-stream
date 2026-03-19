@@ -646,7 +646,7 @@ Test('otel Tests -->', (otelSuite) => {
       }
     }))
 
-    splitTests.test('should use earliest timestamp from batch messages', tryCatchEndTest((assert) => {
+    splitTests.test('should use primary message timestamp as RECEIVE startTime', tryCatchEndTest((assert) => {
       const startSpanStub = sinon.stub(tracerProto, 'startSpan').callThrough()
       try {
         const batch = [
@@ -656,7 +656,7 @@ Test('otel Tests -->', (otelSuite) => {
         ]
         otel.startConsumerTracingSpan(batch, batchConsumerConfig)
         const spanOptions = startSpanStub.firstCall.args[1]
-        assert.equal(spanOptions.startTime, BASE_TIMESTAMP + 1_000, 'RECEIVE span uses earliest batch timestamp')
+        assert.equal(spanOptions.startTime, BASE_TIMESTAMP + 2_000, 'RECEIVE span uses primary message timestamp, not earliest batch timestamp')
       } finally {
         startSpanStub.restore()
       }

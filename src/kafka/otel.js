@@ -36,81 +36,31 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
   const messages = Array.isArray(payload) ? payload : [payload]
   const isBatch = messages.length > 1
 
-  // Phase 1: extract headers for all batch messages, find sampled primary.
-  // Prefer first message with a sampled traceparent so batch spans inherit the sampled flag under parentbased_traceidratio sampler.
-  let primaryMsg = messages[0]
-  let primaryHeaders = null
-  let receiveStartTime = primaryMsg?.timestamp || Date.now()
-  const msgHeaders = isBatch ? new Map() : null
-
-  if (isBatch) {
-    for (const msg of messages) {
-      const extracted = extractOtelHeaders(msg.headers)
-      msgHeaders.set(msg, extracted)
-      if (!primaryHeaders && isTraceSampled(extracted.traceparent)) {
-        primaryMsg = msg
-        primaryHeaders = extracted
-      }
-      if (msg.timestamp != null && msg.timestamp < receiveStartTime) {
-        receiveStartTime = msg.timestamp
-      }
-    }
-  }
-  if (!primaryHeaders) {
-    primaryHeaders = isBatch ? msgHeaders.get(primaryMsg) : extractOtelHeaders(primaryMsg.headers)
-  }
+  const { primaryMsg, primaryHeaders, msgHeaders, receiveStartTime } = scanBatchForPrimary(messages)
 
   // Phase 2: parent context from primary message
   const activeContext = Object.keys(primaryHeaders).length
     ? propagation.extract(context.active(), primaryHeaders)
     : context.active()
 
-  // Phase 3: span links + messageContexts (batch only)
-  const links = []
-  const messageContexts = isBatch ? new Map() : null
-
-  if (isBatch) {
-    if (primaryHeaders.traceparent) messageContexts.set(primaryMsg, activeContext)
-
-    const seenTraceparents = new Set([primaryHeaders.traceparent])
-
-    for (const [msg, headers] of msgHeaders) {
-      if (msg === primaryMsg || !headers.traceparent) continue
-      const extractedContext = propagation.extract(context.active(), headers)
-      messageContexts.set(msg, extractedContext)
-
-      if (!seenTraceparents.has(headers.traceparent)) {
-        seenTraceparents.add(headers.traceparent)
-        const linkedSpan = trace.getSpan(extractedContext)
-        if (linkedSpan) links.push({ context: linkedSpan.spanContext() })
-      }
-    }
-  }
+  const { links, messageContexts } = buildBatchLinksAndContexts({ isBatch, primaryMsg, primaryHeaders, msgHeaders, activeContext })
 
   const { topic } = primaryMsg
+  const consumerAttrs = makeConsumerAttributes(consumerConfig, topic, payload)
 
-  const receiveSpan = tracer.startSpan(
-    spanName || `${SpanPrefixes.RECEIVE}:${topic}`, // think if we need to have custom spanName param
-    { kind: SpanKind.CONSUMER, links, startTime: receiveStartTime },
-    activeContext
-  )
-  receiveSpan.setAttributes({
-    ...(consumerConfig && makeConsumerAttributes(consumerConfig, topic, payload)),
-    ...spanAttrs
-  })
-  receiveSpan.setStatus({ code: SpanStatusCode.OK }) // measures broker transit, not handler success
-  receiveSpan.end()
+  // RECEIVE span (fire-and-forget, measures broker transit)
+  createReceiveSpan({ spanName, topic, startTime: receiveStartTime, activeContext, links, consumerAttrs, spanAttrs })
 
-  // PROCESS span: sibling of RECEIVE (same parent), measures handler execution time
+  // PROCESS span (sibling of RECEIVE, measures handler execution)
   const processSpan = tracer.startSpan(
     `${SpanPrefixes.PROCESS}:${topic}`,
     { kind: SpanKind.CONSUMER },
     activeContext
   )
   const processAttributes = {
-    ...(consumerConfig && makeConsumerAttributes(consumerConfig, topic, payload)),
-    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'process',
-    ...spanAttrs
+    ...consumerAttrs,
+    ...spanAttrs,
+    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'process'
   }
   processSpan.setAttributes(processAttributes)
   const processSpanCtx = trace.setSpan(activeContext, processSpan)
@@ -143,6 +93,8 @@ const executeAndSetSpanStatus = async (fn, span, withSpanEnd, rethrowError, span
 }
 
 const makeConsumerAttributes = (config, topic, payload = null, operationName = 'receive') => {
+  if (!config || !topic) return {}
+
   const messages = Array.isArray(payload)
     ? payload
     : (payload ? [payload] : [])
@@ -250,6 +202,70 @@ const withMessageContext = (message, meta, fn) => {
   const msgContext = meta?.messageContexts?.get(message)
   if (msgContext) return context.with(msgContext, fn)
   return fn()
+}
+
+const scanBatchForPrimary = (messages) => {
+  let primaryMsg = messages[0]
+  let primaryHeaders = null
+  const msgHeaders = new Map()
+
+  for (const msg of messages) {
+    const extracted = extractOtelHeaders(msg.headers)
+    msgHeaders.set(msg, extracted)
+    if (!primaryHeaders && isTraceSampled(extracted.traceparent)) {
+      primaryMsg = msg
+      primaryHeaders = extracted
+    }
+  }
+  if (!primaryHeaders) primaryHeaders = msgHeaders.get(primaryMsg)
+
+  const receiveStartTime = primaryMsg?.timestamp || Date.now()
+
+  return {
+    primaryMsg,
+    primaryHeaders,
+    receiveStartTime,
+    msgHeaders
+  }
+}
+
+const buildBatchLinksAndContexts = ({
+  isBatch, msgHeaders, primaryMsg, primaryHeaders, activeContext
+}) => {
+  if (!isBatch) return { links: [], messageContexts: null }
+
+  const links = []
+  const messageContexts = new Map()
+  if (primaryHeaders.traceparent) messageContexts.set(primaryMsg, activeContext)
+
+  const seenTraceparents = new Set([primaryHeaders.traceparent])
+
+  for (const [msg, headers] of msgHeaders) {
+    if (msg === primaryMsg || !headers.traceparent) continue
+    const extractedContext = propagation.extract(context.active(), headers)
+    messageContexts.set(msg, extractedContext)
+
+    if (!seenTraceparents.has(headers.traceparent)) {
+      seenTraceparents.add(headers.traceparent)
+      const linkedSpan = trace.getSpan(extractedContext)
+      if (linkedSpan) links.push({ context: linkedSpan.spanContext() })
+    }
+  }
+
+  return { links, messageContexts }
+}
+
+const createReceiveSpan = ({
+  spanName, topic, startTime, activeContext, links, consumerAttrs, spanAttrs
+}) => {
+  const span = tracer.startSpan(
+    spanName || `${SpanPrefixes.RECEIVE}:${topic}`,
+    { kind: SpanKind.CONSUMER, links, startTime },
+    activeContext
+  )
+  span.setAttributes({ ...consumerAttrs, ...spanAttrs })
+  span.setStatus({ code: SpanStatusCode.OK })
+  span.end()
 }
 
 const isTraceSampled = (traceparent) => {
