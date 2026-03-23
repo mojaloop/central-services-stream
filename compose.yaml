@@ -1,0 +1,160 @@
+networks:
+  css-net:
+    name: css-net
+
+volumes:
+  kafka-data:
+
+services:
+  kafka:
+    image: docker.io/bitnamilegacy/kafka:${KAFKA_IMAGE_TAG:-3.7}
+    container_name: css_kafka
+    networks:
+      - css-net
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/bitnami/kafka
+    env_file:
+      - ./docker/kafka/kafka.env
+    deploy:
+      resources:
+        limits:
+          memory: 1536m
+          cpus: "1.0"
+        reservations:
+          memory: 768m
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD-SHELL", "KAFKA_OPTS='' /opt/bitnami/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server kafka:29092"]
+      timeout: 20s
+      retries: 10
+      start_period: 40s
+      interval: 30s
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_IMAGE_TAG:-v2.54.1}
+    container_name: css_prometheus
+    networks:
+      - css-net
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus/rules.yml:/etc/prometheus/rules.yml
+    depends_on:
+      - kafka-exporter
+
+  tempo:
+    image: grafana/tempo:${TEMPO_IMAGE_TAG:-2.7.0}
+    container_name: css_tempo
+    networks:
+      - css-net
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./docker/tempo/tempo.yaml:/etc/tempo.yaml
+      - ./docker/tempo/tempo-data:/var/tempo
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+      - "4318:4318"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - init
+      - memcached
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3200/ready"]
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+      interval: 5s
+
+  # Tempo runs as user 10001, and docker compose creates the volume as root.
+  # chown the volume so Tempo can start correctly.
+  init:
+    image: alpine:${ALPINE_IMAGE_TAG:-3.20}
+    container_name: css_init
+    entrypoint:
+      - "chown"
+      - "10001:10001"
+      - "/var/tempo"
+    volumes:
+      - ./docker/tempo/tempo-data:/var/tempo
+    networks:
+      - css-net
+
+  memcached:
+    image: memcached:${MEMCACHED_IMAGE_TAG:-1.6}
+    container_name: css_memcached
+    networks:
+      - css-net
+    environment:
+      - MEMCACHED_MAX_MEMORY=64m
+      - MEMCACHED_THREADS=4
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_IMAGE_TAG:-11.5.0}
+    container_name: css_grafana
+    networks:
+      - css-net
+    volumes:
+      - ./docker/grafana/provisioning/datasources/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./docker/grafana/provisioning/dashboards/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor metricsSummary
+      - GF_INSTALL_PLUGINS=https://storage.googleapis.com/integration-artifacts/grafana-exploretraces-app/grafana-exploretraces-app-latest.zip;grafana-traces-app
+    ports:
+      - "3003:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      tempo:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:${KAFKA_EXPORTER_IMAGE_TAG:-v1.9.0}
+    container_name: css_kafka_exporter
+    networks:
+      - css-net
+    command: --kafka.server=kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  jmx-exporter:
+    image: bitnami/jmx-exporter:latest
+    container_name: css_jmx_exporter
+    network_mode: "service:kafka"
+    command: ["5556", "config.yaml"]
+    volumes:
+      - ./docker/kafka/jmx-exporter-config.yaml:/opt/bitnami/jmx-exporter/config.yaml
+    depends_on:
+      kafka:
+        condition: service_healthy
+    profiles:
+      - strimzi
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:${CADVISOR_IMAGE_TAG:-v0.51.0}
+    container_name: css_cadvisor
+    networks:
+      - css-net
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    command:
+      - --housekeeping_interval=10s
+      - --docker_only=true
+    privileged: true
+    profiles:
+      - strimzi

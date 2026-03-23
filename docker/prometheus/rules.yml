@@ -1,0 +1,12 @@
+groups:
+  - name: docker-compose-compat
+    interval: 15s
+    rules:
+      # Emulate kubelet_volume_stats_available_bytes for the Strimzi dashboard
+      # Hardcode 2 GB limit since Docker volumes don't have fs-level size limits
+      - record: kubelet_volume_stats_available_bytes
+        expr: |
+          clamp_min(2147483648 - max by () (container_fs_usage_bytes{namespace="local",container="kafka"}), 0)
+        labels:
+          namespace: local
+          persistentvolumeclaim: data-local-kafka-kafka-0

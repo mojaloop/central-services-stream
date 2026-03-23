@@ -343,6 +343,26 @@ Test('Producer test', (producerTests) => {
     })
   })
 
+  producerTests.test('should reject sync Producer::sendMessage on delivery-callback error', async (assert) => {
+    assert.plan(1)
+    const syncConfig = { ...config, options: { ...config.options, sync: true } }
+    const producer = new Producer(syncConfig)
+    await producer.connect()
+    sandbox.stub(producer._producer, 'produce').callsFake(
+      (topic, partition, msg, key, timestamp, headers, cb) => cb(new Error('delivery failed'))
+    )
+    try {
+      await producer.sendMessage(
+        { message: { test: 'test' }, from: 'sender', to: 'receiver', type: 'application/json', pp: '', id: 'id', metadata: {} },
+        { topicName: 'test', key: '1234' }
+      )
+      assert.fail('should have thrown')
+    } catch (err) {
+      assert.equal(err.message, 'delivery failed', 'rejects with delivery error from sync produce callback')
+    }
+    producer.disconnect()
+  })
+
   producerTests.test('Test Producer::sendMessage producer null', (assert) => {
     const producer = new Producer(config)
     producer.sendMessage({

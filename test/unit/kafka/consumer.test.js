@@ -43,6 +43,7 @@ const Sinon = require('sinon')
 const logger = require('../../../src/lib/logger').logger
 const Consumer = require('../../../src/kafka').Consumer
 const ConsumerEnums = require('../../../src/kafka').Consumer.ENUMS
+const otel = require('../../../src/kafka/otel')
 const KafkaStubs = require('./KafkaStub')
 const { tryCatchEndTest } = require('#test/utils')
 
@@ -2316,4 +2317,399 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
   })
 
   consumerTests.end()
+})
+
+Test('Consumer OTel tracing tests', (otelSuite) => {
+  let sandbox
+  let config
+  const topicsList = ['test']
+
+  const createSpanStub = () => ({
+    setStatus: Sinon.stub(),
+    setAttributes: Sinon.stub(),
+    recordException: Sinon.stub(),
+    end: Sinon.stub(),
+    spanContext: Sinon.stub().returns({ traceId: 'abc', spanId: '123' })
+  })
+
+  otelSuite.beforeEach((test) => {
+    sandbox = Sinon.createSandbox()
+
+    sandbox.stub(logger, 'isErrorEnabled').value(true)
+    sandbox.stub(logger, 'isWarnEnabled').value(true)
+    sandbox.stub(logger, 'isDebugEnabled').value(true)
+    sandbox.stub(logger, 'isSillyEnabled').value(true)
+
+    config = { // todo: move to a separare DTO (or test fixtures)
+      options: {
+        mode: ConsumerEnums.CONSUMER_MODES.recursive,
+        batchSize: 1,
+        recursiveTimeout: 100,
+        messageCharset: 'utf8',
+        messageAsJSON: true,
+        sync: false,
+        consumeTimeout: 1000
+      },
+      rdkafkaConf: {
+        'client.id': 'default-client',
+        'group.id': 'kafka-test',
+        'metadata.broker.list': 'localhost:9092',
+        'enable.auto.commit': false
+      },
+      topicConf: {},
+      logger
+    }
+
+    sandbox.stub(Kafka, 'KafkaConsumer').callsFake(() => new KafkaStubs.KafkaConsumer())
+
+    test.end()
+  })
+
+  otelSuite.afterEach((test) => {
+    sandbox.restore()
+    test.end()
+  })
+
+  otelSuite.test('workDoneCb receives meta with batchId as 3rd arg (recursive, non-sync)', (assert) => {
+    const c = new Consumer(topicsList, config)
+    let receivedMeta = null
+
+    c.connect().then(() => {
+      c.consume((_error, messages, meta) => {
+        if (!receivedMeta && meta) {
+          receivedMeta = meta
+          assert.ok(receivedMeta.batchId, 'meta.batchId is present')
+          assert.equal(typeof receivedMeta.batchId, 'string', 'batchId is a string')
+          c.disconnect()
+          assert.end()
+        }
+        return Promise.resolve()
+      })
+    })
+  })
+
+  otelSuite.test('workDoneCb receives meta with batchId (flow, non-sync)', (assert) => {
+    config.options.mode = ConsumerEnums.CONSUMER_MODES.flow
+    const c = new Consumer(topicsList, config)
+
+    c.connect().then(() => {
+      c.consume((_error, message, meta) => {
+        assert.ok(meta, 'meta is passed')
+        assert.ok(meta.batchId, 'meta.batchId is present')
+        assert.equal(typeof meta.batchId, 'string', 'batchId is a string')
+        c.disconnect()
+        assert.end()
+        return Promise.resolve()
+      })
+    })
+  })
+
+  otelSuite.test('workDoneCb receives meta with batchId (poll, non-sync)', (assert) => {
+    config.options.mode = ConsumerEnums.CONSUMER_MODES.poll
+    config.options.batchSize = 1
+    const c = new Consumer(topicsList, config)
+    let checked = false
+
+    c.connect().then(() => {
+      c.consume((_error, messages, meta) => {
+        if (!checked && meta) {
+          checked = true
+          assert.ok(meta.batchId, 'meta.batchId is present')
+          c.disconnect()
+          assert.end()
+        }
+        return Promise.resolve()
+      })
+    })
+  })
+
+  otelSuite.test('workDoneCb receives meta with batchId (sync mode)', (assert) => {
+    config.options.sync = true
+    const c = new Consumer(topicsList, config)
+
+    c.on('message', () => {})
+
+    c.connect().then(() => {
+      c.consume((_error, messages, meta) => {
+        assert.ok(meta, 'meta is passed in sync mode')
+        assert.ok(meta.batchId, 'meta.batchId is present in sync mode')
+        c.disconnect()
+        assert.end()
+        return Promise.resolve()
+      })
+    })
+  })
+
+  otelSuite.test('disableOtelSpanAutoCreation skips otel span but still passes batchId', (assert) => {
+    config.options.disableOtelSpanAutoCreation = true
+    const otelStub = sandbox.stub(otel, 'startConsumerTracingSpan')
+
+    const c = new Consumer(topicsList, config)
+
+    c.connect().then(() => {
+      c.consume((_error, messages, meta) => {
+        assert.ok(meta, 'meta is passed when otel disabled')
+        assert.ok(meta.batchId, 'meta.batchId is present when otel disabled')
+        assert.false(otelStub.called, 'startConsumerTracingSpan should NOT be called')
+        c.disconnect()
+        assert.end()
+        return Promise.resolve()
+      })
+    })
+  })
+
+  otelSuite.test('_extractPayloadDetails batchId format for single-partition batch', tryCatchEndTest((assert) => {
+    const c = new Consumer(topicsList, config)
+    const payload = [
+      { partition: 0, offset: 100 },
+      { partition: 0, offset: 101 },
+      { partition: 0, offset: 102 }
+    ]
+    const { meta } = c._extractPayloadDetails(payload)
+    assert.equal(meta.batchId, 'p0.100-p0.102', 'batchId has correct format for single-partition batch')
+    assert.equal(meta.batchSize, 3, 'batchSize is 3 for 3-message batch')
+  }))
+
+  otelSuite.test('_extractPayloadDetails batchId format for multi-partition batch', tryCatchEndTest((assert) => {
+    const c = new Consumer(topicsList, config)
+    const payload = [
+      { partition: 0, offset: 100 },
+      { partition: 0, offset: 101 },
+      { partition: 1, offset: 50 }
+    ]
+    const { meta } = c._extractPayloadDetails(payload)
+    assert.equal(meta.batchId, 'p0.100-p1.50', 'batchId has correct format for multi-partition batch')
+  }))
+
+  otelSuite.test('_extractPayloadDetails batchId format for single message', tryCatchEndTest((assert) => {
+    const c = new Consumer(topicsList, config)
+    const payload = { partition: 3, offset: 42 }
+    const { meta } = c._extractPayloadDetails(payload)
+    assert.equal(meta.batchId, 'p3.42-p3.42', 'batchId has correct format for single message')
+    assert.equal(meta.batchSize, 1, 'batchSize is 1 for single message')
+  }))
+
+  otelSuite.test('OTel span is created for non-sync recursive path', (assert) => {
+    const spanStub = createSpanStub()
+    const otelStub = sandbox.stub(otel, 'startConsumerTracingSpan').returns({
+      span: spanStub,
+      topic: 'test',
+      executeInsideSpanContext: async (fn) => fn()
+    })
+
+    const c = new Consumer(topicsList, config)
+
+    c.connect().then(() => {
+      c.consume((_error, messages, meta) => {
+        assert.ok(otelStub.called, 'startConsumerTracingSpan was called')
+        const [payload, cfg] = otelStub.firstCall.args
+        assert.ok(payload, 'payload passed to startConsumerTracingSpan')
+        assert.ok(cfg, 'config passed to startConsumerTracingSpan')
+        c.disconnect()
+        assert.end()
+        return Promise.resolve()
+      })
+    })
+  })
+
+  otelSuite.test('otelSpanPerMessage creates per-message spans', async (assert) => {
+    config.options.otelSpanPerMessage = true
+    const spanStub = createSpanStub()
+    const otelStub = sandbox.stub(otel, 'startConsumerTracingSpan').returns({
+      span: spanStub,
+      topic: 'test',
+      executeInsideSpanContext: async (fn) => fn()
+    })
+
+    const c = new Consumer(topicsList, config)
+    const payload = [
+      { value: '1', topic: 'test', partition: 0, offset: 0, key: 'k1', size: 1, timestamp: Date.now() },
+      { value: '2', topic: 'test', partition: 0, offset: 1, key: 'k2', size: 1, timestamp: Date.now() },
+      { value: '3', topic: 'test', partition: 0, offset: 2, key: 'k3', size: 1, timestamp: Date.now() }
+    ]
+    const workDoneCb = Sinon.stub().resolves('ok')
+
+    await c._executeWithOtelSpan(null, payload, workDoneCb)
+
+    assert.equal(otelStub.callCount, 3, 'startConsumerTracingSpan called 3 times (once per message)')
+    assert.equal(workDoneCb.callCount, 3, 'workDoneCb called 3 times')
+    for (let i = 0; i < 3; i++) {
+      const [err, msg, meta] = workDoneCb.getCall(i).args
+      assert.equal(err, null, `call ${i}: error is null`)
+      assert.equal(msg, payload[i], `call ${i}: receives single message`)
+      assert.equal(meta.batchSize, 1, `call ${i}: meta.batchSize is 1`)
+    }
+    assert.end()
+  })
+
+  otelSuite.test('otelSpanPerMessage with disableOtelSpanAutoCreation skips spans', async (assert) => {
+    config.options.otelSpanPerMessage = true
+    config.options.disableOtelSpanAutoCreation = true
+    const otelStub = sandbox.stub(otel, 'startConsumerTracingSpan')
+
+    const c = new Consumer(topicsList, config)
+    const payload = [
+      { value: '1', topic: 'test', partition: 0, offset: 0, key: 'k1', size: 1, timestamp: Date.now() },
+      { value: '2', topic: 'test', partition: 0, offset: 1, key: 'k2', size: 1, timestamp: Date.now() }
+    ]
+    const workDoneCb = Sinon.stub().resolves('ok')
+
+    await c._executeWithOtelSpan(null, payload, workDoneCb)
+
+    assert.false(otelStub.called, 'startConsumerTracingSpan should NOT be called')
+    assert.equal(workDoneCb.callCount, 1, 'workDoneCb called once with full batch')
+    const [, receivedPayload] = workDoneCb.firstCall.args
+    assert.ok(Array.isArray(receivedPayload), 'payload is the full batch array')
+    assert.equal(receivedPayload.length, 2, 'batch has 2 messages')
+    assert.end()
+  })
+
+  otelSuite.test('otelSpanPerMessage false preserves batch behavior', async (assert) => {
+    config.options.otelSpanPerMessage = false
+    const spanStub = createSpanStub()
+    const otelStub = sandbox.stub(otel, 'startConsumerTracingSpan').returns({
+      span: spanStub,
+      topic: 'test',
+      executeInsideSpanContext: async (fn) => fn()
+    })
+
+    const c = new Consumer(topicsList, config)
+    const payload = [
+      { value: '1', topic: 'test', partition: 0, offset: 0, key: 'k1', size: 1, timestamp: Date.now() },
+      { value: '2', topic: 'test', partition: 0, offset: 1, key: 'k2', size: 1, timestamp: Date.now() },
+      { value: '3', topic: 'test', partition: 0, offset: 2, key: 'k3', size: 1, timestamp: Date.now() }
+    ]
+    const workDoneCb = Sinon.stub().resolves('ok')
+
+    await c._executeWithOtelSpan(null, payload, workDoneCb)
+
+    assert.equal(otelStub.callCount, 1, 'startConsumerTracingSpan called once with full batch')
+    assert.equal(workDoneCb.callCount, 1, 'workDoneCb called once')
+    const [, receivedPayload] = workDoneCb.firstCall.args
+    assert.ok(Array.isArray(receivedPayload), 'payload is the full batch array')
+    assert.equal(receivedPayload.length, 3, 'batch has 3 messages')
+    assert.end()
+  })
+
+  otelSuite.test('otelSpanPerMessage fail-fast on error', async (assert) => {
+    config.options.otelSpanPerMessage = true
+    const spanStub = createSpanStub()
+    sandbox.stub(otel, 'startConsumerTracingSpan').returns({
+      span: spanStub,
+      topic: 'test',
+      executeInsideSpanContext: async (fn) => fn()
+    })
+
+    const c = new Consumer(topicsList, config)
+    const payload = [
+      { value: '1', topic: 'test', partition: 0, offset: 0, key: 'k1', size: 1, timestamp: Date.now() },
+      { value: '2', topic: 'test', partition: 0, offset: 1, key: 'k2', size: 1, timestamp: Date.now() },
+      { value: '3', topic: 'test', partition: 0, offset: 2, key: 'k3', size: 1, timestamp: Date.now() }
+    ]
+    const testError = new Error('processing failed')
+    const workDoneCb = Sinon.stub()
+    workDoneCb.onFirstCall().resolves('ok')
+    workDoneCb.onSecondCall().rejects(testError)
+    workDoneCb.onThirdCall().resolves('ok')
+
+    try {
+      await c._executeWithOtelSpan(null, payload, workDoneCb)
+      assert.fail('should have thrown')
+    } catch (err) {
+      assert.equal(err, testError, 'error propagates from 2nd message')
+    }
+    assert.equal(workDoneCb.callCount, 2, 'only 2 calls to workDoneCb (stopped after error)')
+    assert.end()
+  })
+
+  otelSuite.test('otelSpanPerMessage with single message (non-array)', async (assert) => {
+    config.options.otelSpanPerMessage = true
+    const spanStub = createSpanStub()
+    const otelStub = sandbox.stub(otel, 'startConsumerTracingSpan').returns({
+      span: spanStub,
+      topic: 'test',
+      executeInsideSpanContext: async (fn) => fn()
+    })
+
+    const c = new Consumer(topicsList, config)
+    const singleMsg = { value: '1', topic: 'test', partition: 0, offset: 0, key: 'k1', size: 1, timestamp: Date.now() }
+    const workDoneCb = Sinon.stub().resolves('ok')
+
+    await c._executeWithOtelSpan(null, singleMsg, workDoneCb)
+
+    assert.equal(otelStub.callCount, 1, 'startConsumerTracingSpan called once')
+    assert.equal(workDoneCb.callCount, 1, 'workDoneCb called once')
+    const [, receivedMsg] = workDoneCb.firstCall.args
+    assert.equal(receivedMsg, singleMsg, 'receives the single message object')
+    assert.end()
+  })
+
+  otelSuite.test('messageContexts in meta Tests -->', (msgCtxMetaTests) => {
+    msgCtxMetaTests.test('should pass messageContexts in meta for batch payload', tryCatchEndTest(async (assert) => {
+      const mockMessageContexts = new Map()
+      const spanStub = createSpanStub()
+      sandbox.stub(otel, 'startConsumerTracingSpan').returns({
+        span: spanStub,
+        topic: 'test',
+        messageContexts: mockMessageContexts,
+        executeInsideSpanContext: async (fn) => fn()
+      })
+
+      const c = new Consumer(topicsList, config)
+      const payload = [
+        { value: '1', topic: 'test', partition: 0, offset: 0, key: 'k1', size: 1, timestamp: Date.now() },
+        { value: '2', topic: 'test', partition: 0, offset: 1, key: 'k2', size: 1, timestamp: Date.now() }
+      ]
+      const workDoneCb = Sinon.stub().resolves('ok')
+
+      await c._executeWithOtelSpan(null, payload, workDoneCb)
+
+      const [, , meta] = workDoneCb.firstCall.args
+      assert.ok(meta, 'meta is passed to workDoneCb')
+      assert.equal(meta.messageContexts, mockMessageContexts, 'meta.messageContexts is the Map from startConsumerTracingSpan')
+    }))
+
+    msgCtxMetaTests.test('should not pass messageContexts in meta for single message', tryCatchEndTest(async (assert) => {
+      const spanStub = createSpanStub()
+      sandbox.stub(otel, 'startConsumerTracingSpan').returns({
+        span: spanStub,
+        topic: 'test',
+        messageContexts: null,
+        executeInsideSpanContext: async (fn) => fn()
+      })
+
+      const c = new Consumer(topicsList, config)
+      const singleMsg = { value: '1', topic: 'test', partition: 0, offset: 0, key: 'k1', size: 1, timestamp: Date.now() }
+      const workDoneCb = Sinon.stub().resolves('ok')
+
+      await c._executeWithOtelSpan(null, singleMsg, workDoneCb)
+
+      const [, , meta] = workDoneCb.firstCall.args
+      assert.ok(meta, 'meta is passed to workDoneCb')
+      assert.equal(meta.messageContexts, undefined, 'meta.messageContexts is not set for single message')
+    }))
+
+    msgCtxMetaTests.test('should not pass messageContexts when disableOtelSpanAutoCreation is true', tryCatchEndTest(async (assert) => {
+      config.options.disableOtelSpanAutoCreation = true
+      const otelStub = sandbox.stub(otel, 'startConsumerTracingSpan')
+
+      const c = new Consumer(topicsList, config)
+      const payload = [
+        { value: '1', topic: 'test', partition: 0, offset: 0, key: 'k1', size: 1, timestamp: Date.now() },
+        { value: '2', topic: 'test', partition: 0, offset: 1, key: 'k2', size: 1, timestamp: Date.now() }
+      ]
+      const workDoneCb = Sinon.stub().resolves('ok')
+
+      await c._executeWithOtelSpan(null, payload, workDoneCb)
+
+      assert.false(otelStub.called, 'startConsumerTracingSpan should NOT be called')
+      const [, , meta] = workDoneCb.firstCall.args
+      assert.ok(meta, 'meta is passed to workDoneCb')
+      assert.equal(meta.messageContexts, undefined, 'meta.messageContexts is not set when OTel disabled')
+    }))
+
+    msgCtxMetaTests.end()
+  })
+
+  otelSuite.end()
 })

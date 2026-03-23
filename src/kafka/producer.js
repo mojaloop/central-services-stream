@@ -50,11 +50,28 @@ require('async-exit-hook')(callback => Promise.allSettled(
   Array.from(connectedClients).map(client => new Promise(resolve => client.disconnect(resolve)))
 ).finally(callback))
 
-const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
-const { SemConv } = require('../constants')
 const { trackConnectionHealth } = require('./shared')
+const otel = require('./otel')
 
-const tracer = trace.getTracer('kafka-producer') // think, if we need to change it to clientId
+/**
+ * @typedef {object} MessageProtocol - contains message related data to be converted into a LIME protocol message
+ * @property {object} content - value object for the message
+ * @property {string} id - unique identifier for message
+ * @property {string} from - uri of the initiating fsp
+ * @property {string} to - uri of the receiving fsp
+ * @property {object} metadata -  data relevant to the context of the message
+ * @property {string} type - MIME declaration of the content type of the message
+ * @property {string} pp - Optional for the sender, when is considered the identity of the session. Is mandatory in the destination if the identity of the originator is different of the identity of the from property.*
+ */
+
+/**
+ * @typedef {object} TopicConf - contains Kafka topic related data
+ * @property {string} topicName - name of the topic to produce to
+ * @property {*} opaqueKey - optional opaque token, which gets passed along to your delivery reports
+ * @property {string} [key] - optional message key
+ * @property {number} [partition] - optional partition to produce to
+ * @property {Array<{ [key: string]: string | Buffer }>} [customHeaders] - optional list of headers
+ */
 
 /**
  * Producer ENUMs
@@ -77,9 +94,9 @@ const METHOD = {
   put: 'put',
   del: 'delete'
 }
+
 /**
  * The status of the process being posted to the topic
- *
  * This ENUM is for the STATUS of the message being produced
  *
  * @typedef {object} ENUMS~STATUS
@@ -92,6 +109,7 @@ const STATUS = {
   failure: 'failed',
   pending: 'pending'
 }
+
 /**
  * ENUMS
  *
@@ -346,12 +364,11 @@ class Producer extends EventEmitter {
       this._producer.connect(null, (error, metadata) => {
         if (error) {
           super.emit('error', error)
-          logger.silly('Producer::connect() - end')
+          logger.warn('Producer::connect() - error:', error)
           return reject(error)
         }
         connectedClients.add(this)
-        logger.silly('Producer::connect() - metadata:')
-        logger.silly(metadata)
+        logger.silly('Producer::connect() - metadata:', { metadata })
         resolve(true)
       })
     })
@@ -367,27 +384,13 @@ class Producer extends EventEmitter {
   /**
    * @async
    * produces a kafka message to a certain topic
-   * @typedef {object} messageProtocol, contains message related data to be converted into a LIME protocol message
-   * @property {object} content - value object for the message
-   * @property {string} id - unique identifier for message
-   * @property {string} from - uri of the initiating fsp
-   * @property {string} to - uri of the receiving fsp
-   * @property {object} metadata -  data relevant to the context of the message
-   * @property {string} type - MIME declaration of the content type of the message
-   * @property {string} pp - Optional for the sender, when is considered the identity of the session. Is mandatory in the destination if the identity of the originator is different of the identity of the from property.
    *
-   *
-   * @typedef {object} topicConf - contains Kafka topic related data
-   * @property {*} opaqueKey - optional opaque token, which gets passed along to your delivery reports
-   * @property {string} topicName - name of the topic to produce to
-   * @property {string} key - optional message key
-   * @property {number} partition - optional partition to produce to
-   *
-   * @property {Array<{ [key: string]: string | Buffer }>} [customHeaders] - optional list of headers
+   * @param {MessageProtocol} messageProtocol - Optional for the sender, when is considered the identity of the session. Is mandatory in the destination if the identity of the originator is different of the identity of the from property.
+   * @param {TopicConf} topicConf - Topic configuration object.
+   * @param {Array<{ [key: string]: string | Buffer }>} [customHeaders] - optional list of headers
    *
    * @todo Validate messageProtocol
    * @todo Validate topicConf
-   *
    *
    * @returns {boolean} or if failed {Error}
    */
@@ -407,8 +410,6 @@ class Producer extends EventEmitter {
       if (this._producer._isConnecting) {
         logger.debug('Producer::sendMessage() - still connecting')
       }
-      const producedAt = Date.now()
-
       // Parse Message into Protocol format
       const parsedMessage = Protocol.parseMessage(messageProtocol)
       // Serialize Message
@@ -427,9 +428,8 @@ class Producer extends EventEmitter {
       logger.silly('Producer::sendMessage() - message: ', parsedMessage)
 
       return this.#produceMessageWithTrace({
-        topicConf, parsedMessageBuffer, producedAt, customHeaders
+        topicConf, parsedMessageBuffer, customHeaders
       })
-      // todo: think, if it's better to wrap the whole sendMessage in a span
     } catch (err) {
       logger.error(`Producer error has occurred for ${topicConf.topicName}: `, err)
       throw err
@@ -560,6 +560,7 @@ class Producer extends EventEmitter {
   }
 
   async _monitorLag () {
+    const { logger } = this._config
     this.lag = 0
     if (!this._config.lagMonitor?.consumerGroup || !this._config.lagMonitor?.topic) return
     this._consumer = new Kafka.KafkaConsumer({
@@ -572,6 +573,7 @@ class Producer extends EventEmitter {
     await new Promise((resolve, reject) => {
       this._consumer.connect({ topic: this._config.lagMonitor.topic }, (err, metadata) => {
         if (err) {
+          logger.warn('error in _monitorLag during connect: ', err)
           reject(err)
         } else {
           const partitionIds = metadata.topics.find(topic => topic.name === this._config.lagMonitor.topic).partitions.map(partition => partition.id)
@@ -584,10 +586,17 @@ class Producer extends EventEmitter {
   }
 
   async #produceMessage ({
-    topicConf, parsedMessageBuffer, producedAt, headers
+    topicConf,
+    parsedMessageBuffer,
+    headers,
+    spanAttrs = null
   }) {
-    const { logger } = this._config
+    const log = this._config.logger.child({ attributes: spanAttrs })
+    const LOG_PREFIX = '[msg =>>] producing'
+    log.debug(`${LOG_PREFIX}...  - headers: `, { headers, topicConf })
+
     return new Promise((resolve, reject) => {
+      const producedAt = Date.now()
       if (this._config.options.sync) {
         this._producer.produce(
           topicConf.topicName,
@@ -599,59 +608,34 @@ class Producer extends EventEmitter {
           (err, offset) => {
             // The offset if our acknowledgement level allows us to receive delivery offsets
             if (err) {
-              logger.warn('Producer::produce() - error: ', err)
+              log.warn(`${LOG_PREFIX} failed with error: `, err)
               reject(err)
             } else {
-              logger.debug(`Producer::produce() - delivery-callback offset=${offset}`)
+              log.verbose(`${LOG_PREFIX} is done: `, { offset, topicConf })
               resolve(offset)
             }
           })
       } else {
         // NOTE: this is the old way of producing a message, we should use the new one
         this._producer.produce(topicConf.topicName, topicConf.partition, parsedMessageBuffer, topicConf.key, producedAt, topicConf.opaqueKey, headers)
+        log.verbose(`${LOG_PREFIX} is done in old way`)
         resolve(true)
       }
     })
   }
 
   async #produceMessageWithTrace ({
-    topicConf, parsedMessageBuffer, producedAt, customHeaders = []
+    topicConf, parsedMessageBuffer, customHeaders = []
   }) {
-    return new Promise((resolve, reject) => {
-      tracer.startActiveSpan(`SEND:${topicConf.topicName}`, { kind: SpanKind.PRODUCER }, async (span) => {
-        try {
-          const tracingContext = {}
-          propagation.inject(context.active(), tracingContext)
-          const headers = [
-            ...customHeaders,
-            ...Object.entries(tracingContext).map(([k, v]) => ({ [k]: v }))
-          ]
-          this._config.logger.debug('Producer::headers: ', headers)
-
-          span.setAttributes({
-            [SemConv.ATTR_MESSAGING_CLIENT_ID]: this._config.rdkafkaConf['client.id'],
-            [SemConv.ATTR_MESSAGING_DESTINATION_NAME]: topicConf.topicName,
-            [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'send',
-            [SemConv.ATTR_MESSAGING_SYSTEM]: 'kafka',
-            [SemConv.ATTR_SERVER_ADDRESS]: this._config.rdkafkaConf['metadata.broker.list']
-            // think, if we need to add more attributes
-          })
-
-          const result = await this.#produceMessage({
-            topicConf, parsedMessageBuffer, producedAt, headers
-          })
-
-          span.setStatus({ code: SpanStatusCode.OK })
-          resolve(result)
-        } catch (err) {
-          span.setStatus({ code: SpanStatusCode.ERROR, message: err.message })
-          span.recordException(err)
-          reject(err)
-        } finally {
-          span.end()
-        }
-      })
+    const produceFn = (headers, spanAttrs) => this.#produceMessage({
+      topicConf, parsedMessageBuffer, headers, spanAttrs
     })
+    return otel.startProducerTracingSpan(
+      this._config,
+      topicConf,
+      customHeaders,
+      produceFn
+    )
   }
 }
 
