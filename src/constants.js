@@ -23,6 +23,8 @@ const SpanPrefixes = Object.freeze({
 
 const OTEL_HEADERS = ['traceparent', 'tracestate', 'baggage']
 
+const OTEL_TRACER_NAME = 'ml-kafka'
+
 const stateList = {
   PENDING: 'PENDING',
   DOWN: 'DOWN',
@@ -45,6 +47,7 @@ module.exports = {
   SemConv,
   SpanPrefixes,
   OTEL_HEADERS,
+  OTEL_TRACER_NAME,
   stateList,
   kafkaBrokerStates
 }

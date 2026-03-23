@@ -1,0 +1,56 @@
+global:
+  scrape_interval: 15s
+
+rule_files:
+  - /etc/prometheus/rules.yml
+
+scrape_configs:
+  - job_name: kafka-exporter
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+  - job_name: jmx-exporter
+    static_configs:
+      - targets: ['kafka:5556']
+    metric_relabel_configs:
+      - target_label: namespace
+        replacement: local
+      - target_label: strimzi_io_cluster
+        replacement: local-kafka
+      - target_label: kubernetes_namespace
+        replacement: local
+      - target_label: strimzi_cluster_name
+        replacement: local-kafka
+      - target_label: kafka_broker
+        replacement: kafka:9092
+      - target_label: kubernetes_pod_name
+        replacement: local-kafka-kafka-0
+      # Alias open file descriptors for Strimzi dashboard compatibility
+      - source_labels: [__name__]
+        regex: java_lang_operatingsystem_openfiledescriptorcount
+        target_label: __name__
+        replacement: process_open_fds
+      # Add container label for dashboard panel filters
+      - target_label: container
+        replacement: kafka
+      - target_label: pod
+        replacement: local-kafka-kafka-0
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ['cadvisor:8080']
+    metric_relabel_configs:
+      # Map docker container name to pod label (dashboard expects pod=~"cluster-broker")
+      - source_labels: [name]
+        regex: css_kafka
+        target_label: pod
+        replacement: local-kafka-kafka-0
+      # Map docker-compose service to container label
+      - source_labels: [name]
+        regex: css_kafka
+        target_label: container
+        replacement: kafka
+      # Add namespace label
+      - source_labels: [name]
+        regex: css_(.+)
+        target_label: namespace
+        replacement: local

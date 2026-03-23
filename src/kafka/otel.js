@@ -26,10 +26,21 @@
  ******/
 
 const { trace, propagation, context, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
-const { SemConv, SpanPrefixes, OTEL_HEADERS } = require('../constants')
+const { SemConv, SpanPrefixes, OTEL_HEADERS, OTEL_TRACER_NAME } = require('../constants')
 const { logger } = require('../lib/logger')
 
-const tracer = trace.getTracer('ml-kafka')
+const tracer = trace.getTracer(OTEL_TRACER_NAME)
+
+/**
+ * @typedef {object} OtelHeaders
+ * @prop {string} [traceparent]
+ * @prop {string} [tracestate]
+ * @prop {string} [baggage]
+ */
+
+/**
+ * @typedef {Map<object, OtelHeaders>} MsgHeadersMap
+ */
 
 /* istanbul ignore next */
 const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '', spanAttrs = null) => {
@@ -37,30 +48,37 @@ const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '',
   const isBatch = messages.length > 1
 
   const { primaryMsg, primaryHeaders, msgHeaders, receiveStartTime } = scanBatchForPrimary(messages)
+  const { topic } = primaryMsg
 
   // Phase 2: parent context from primary message
   const activeContext = Object.keys(primaryHeaders).length
     ? propagation.extract(context.active(), primaryHeaders)
     : context.active()
 
-  const { links, messageContexts } = buildBatchLinksAndContexts({ isBatch, primaryMsg, primaryHeaders, msgHeaders, activeContext })
+  const { links, messageContexts } = buildBatchLinksAndContexts({
+    isBatch, primaryMsg, primaryHeaders, msgHeaders, activeContext
+  })
 
-  const { topic } = primaryMsg
-  const consumerAttrs = makeConsumerAttributes(consumerConfig, topic, payload)
+  // RECEIVE:<topic-name> span (measures broker transit, fire-and-forget)
+  createReceiveSpan({
+    spanName,
+    topic,
+    activeContext,
+    links,
+    startTime: receiveStartTime,
+    consumerAttrs: makeConsumerAttributes(consumerConfig, topic, payload, SpanPrefixes.RECEIVE),
+    spanAttrs
+  })
 
-  // RECEIVE span (fire-and-forget, measures broker transit)
-  createReceiveSpan({ spanName, topic, startTime: receiveStartTime, activeContext, links, consumerAttrs, spanAttrs })
-
-  // PROCESS span (sibling of RECEIVE, measures handler execution)
+  // PROCESS:<topic-name> span (measures handler execution, sibling of RECEIVE)
   const processSpan = tracer.startSpan(
     `${SpanPrefixes.PROCESS}:${topic}`,
     { kind: SpanKind.CONSUMER },
     activeContext
   )
   const processAttributes = {
-    ...consumerAttrs,
-    ...spanAttrs,
-    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'process'
+    ...makeConsumerAttributes(consumerConfig, topic, payload, SpanPrefixes.PROCESS),
+    ...spanAttrs
   }
   processSpan.setAttributes(processAttributes)
   const processSpanCtx = trace.setSpan(activeContext, processSpan)
@@ -103,7 +121,7 @@ const makeConsumerAttributes = (config, topic, payload = null, operationName = '
     ...makeCommonKafkaAttributes(config, topic),
     ...makeMessageCountAttrs(messages),
     [SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME]: config.rdkafkaConf['group.id'],
-    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: operationName
+    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: operationName?.toLowerCase()
   }
 }
 
@@ -204,10 +222,16 @@ const withMessageContext = (message, meta, fn) => {
   return fn()
 }
 
+/**
+ * Scan batch messages to find the primary (sampled) message and extract OTel headers.
+ *
+ * @param {object[]} messages - array of Kafka message objects
+ * @returns {{ primaryMsg: object, primaryHeaders: OtelHeaders, receiveStartTime: number, msgHeaders: MsgHeadersMap }}
+ */
 const scanBatchForPrimary = (messages) => {
+  const msgHeaders = new Map()
   let primaryMsg = messages[0]
   let primaryHeaders = null
-  const msgHeaders = new Map()
 
   for (const msg of messages) {
     const extracted = extractOtelHeaders(msg.headers)
@@ -229,6 +253,18 @@ const scanBatchForPrimary = (messages) => {
   }
 }
 
+/**
+ * Build OTel span links and per-message context map for batch consumption.
+ * Deduplicates links by traceparent to avoid redundant span references.
+ *
+ * @param {object} params
+ * @param {boolean} params.isBatch - whether the payload contains multiple messages
+ * @param {MsgHeadersMap} params.msgHeaders - map of messages to their extracted OTel headers
+ * @param {object} params.primaryMsg - the primary (sampled) message from the batch
+ * @param {OtelHeaders} params.primaryHeaders - OTel headers of the primary message
+ * @param {import('@opentelemetry/api').Context} params.activeContext - parent OTel context
+ * @returns {{ links: Array<{context: import('@opentelemetry/api').SpanContext}>, messageContexts: Map<object, import('@opentelemetry/api').Context> | null }}
+ */
 const buildBatchLinksAndContexts = ({
   isBatch, msgHeaders, primaryMsg, primaryHeaders, activeContext
 }) => {
