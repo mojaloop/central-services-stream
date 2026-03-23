@@ -410,8 +410,6 @@ class Producer extends EventEmitter {
       if (this._producer._isConnecting) {
         logger.debug('Producer::sendMessage() - still connecting')
       }
-      const producedAt = Date.now()
-
       // Parse Message into Protocol format
       const parsedMessage = Protocol.parseMessage(messageProtocol)
       // Serialize Message
@@ -430,7 +428,7 @@ class Producer extends EventEmitter {
       logger.silly('Producer::sendMessage() - message: ', parsedMessage)
 
       return this.#produceMessageWithTrace({
-        topicConf, parsedMessageBuffer, producedAt, customHeaders
+        topicConf, parsedMessageBuffer, customHeaders
       })
     } catch (err) {
       logger.error(`Producer error has occurred for ${topicConf.topicName}: `, err)
@@ -590,15 +588,15 @@ class Producer extends EventEmitter {
   async #produceMessage ({
     topicConf,
     parsedMessageBuffer,
-    producedAt,
     headers,
     spanAttrs = null
   }) {
     const log = this._config.logger.child({ attributes: spanAttrs })
     const LOG_PREFIX = '[msg =>>] producing'
-    log.debug(`${LOG_PREFIX}...  - headers: `, { headers, topicConf, producedAt })
+    log.debug(`${LOG_PREFIX}...  - headers: `, { headers, topicConf })
 
     return new Promise((resolve, reject) => {
+      const producedAt = Date.now()
       if (this._config.options.sync) {
         this._producer.produce(
           topicConf.topicName,
@@ -627,10 +625,10 @@ class Producer extends EventEmitter {
   }
 
   async #produceMessageWithTrace ({
-    topicConf, parsedMessageBuffer, producedAt, customHeaders = []
+    topicConf, parsedMessageBuffer, customHeaders = []
   }) {
     const produceFn = (headers, spanAttrs) => this.#produceMessage({
-      topicConf, parsedMessageBuffer, producedAt, headers, spanAttrs
+      topicConf, parsedMessageBuffer, headers, spanAttrs
     })
     return otel.startProducerTracingSpan(
       this._config,

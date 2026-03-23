@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/central-services-stream",
-  "version": "11.10.0-infitx.6",
+  "version": "11.10.0-iad-786.6",
   "description": "Streaming library code for central services.",
   "license": "Apache-2.0",
   "bugs": {
@@ -18,7 +18,7 @@
     "Sam Kummary <sam@mojaloop.io",
     "Georgi Georgiev <georgi.georgiev@modusbox.com>",
     "Valentin Genev <valentin.genev@modusbox.com>",
-    "Eugen Klymniuk <eugen.klymniuk@infitx.com>"
+    "Eugen Klymniuk (geka-evk) <eugen.klymniuk@infitx.com>"
   ],
   "keywords": [
     "mojaloop",
@@ -82,6 +82,7 @@
     "uuid4": "2.0.3"
   },
   "overrides": {
+    "flatted": "3.4.2",
     "cross-spawn": "7.0.6",
     "trim": "0.0.3",
     "simple-swizzle": "0.2.2",

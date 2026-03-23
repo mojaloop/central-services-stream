@@ -26,57 +26,70 @@
  ******/
 
 const { trace, propagation, context, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
-const { SemConv, SpanPrefixes, OTEL_HEADERS } = require('../constants')
+const { SemConv, SpanPrefixes, OTEL_HEADERS, OTEL_TRACER_NAME } = require('../constants')
 const { logger } = require('../lib/logger')
 
-const tracer = trace.getTracer('ml-kafka')
+const tracer = trace.getTracer(OTEL_TRACER_NAME)
+
+/**
+ * @typedef {object} OtelHeaders
+ * @prop {string} [traceparent]
+ * @prop {string} [tracestate]
+ * @prop {string} [baggage]
+ */
+
+/**
+ * @typedef {Map<object, OtelHeaders>} MsgHeadersMap
+ */
 
 /* istanbul ignore next */
 const startConsumerTracingSpan = (payload, consumerConfig = null, spanName = '', spanAttrs = null) => {
   const messages = Array.isArray(payload) ? payload : [payload]
-  const { headers, topic } = messages[0]
-  const otelHeaders = extractOtelHeaders(headers)
+  const isBatch = messages.length > 1
 
-  const activeContext = Object.keys(otelHeaders).length
-    ? propagation.extract(context.active(), otelHeaders)
+  const { primaryMsg, primaryHeaders, msgHeaders, receiveStartTime } = scanBatchForPrimary(messages)
+  const { topic } = primaryMsg
+
+  // Phase 2: parent context from primary message
+  const activeContext = Object.keys(primaryHeaders).length
+    ? propagation.extract(context.active(), primaryHeaders)
     : context.active()
 
-  // collect span links from other messages with distinct traceparents
-  const links = []
-  if (messages.length > 1) {
-    const seenTraceparents = new Set([otelHeaders.traceparent])
-    for (let i = 1; i < messages.length; i++) {
-      const msgHeaders = extractOtelHeaders(messages[i].headers)
-      if (msgHeaders.traceparent && !seenTraceparents.has(msgHeaders.traceparent)) {
-        seenTraceparents.add(msgHeaders.traceparent)
-        const linkedContext = propagation.extract(context.active(), msgHeaders)
-        const linkedSpan = trace.getSpan(linkedContext)
-        if (linkedSpan) {
-          links.push({ context: linkedSpan.spanContext() })
-        }
-      }
-    }
-  }
+  const { links, messageContexts } = buildBatchLinksAndContexts({
+    isBatch, primaryMsg, primaryHeaders, msgHeaders, activeContext
+  })
 
-  const span = tracer.startSpan(
-    spanName || `${SpanPrefixes.RECEIVE}:${topic}`,
-    { kind: SpanKind.CONSUMER, links },
+  // RECEIVE:<topic-name> span (measures broker transit, fire-and-forget)
+  createReceiveSpan({
+    spanName,
+    topic,
+    activeContext,
+    links,
+    startTime: receiveStartTime,
+    consumerAttrs: makeConsumerAttributes(consumerConfig, topic, payload, SpanPrefixes.RECEIVE),
+    spanAttrs
+  })
+
+  // PROCESS:<topic-name> span (measures handler execution, sibling of RECEIVE)
+  const processSpan = tracer.startSpan(
+    `${SpanPrefixes.PROCESS}:${topic}`,
+    { kind: SpanKind.CONSUMER },
     activeContext
   )
-  const spanCtx = trace.setSpan(activeContext, span)
-
-  const attributes = {
-    ...(consumerConfig && makeConsumerAttributes(consumerConfig, topic, payload)),
+  const processAttributes = {
+    ...makeConsumerAttributes(consumerConfig, topic, payload, SpanPrefixes.PROCESS),
     ...spanAttrs
   }
-  span.setAttributes(attributes)
+  processSpan.setAttributes(processAttributes)
+  const processSpanCtx = trace.setSpan(activeContext, processSpan)
 
   return {
-    span,
+    span: processSpan,
     topic,
+    messageContexts: messageContexts?.size ? messageContexts : null,
     executeInsideSpanContext: async (fn, withSpanEnd = true, rethrowError = true) => context.with(
-      spanCtx,
-      () => executeAndSetSpanStatus(fn, span, withSpanEnd, rethrowError, attributes)
+      processSpanCtx,
+      () => executeAndSetSpanStatus(fn, processSpan, withSpanEnd, rethrowError, processAttributes)
     )
   }
 }
@@ -97,7 +110,9 @@ const executeAndSetSpanStatus = async (fn, span, withSpanEnd, rethrowError, span
   }
 }
 
-const makeConsumerAttributes = (config, topic, payload = null) => {
+const makeConsumerAttributes = (config, topic, payload = null, operationName = 'receive') => {
+  if (!config || !topic) return {}
+
   const messages = Array.isArray(payload)
     ? payload
     : (payload ? [payload] : [])
@@ -106,7 +121,7 @@ const makeConsumerAttributes = (config, topic, payload = null) => {
     ...makeCommonKafkaAttributes(config, topic),
     ...makeMessageCountAttrs(messages),
     [SemConv.ATTR_MESSAGING_CONSUMER_GROUP_NAME]: config.rdkafkaConf['group.id'],
-    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: 'receive'
+    [SemConv.ATTR_MESSAGING_OPERATION_NAME]: operationName?.toLowerCase()
   }
 }
 
@@ -191,6 +206,110 @@ const extractOtelHeaders = (headers) =>
       return acc
     }, {})
 
+/**
+ * Runs fn inside the OTel context of the original Kafka message.
+ * Use in batch handlers to restore per-message trace context before producing.
+ * Falls back to running fn directly if no context is found.
+ *
+ * @param {object} message - original Kafka message object from the consumed batch
+ * @param {ConsumerCallbackMeta} meta - meta from consumer callback (3rd arg)
+ * @param {Function} fn - async function to execute inside the message's OTel context
+ * @returns {*} result of fn
+ */
+const withMessageContext = (message, meta, fn) => {
+  const msgContext = meta?.messageContexts?.get(message)
+  if (msgContext) return context.with(msgContext, fn)
+  return fn()
+}
+
+/**
+ * Scan batch messages to find the primary (sampled) message and extract OTel headers.
+ *
+ * @param {object[]} messages - array of Kafka message objects
+ * @returns {{ primaryMsg: object, primaryHeaders: OtelHeaders, receiveStartTime: number, msgHeaders: MsgHeadersMap }}
+ */
+const scanBatchForPrimary = (messages) => {
+  const msgHeaders = new Map()
+  let primaryMsg = messages[0]
+  let primaryHeaders = null
+
+  for (const msg of messages) {
+    const extracted = extractOtelHeaders(msg.headers)
+    msgHeaders.set(msg, extracted)
+    if (!primaryHeaders && isTraceSampled(extracted.traceparent)) {
+      primaryMsg = msg
+      primaryHeaders = extracted
+    }
+  }
+  if (!primaryHeaders) primaryHeaders = msgHeaders.get(primaryMsg)
+
+  const receiveStartTime = primaryMsg?.timestamp || Date.now()
+
+  return {
+    primaryMsg,
+    primaryHeaders,
+    receiveStartTime,
+    msgHeaders
+  }
+}
+
+/**
+ * Build OTel span links and per-message context map for batch consumption.
+ * Deduplicates links by traceparent to avoid redundant span references.
+ *
+ * @param {object} params
+ * @param {boolean} params.isBatch - whether the payload contains multiple messages
+ * @param {MsgHeadersMap} params.msgHeaders - map of messages to their extracted OTel headers
+ * @param {object} params.primaryMsg - the primary (sampled) message from the batch
+ * @param {OtelHeaders} params.primaryHeaders - OTel headers of the primary message
+ * @param {import('@opentelemetry/api').Context} params.activeContext - parent OTel context
+ * @returns {{ links: Array<{context: import('@opentelemetry/api').SpanContext}>, messageContexts: Map<object, import('@opentelemetry/api').Context> | null }}
+ */
+const buildBatchLinksAndContexts = ({
+  isBatch, msgHeaders, primaryMsg, primaryHeaders, activeContext
+}) => {
+  if (!isBatch) return { links: [], messageContexts: null }
+
+  const links = []
+  const messageContexts = new Map()
+  if (primaryHeaders.traceparent) messageContexts.set(primaryMsg, activeContext)
+
+  const seenTraceparents = new Set([primaryHeaders.traceparent])
+
+  for (const [msg, headers] of msgHeaders) {
+    if (msg === primaryMsg || !headers.traceparent) continue
+    const extractedContext = propagation.extract(context.active(), headers)
+    messageContexts.set(msg, extractedContext)
+
+    if (!seenTraceparents.has(headers.traceparent)) {
+      seenTraceparents.add(headers.traceparent)
+      const linkedSpan = trace.getSpan(extractedContext)
+      if (linkedSpan) links.push({ context: linkedSpan.spanContext() })
+    }
+  }
+
+  return { links, messageContexts }
+}
+
+const createReceiveSpan = ({
+  spanName, topic, startTime, activeContext, links, consumerAttrs, spanAttrs
+}) => {
+  const span = tracer.startSpan(
+    spanName || `${SpanPrefixes.RECEIVE}:${topic}`,
+    { kind: SpanKind.CONSUMER, links, startTime },
+    activeContext
+  )
+  span.setAttributes({ ...consumerAttrs, ...spanAttrs })
+  span.setStatus({ code: SpanStatusCode.OK })
+  span.end()
+}
+
+const isTraceSampled = (traceparent) => {
+  if (!traceparent) return false
+  const parts = traceparent.split('-')
+  return parts.length === 4 && (parseInt(parts[3], 16) & 0x01) === 1
+}
+
 module.exports = {
   executeAndSetSpanStatus,
   extractOtelHeaders,
@@ -198,5 +317,6 @@ module.exports = {
   makeConsumerAttributes,
   makeProducerAttributes,
   startConsumerTracingSpan,
-  startProducerTracingSpan
+  startProducerTracingSpan,
+  withMessageContext
 }
