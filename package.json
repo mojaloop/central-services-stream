@@ -60,8 +60,8 @@
     "safe-stable-stringify": "2.5.0"
   },
   "devDependencies": {
-    "@mojaloop/central-services-error-handling": "13.1.6",
-    "@mojaloop/central-services-logger": "11.10.5",
+    "@mojaloop/central-services-error-handling": "13.1.7",
+    "@mojaloop/central-services-logger": "11.10.6",
     "@opentelemetry/auto-instrumentations-node": "0.78.0",
     "@opentelemetry/sdk-node": "0.220.0",
     "audit-ci": "7.1.0",
@@ -80,6 +80,10 @@
     "uuid4": "2.0.3"
   },
   "overrides": {
+    "brace-expansion": "1.1.13",
+    "handlebars": "4.7.9",
+    "ajv": "6.14.0",
+    "flatted": "3.4.2",
     "cross-spawn": "7.0.6",
     "trim": "0.0.3",
     "simple-swizzle": "0.2.2",

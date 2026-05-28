@@ -46,6 +46,7 @@ Test('Consumer', ConsumerTest => {
     sandbox.stub(KafkaConsumer.prototype, 'connect').resolves()
     sandbox.stub(KafkaConsumer.prototype, 'consume').resolves()
     sandbox.stub(KafkaConsumer.prototype, 'commitMessageSync').resolves()
+    sandbox.stub(KafkaConsumer.prototype, 'disconnect').yields()
     sandbox.stub(logger, 'isErrorEnabled').value(true)
     sandbox.stub(logger, 'isWarnEnabled').value(true)
     sandbox.stub(logger, 'isDebugEnabled').value(true)
@@ -220,6 +221,29 @@ Test('Consumer', ConsumerTest => {
     })
 
     getConsumerTest.end()
+  })
+
+  ConsumerTest.test('disconnectAll() should', disconnectAllTest => {
+    const topics = ['topic_a', 'topic_b']
+
+    disconnectAllTest.test('disconnect all consumers', async (test) => {
+      const ConsumerProxy = rewire(`${src}/util/consumer`)
+      const config = { rdkafkaConf: {} }
+
+      for (const topic of topics) {
+        await ConsumerProxy.createHandler(topic, config, () => {})
+      }
+
+      try {
+        await ConsumerProxy.disconnectAll()
+        test.pass()
+      } catch (err) {
+        test.fail()
+      }
+      test.end()
+    })
+
+    disconnectAllTest.end()
   })
 
   ConsumerTest.test('isConsumerAutoCommitEnabled should', isConsumerAutoCommitEnabledTest => {

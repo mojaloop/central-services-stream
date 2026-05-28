@@ -427,6 +427,7 @@ class Consumer extends EventEmitter {
     }
     this._status.running = false
     this._consumer.disconnect(cb)
+    this._consumer.removeAllListeners()
     logger.silly('Consumer::disconnect() - end')
   }
 
