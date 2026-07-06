@@ -67,7 +67,7 @@
     "audit-ci": "7.1.0",
     "npm-check-updates": "22.2.9",
     "nyc": "18.0.0",
-    "pre-commit": "1.2.2",
+    "pre-commit": "2.0.0",
     "replace": "1.2.2",
     "rewire": "9.0.1",
     "sinon": "22.0.0",
