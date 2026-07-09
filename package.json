@@ -52,7 +52,7 @@
     "snapshot": "npx standard-version --no-verify --skip.changelog --prerelease snapshot --releaseCommitMessageFormat 'chore(snapshot): {{currentTag}}'"
   },
   "dependencies": {
-    "@opentelemetry/api": "1.9.0",
+    "@opentelemetry/api": "1.9.1",
     "async": "3.2.6",
     "async-exit-hook": "2.0.1",
     "events": "3.3.0",
@@ -60,17 +60,17 @@
     "safe-stable-stringify": "2.5.0"
   },
   "devDependencies": {
-    "@mojaloop/central-services-error-handling": "13.1.5",
-    "@mojaloop/central-services-logger": "11.10.3",
-    "@opentelemetry/auto-instrumentations-node": "0.69.0",
-    "@opentelemetry/sdk-node": "0.212.0",
+    "@mojaloop/central-services-error-handling": "13.1.6",
+    "@mojaloop/central-services-logger": "11.10.5",
+    "@opentelemetry/auto-instrumentations-node": "0.78.0",
+    "@opentelemetry/sdk-node": "0.220.0",
     "audit-ci": "7.1.0",
-    "npm-check-updates": "19.3.2",
-    "nyc": "17.1.0",
-    "pre-commit": "1.2.2",
+    "npm-check-updates": "22.2.9",
+    "nyc": "18.0.0",
+    "pre-commit": "2.0.0",
     "replace": "1.2.2",
     "rewire": "9.0.1",
-    "sinon": "21.0.1",
+    "sinon": "22.0.0",
     "standard": "17.1.2",
     "standard-version": "9.5.0",
     "tap-spec": "5.0.0",
@@ -83,8 +83,26 @@
     "cross-spawn": "7.0.6",
     "trim": "0.0.3",
     "simple-swizzle": "0.2.2",
-    "js-yaml": ">=4.1.1",
-    "lodash": "4.17.23"
+    "js-yaml": "4.2.0",
+    "lodash": "4.18.1",
+    "replace": {
+      "minimatch": "3.1.5"
+    },
+    "rewire": {
+      "minimatch": "3.1.5"
+    },
+    "standard": {
+      "minimatch": "3.1.5"
+    },
+    "standard-version": {
+      "minimatch": "3.1.5"
+    },
+    "tape": {
+      "minimatch": "3.1.5"
+    },
+    "tapes": {
+      "minimatch": "3.1.5"
+    }
   },
   "imports": {
     "#src/*": "./src/*.js",
