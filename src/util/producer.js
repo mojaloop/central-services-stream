@@ -151,7 +151,10 @@ const connectAll = async (configs) => {
 }
 
 const disconnectAndRemoveProducer = async (topicName) => {
-  await getProducer(topicName).disconnect()
+  const producer = await getProducer(topicName)
+  await new Promise((resolve) => {
+    producer.disconnect(resolve)
+  })
   delete listOfProducers[topicName]
   if (producerHealth[topicName]) {
     if (producerHealth[topicName].timer) {

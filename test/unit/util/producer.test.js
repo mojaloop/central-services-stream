@@ -116,7 +116,7 @@ Test('Producer', producerTest => {
       sandbox.stub(KafkaProducer.prototype, 'constructor').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'connect').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'sendMessage').returns(Promise.resolve())
-      sandbox.stub(KafkaProducer.prototype, 'disconnect').returns(Promise.resolve())
+      sandbox.stub(KafkaProducer.prototype, 'disconnect').yields()
       t.end()
     })
 
@@ -171,7 +171,7 @@ Test('Producer', producerTest => {
       sandbox.stub(KafkaProducer.prototype, 'constructor').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'connect').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'sendMessage').returns(Promise.resolve())
-      sandbox.stub(KafkaProducer.prototype, 'disconnect').returns(Promise.resolve())
+      sandbox.stub(KafkaProducer.prototype, 'disconnect').yields()
       t.end()
     })
 
@@ -205,7 +205,7 @@ Test('Producer', producerTest => {
       sandbox.stub(KafkaProducer.prototype, 'constructor').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'connect').returns(Promise.resolve())
       sandbox.stub(KafkaProducer.prototype, 'sendMessage').returns(Promise.resolve())
-      sandbox.stub(KafkaProducer.prototype, 'disconnect').returns(Promise.resolve())
+      sandbox.stub(KafkaProducer.prototype, 'disconnect').yields()
       sandbox.stub(logger, 'isErrorEnabled').value(true)
       sandbox.stub(logger, 'isDebugEnabled').value(true)
       t.end()
@@ -774,7 +774,7 @@ Test('Producer', producerTest => {
       const topicName = 'healthTopic'
       const listOfProducers = {}
       const fakeProducer = {
-        disconnect: sandbox.stub().resolves()
+        disconnect: sandbox.stub().yields()
       }
       listOfProducers[topicName] = fakeProducer
       ProducerProxy.__set__('listOfProducers', listOfProducers)
@@ -802,7 +802,7 @@ Test('Producer', producerTest => {
       const topicName = 'healthTopic2'
       const listOfProducers = {}
       const fakeProducer = {
-        disconnect: sandbox.stub().resolves()
+        disconnect: sandbox.stub().yields()
       }
       listOfProducers[topicName] = fakeProducer
       ProducerProxy.__set__('listOfProducers', listOfProducers)
@@ -834,7 +834,7 @@ Test('Producer', producerTest => {
       const topicName = 'healthTopic3'
       const listOfProducers = {}
       const fakeProducer = {
-        disconnect: sandbox.stub().resolves()
+        disconnect: sandbox.stub().yields()
       }
       listOfProducers[topicName] = fakeProducer
       ProducerProxy.__set__('listOfProducers', listOfProducers)

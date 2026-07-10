@@ -105,7 +105,6 @@ function consumeWithHealthTracking (consumer, topicName, command) {
  *
  * @description Parses the accountUri into a participant name from the uri string
  *
- * @returns {object} - Returns a Promise
  * @throws {Error} -  if failure occurs
  */
 const createHandler = async (topicName, config, command) => {
@@ -246,6 +245,14 @@ const getMetadataPromise = (consumer, topic) => {
   })
 }
 
+const disconnectAll = async () => {
+  for (const { consumer } of Object.values(listOfConsumers)) {
+    await new Promise((resolve) => {
+      consumer.disconnect(resolve)
+    })
+  }
+}
+
 /**
  * @function allConnected
  *
@@ -306,6 +313,7 @@ const allConnected = async topicName => {
 module.exports = {
   Consumer,
   createHandler,
+  disconnectAll,
   getConsumer,
   getListOfTopics,
   isConsumerAutoCommitEnabled,

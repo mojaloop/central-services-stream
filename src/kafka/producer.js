@@ -455,6 +455,7 @@ class Producer extends EventEmitter {
     if (this._producer) {
       this._producer.flush()
       this._producer.disconnect(cb)
+      this._producer.removeAllListeners()
       this._producer = null
     }
   }
