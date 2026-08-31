@@ -22,6 +22,7 @@
 
  * Mojaloop Foundation
  - Name Surname <name.surname@mojaloop.io>
+ * Shashikant Hirugade <shashi.mojaloop@gmail.com>
 
  * Lazola Lucas <lazola.lucas@modusbox.com>
  * Rajiv Mothilal <rajiv.mothilal@modusbox.com>
@@ -270,6 +271,7 @@ class Consumer extends EventEmitter {
     this._status.running = false
     this._eventStatsConnectionHealthy = true
     this._lastPolledTime = Date.now()
+    this._offsetCommitErrorCount = 0
 
     // setup default onReady emit handler
     super.on('ready', (...args) => {
@@ -349,6 +351,16 @@ class Consumer extends EventEmitter {
         super.emit('error', error)
       })
 
+      if (this._config.rdkafkaConf.offset_commit_cb) {
+        this._consumer.on('offset.commit', (err, topicPartitions) => {
+          if (err) {
+            this._offsetCommitErrorCount++
+            logger.error('Consumer::onOffsetCommit - offset commit failed - ', { err, topicPartitions })
+            super.emit('offset.commit.error', err, topicPartitions)
+          }
+        })
+      }
+
       this._consumer.on('partition.eof', eof => {
         logger.debug('Consumer::onPartitionEof - ', { eof })
         super.emit('partition.eof', eof)
@@ -392,6 +404,23 @@ class Consumer extends EventEmitter {
    */
   isEventStatsConnectionHealthy () {
     return this._eventStatsConnectionHealthy
+  }
+
+  /**
+   * Returns this consumer's configured options (@see Consumer~Options), e.g. commitStrategy.
+   * @returns {object}
+   */
+  getOptions () {
+    return this._config.options
+  }
+
+  /**
+   * Returns the number of failed offset commits observed via the 'offset.commit' event.
+   * Only incremented when rdkafkaConf.offset_commit_cb is enabled.
+   * @returns {number}
+   */
+  getOffsetCommitErrorCount () {
+    return this._offsetCommitErrorCount
   }
 
   /**

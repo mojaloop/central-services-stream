@@ -367,6 +367,65 @@ Test('Consumer test', (consumerTests) => {
     })
   })
 
+  consumerTests.test('Test Consumer::getOptions - returns the configured options', (assert) => {
+    const c = new Consumer(topicsList, config)
+    assert.equal(c.getOptions(), config.options, 'getOptions returns the consumer options object')
+    assert.end()
+  })
+
+  consumerTests.test('Test Consumer::getOptions - reflects commitStrategy when set', (assert) => {
+    const modifiedConfig = { ...config, options: { ...config.options, commitStrategy: 'async' } }
+    const c = new Consumer(topicsList, modifiedConfig)
+    assert.equal(c.getOptions().commitStrategy, 'async', 'getOptions exposes commitStrategy')
+    assert.end()
+  })
+
+  consumerTests.test('Test Consumer::getOffsetCommitErrorCount - defaults to 0', (assert) => {
+    const c = new Consumer(topicsList, config)
+    assert.equal(c.getOffsetCommitErrorCount(), 0, 'no offset commit errors observed yet')
+    assert.end()
+  })
+
+  consumerTests.test('Test Consumer::offset.commit - increments error counter, logs and emits offset.commit.error on failure', (assert) => {
+    assert.plan(4)
+    const modifiedConfig = { ...config, rdkafkaConf: { ...config.rdkafkaConf, offset_commit_cb: true } }
+    const c = new Consumer(topicsList, modifiedConfig)
+    const commitError = new Error('commit failed')
+    const topicPartitions = [{ topic: 'test', partition: 0, offset: 5 }]
+
+    c.on('offset.commit.error', (err, tps) => {
+      assert.equal(err, commitError, 'offset.commit.error emitted with the underlying error')
+      assert.equal(tps, topicPartitions, 'offset.commit.error emitted with topic partitions')
+    })
+
+    c.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      c._consumer.emit('offset.commit', commitError, topicPartitions)
+      assert.equal(c.getOffsetCommitErrorCount(), 1, 'offset commit error counter incremented')
+    })
+  })
+
+  consumerTests.test('Test Consumer::offset.commit - success does not increment error counter', (assert) => {
+    const modifiedConfig = { ...config, rdkafkaConf: { ...config.rdkafkaConf, offset_commit_cb: true } }
+    const c = new Consumer(topicsList, modifiedConfig)
+
+    c.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      c._consumer.emit('offset.commit', null, [{ topic: 'test', partition: 0, offset: 5 }])
+      assert.equal(c.getOffsetCommitErrorCount(), 0, 'offset commit error counter not incremented on success')
+      assert.end()
+    })
+  })
+
+  consumerTests.test('Test Consumer::offset.commit - listener not attached when offset_commit_cb is not set', (assert) => {
+    const c = new Consumer(topicsList, config)
+    c.connect().then(result => {
+      assert.ok(result, 'connection result received')
+      assert.equal(c._consumer.listenerCount('offset.commit'), 0, 'no offset.commit listener registered by default')
+      assert.end()
+    })
+  })
+
   consumerTests.test('Test Consumer::consumeOnce - Not Implemented - default params', (assert) => {
     const c = new Consumer(topicsList, config)
     c.connect().then(result => {
