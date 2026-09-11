@@ -2,7 +2,7 @@
 /*****
  License
  --------------
- Copyright © 2020-2025 Mojaloop Foundation
+ Copyright © 2020-2026 Mojaloop Foundation
  The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
  http://www.apache.org/licenses/LICENSE-2.0
@@ -22,6 +22,7 @@
 
  * Mojaloop Foundation
  - Name Surname <name.surname@mojaloop.io>
+ * Shashikant Hirugade <shashi.mojaloop@gmail.com>
 
  * Lazola Lucas <lazola.lucas@modusbox.com>
  * Rajiv Mothilal <rajiv.mothilal@modusbox.com>
@@ -270,6 +271,7 @@ class Consumer extends EventEmitter {
     this._status.running = false
     this._eventStatsConnectionHealthy = true
     this._lastPolledTime = Date.now()
+    this._offsetCommitErrorCount = 0
 
     // setup default onReady emit handler
     super.on('ready', (...args) => {
@@ -349,6 +351,16 @@ class Consumer extends EventEmitter {
         super.emit('error', error)
       })
 
+      if (this._config.rdkafkaConf.offset_commit_cb) {
+        this._consumer.on('offset.commit', (err, topicPartitions) => {
+          if (err) {
+            this._offsetCommitErrorCount++
+            logger.error('Consumer::onOffsetCommit - offset commit failed - ', { err, topicPartitions })
+            super.emit('offset.commit.error', err, topicPartitions)
+          }
+        })
+      }
+
       this._consumer.on('partition.eof', eof => {
         logger.debug('Consumer::onPartitionEof - ', { eof })
         super.emit('partition.eof', eof)
@@ -392,6 +404,25 @@ class Consumer extends EventEmitter {
    */
   isEventStatsConnectionHealthy () {
     return this._eventStatsConnectionHealthy
+  }
+
+  /**
+   * Returns a shallow copy of this consumer's configured options (@see Consumer~Options),
+   * e.g. commitStrategy. A copy, not the live object, so callers can't mutate the
+   * consumer's actual config through the returned reference.
+   * @returns {object}
+   */
+  getOptions () {
+    return { ...this._config.options }
+  }
+
+  /**
+   * Returns the number of failed offset commits observed via the 'offset.commit' event.
+   * Only incremented when rdkafkaConf.offset_commit_cb is enabled.
+   * @returns {number}
+   */
+  getOffsetCommitErrorCount () {
+    return this._offsetCommitErrorCount
   }
 
   /**
@@ -794,7 +825,10 @@ class Consumer extends EventEmitter {
   }
 
   /**
-   * Commit message
+   * Commits a message offset asynchronously (non-blocking).
+   * Failures are silent at the call site - wire up the `offset.commit.error`
+   * event or poll `getOffsetCommitErrorCount()` to detect them.
+   * Requires `rdkafkaConf.offset_commit_cb: true` to enable commit-failure events.
    *
    * @param {KafkaConsumer~Message} msg - Kafka message to be commited
    */

@@ -60,17 +60,17 @@
     "safe-stable-stringify": "2.5.0"
   },
   "devDependencies": {
-    "@mojaloop/central-services-error-handling": "13.1.7",
+    "@mojaloop/central-services-error-handling": "13.2.0",
     "@mojaloop/central-services-logger": "11.10.6",
-    "@opentelemetry/auto-instrumentations-node": "0.78.0",
-    "@opentelemetry/sdk-node": "0.220.0",
+    "@opentelemetry/auto-instrumentations-node": "0.80.0",
+    "@opentelemetry/sdk-node": "0.222.0",
     "audit-ci": "7.1.0",
-    "npm-check-updates": "22.2.9",
+    "npm-check-updates": "23.1.0",
     "nyc": "18.0.0",
     "pre-commit": "2.0.0",
     "replace": "1.2.2",
     "rewire": "9.0.1",
-    "sinon": "22.0.0",
+    "sinon": "22.1.0",
     "standard": "17.1.2",
     "standard-version": "9.5.0",
     "tap-spec": "5.0.0",
@@ -80,14 +80,15 @@
     "uuid4": "2.0.3"
   },
   "overrides": {
-    "brace-expansion": "1.1.13",
+    "@humanfs/node": "0.16.8",
+    "brace-expansion": "2.1.4",
     "handlebars": "4.7.9",
     "ajv": "6.14.0",
     "flatted": "3.4.2",
     "cross-spawn": "7.0.6",
     "trim": "0.0.3",
     "simple-swizzle": "0.2.2",
-    "js-yaml": "4.2.0",
+    "js-yaml": "4.3.2",
     "lodash": "4.18.1",
     "replace": {
       "minimatch": "3.1.5"
@@ -131,5 +132,10 @@
     "scripts": {
       "postchangelog": "replace '\\[mojaloop/#(\\d+)\\]\\(https://github.com/mojaloop/(.*)/issues/(\\d+)\\)' '[mojaloop/#$1](https://github.com/mojaloop/project/issues/$1)' CHANGELOG.md"
     }
+  },
+  "allowScripts": {
+    "node-rdkafka@3.6.1": true,
+    "pre-commit@2.0.0": true,
+    "protobufjs@7.6.6": true
   }
 }
