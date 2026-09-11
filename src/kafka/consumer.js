@@ -407,11 +407,13 @@ class Consumer extends EventEmitter {
   }
 
   /**
-   * Returns this consumer's configured options (@see Consumer~Options), e.g. commitStrategy.
+   * Returns a shallow copy of this consumer's configured options (@see Consumer~Options),
+   * e.g. commitStrategy. A copy, not the live object, so callers can't mutate the
+   * consumer's actual config through the returned reference.
    * @returns {object}
    */
   getOptions () {
-    return this._config.options
+    return { ...this._config.options }
   }
 
   /**
@@ -823,7 +825,10 @@ class Consumer extends EventEmitter {
   }
 
   /**
-   * Commit message
+   * Commits a message offset asynchronously (non-blocking).
+   * Failures are silent at the call site - wire up the `offset.commit.error`
+   * event or poll `getOffsetCommitErrorCount()` to detect them.
+   * Requires `rdkafkaConf.offset_commit_cb: true` to enable commit-failure events.
    *
    * @param {KafkaConsumer~Message} msg - Kafka message to be commited
    */

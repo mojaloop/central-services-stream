@@ -369,7 +369,7 @@ Test('Consumer test', (consumerTests) => {
 
   consumerTests.test('Test Consumer::getOptions - returns the configured options', (assert) => {
     const c = new Consumer(topicsList, config)
-    assert.equal(c.getOptions(), config.options, 'getOptions returns the consumer options object')
+    assert.deepEqual(c.getOptions(), config.options, 'getOptions returns a copy of the consumer options')
     assert.end()
   })
 
@@ -402,6 +402,9 @@ Test('Consumer test', (consumerTests) => {
       assert.ok(result, 'connection result received')
       c._consumer.emit('offset.commit', commitError, topicPartitions)
       assert.equal(c.getOffsetCommitErrorCount(), 1, 'offset commit error counter incremented')
+    }).catch(error => {
+      assert.fail(error.message)
+      assert.end()
     })
   })
 
@@ -414,6 +417,9 @@ Test('Consumer test', (consumerTests) => {
       c._consumer.emit('offset.commit', null, [{ topic: 'test', partition: 0, offset: 5 }])
       assert.equal(c.getOffsetCommitErrorCount(), 0, 'offset commit error counter not incremented on success')
       assert.end()
+    }).catch(error => {
+      assert.fail(error.message)
+      assert.end()
     })
   })
 
@@ -422,6 +428,9 @@ Test('Consumer test', (consumerTests) => {
     c.connect().then(result => {
       assert.ok(result, 'connection result received')
       assert.equal(c._consumer.listenerCount('offset.commit'), 0, 'no offset.commit listener registered by default')
+      assert.end()
+    }).catch(error => {
+      assert.fail(error.message)
       assert.end()
     })
   })
