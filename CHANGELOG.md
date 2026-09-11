@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.10.0](https://github.com/mojaloop/central-services-stream/compare/v11.9.3...v11.10.0) (2026-09-11)
+
+
+### Features
+
+* enable opt-in async offset commit — options accessor + commit-failure observability ([#199](https://github.com/mojaloop/central-services-stream/issues/199)) ([3505285](https://github.com/mojaloop/central-services-stream/commit/3505285fee81fa3a943af7bd3f289db199840c83))
+
 ### [11.9.3](https://github.com/mojaloop/central-services-stream/compare/v11.9.2...v11.9.3) (2026-07-10)
 
 ### [11.9.2](https://github.com/mojaloop/central-services-stream/compare/v11.9.1...v11.9.2) (2026-07-09)
