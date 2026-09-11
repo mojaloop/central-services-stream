@@ -80,6 +80,7 @@
     "uuid4": "2.0.3"
   },
   "overrides": {
+    "@humanfs/node": "0.16.8",
     "brace-expansion": "2.1.4",
     "handlebars": "4.7.9",
     "ajv": "6.14.0",
@@ -87,7 +88,7 @@
     "cross-spawn": "7.0.6",
     "trim": "0.0.3",
     "simple-swizzle": "0.2.2",
-    "js-yaml": "4.3.1",
+    "js-yaml": "4.3.2",
     "lodash": "4.18.1",
     "replace": {
       "minimatch": "3.1.5"
