@@ -40,6 +40,7 @@
 const Test = require('tapes')(require('tape'))
 const Kafka = require('node-rdkafka')
 const Sinon = require('sinon')
+const Metrics = require('@mojaloop/central-services-metrics')
 const logger = require('../../../src/lib/logger').logger
 const Consumer = require('../../../src/kafka').Consumer
 const ConsumerEnums = require('../../../src/kafka').Consumer.ENUMS
@@ -433,6 +434,68 @@ Test('Consumer test', (consumerTests) => {
       assert.fail(error.message)
       assert.end()
     })
+  })
+
+  consumerTests.test('Test Consumer::event.stats - records group stats metrics and health, and clears them on disconnect', async (assert) => {
+    Metrics.setup({ prefix: '', defaultMetrics: false })
+    const group = 'stats-metrics-test'
+    const modifiedConfig = { ...config, rdkafkaConf: { ...config.rdkafkaConf, 'group.id': group, 'statistics.interval.ms': 1 } }
+    const c = new Consumer(topicsList, modifiedConfig)
+    const assignedFor = async () => (await Metrics.getDefaultRegister().getSingleMetric('kafka_consumer_assigned_partitions').get())
+      .values.filter(v => v.labels.consumerGroup === group)
+
+    try {
+      await c.connect()
+      c._consumer.emit('event.stats', {
+        message: JSON.stringify({
+          brokers: { 1: { state: 'UP' } },
+          cgrp: { assignment_size: 3, rebalance_cnt: 1 },
+          topics: { test: { partitions: { 0: { consumer_lag: 4 } } } }
+        })
+      })
+      assert.equal(c.isEventStatsConnectionHealthy(), true, 'health still tracked from the same stats')
+      assert.deepEqual((await assignedFor()).map(v => v.value), [3], 'assigned partitions recorded for the consumer group')
+
+      c.disconnect()
+      assert.equal((await assignedFor()).length, 0, 'series removed on disconnect')
+    } catch (err) {
+      assert.fail(err.message)
+    }
+    assert.end()
+  })
+
+  consumerTests.test('Test Consumer::event.stats - no stats observer when statistics are disabled', async (assert) => {
+    const c = new Consumer(topicsList, config)
+    try {
+      await c.connect()
+      assert.equal(c._statsObserver, undefined, 'no observer created')
+      assert.doesNotThrow(() => c.disconnect(), 'disconnect without observer')
+    } catch (err) {
+      assert.fail(err.message)
+    }
+    assert.end()
+  })
+
+  consumerTests.test('Test Consumer::_observeTransit - records every message in a batch, and single messages', async (assert) => {
+    Metrics.setup({ prefix: '', defaultMetrics: false })
+    const group = 'transit-test'
+    const c = new Consumer(topicsList, { ...config, rdkafkaConf: { ...config.rdkafkaConf, 'group.id': group } })
+    const transitCount = async (topic) => {
+      const values = (await Metrics.getDefaultRegister().getSingleMetric('kafka_transit_seconds').get()).values
+      const found = values.find(v => v.metricName === 'kafka_transit_seconds_count' && v.labels.topic === topic && v.labels.consumerGroup === group)
+      return found ? found.value : 0
+    }
+    const now = Date.now()
+
+    c._observeTransit([{ topic: 'batch-topic', timestamp: now - 20 }, { topic: 'batch-topic', timestamp: now - 10 }], now - 5)
+    c._observeTransit({ topic: 'single-topic', timestamp: now - 20 }, now - 5)
+    c._observeTransit({ topic: 'skipped-topic', timestamp: now - 20 }, undefined)
+    c._observeTransit(null, now)
+
+    assert.equal(await transitCount('batch-topic'), 2, 'each batch message observed')
+    assert.equal(await transitCount('single-topic'), 1, 'single message observed')
+    assert.equal(await transitCount('skipped-topic'), 0, 'skipped without a fetch time')
+    assert.end()
   })
 
   consumerTests.test('Test Consumer::consumeOnce - Not Implemented - default params', (assert) => {

@@ -52,7 +52,8 @@ require('async-exit-hook')(callback => Promise.allSettled(
 ).finally(callback))
 
 const otel = require('./otel')
-const { trackConnectionHealth } = require('./shared')
+const { parseStats, trackConnectionHealth } = require('./shared')
+const { observeConsumedMessage, createConsumerStatsObserver } = require('../lib/observability')
 
 /**
  * Consumer ENUMs
@@ -338,10 +339,13 @@ class Consumer extends EventEmitter {
       })
 
       if (this._config.rdkafkaConf['statistics.interval.ms'] > 0) {
+        this._statsObserver = createConsumerStatsObserver(this._config.rdkafkaConf['group.id'])
         this._consumer.on('event.stats', (eventData) => {
           logger.silly('Consumer::onEventStats - ', eventData)
+          const stats = parseStats(eventData, logger)
           // Use shared trackConnectionHealth to update health status
-          this._eventStatsConnectionHealthy = trackConnectionHealth(eventData, logger)
+          this._eventStatsConnectionHealthy = trackConnectionHealth(stats, logger)
+          this._statsObserver.observe(stats)
           super.emit('event.stats', eventData)
         })
       }
@@ -459,6 +463,8 @@ class Consumer extends EventEmitter {
     this._status.running = false
     this._consumer.disconnect(cb)
     this._consumer.removeAllListeners()
+    // Drop this consumer's lag/assignment series so they don't report stale values after it stops
+    if (this._statsObserver) this._statsObserver.clear()
     logger.silly('Consumer::disconnect() - end')
   }
 
@@ -480,6 +486,27 @@ class Consumer extends EventEmitter {
       this._consumer.subscribe(this._topics)
     }
     logger.debug('Consumer::subscribe() - end')
+  }
+
+  /**
+   * (Internal) Record inter-stage Kafka timings for a consumed payload.
+   *
+   * Splits the interval between the producer's timestamp and the start of
+   * handler work into broker residence and local queue/batch-assembly wait.
+   * Called on the handler-start path, so it must stay cheap: it runs once per
+   * message at full message rate.
+   *
+   * @param {object|object[]} payload - message or batch about to be handled
+   * @param {number} fetchedAt - epoch ms the client returned the payload
+   */
+  _observeTransit (payload, fetchedAt) {
+    if (!fetchedAt || !payload) return
+    const startedAt = Date.now()
+    const group = this._config.rdkafkaConf['group.id']
+    const messages = Array.isArray(payload) ? payload : [payload]
+    for (const msg of messages) {
+      observeConsumedMessage(msg, fetchedAt, startedAt, msg?.topic, group)
+    }
   }
 
   /**
@@ -513,6 +540,10 @@ class Consumer extends EventEmitter {
         const payload = this._config.options.mode === ENUMS.CONSUMER_MODES.flow
           ? task.message
           : task.messages
+
+        // Handler work starts here, so this is the point the inter-stage
+        // interval closes against the producer's timestamp.
+        this._observeTransit(payload, task.fetchedAt)
 
         const workProcessing = () => Promise.resolve(workDoneCb(task.error, payload))
           .then((result) => {
@@ -604,6 +635,7 @@ class Consumer extends EventEmitter {
       // if (this._status.running) {
       this._consumer.consume(batchSize, (error, messages) => {
         this._updateLastPolledTime()
+        const fetchedAt = Date.now()
         if (error || !messages.length) {
           if (error) {
             super.emit('error', error)
@@ -626,12 +658,13 @@ class Consumer extends EventEmitter {
           }
 
           if (this._config.options.sync) {
-            this._syncQueue.push({ error, messages }, function (err) {
+            this._syncQueue.push({ error, messages, fetchedAt }, function (err) {
               if (err) {
                 logger.error('Consumer::_consumePoller()::syncQueue.push - error: ', err)
               }
             })
           } else {
+            this._observeTransit(messages, fetchedAt)
             // todo: think how to start tracing span here (each message in the batch should have its own span?)
             Promise.resolve(workDoneCb(error, messages))
               .then((response) => {
@@ -674,6 +707,7 @@ class Consumer extends EventEmitter {
     const { logger } = this._config
     this._consumer.consume(batchSize, (error, messages) => {
       this._updateLastPolledTime()
+      const fetchedAt = Date.now()
       if (error || !messages.length) {
         if (error) {
           super.emit('error', error)
@@ -702,7 +736,7 @@ class Consumer extends EventEmitter {
         if (this._config.options.sync) {
           // lets process the messages in batches
           if (!this._config.options.syncSingleMessage) {
-            this._syncQueue.push({ error, messages }, (error, result) => {
+            this._syncQueue.push({ error, messages, fetchedAt }, (error, result) => {
               if (error) {
                 logger.error('Consumer::_consumerRecursive()::syncQueue.Batch.push - error: ', error)
               }
@@ -712,7 +746,7 @@ class Consumer extends EventEmitter {
           } else {
             // lets process each message individually
             for (const [index, msg] of messages.entries()) {
-              this._syncQueue.push({ error, messages: msg }, (error, result) => {
+              this._syncQueue.push({ error, messages: msg, fetchedAt }, (error, result) => {
                 if (error) {
                   logger.error('Consumer::_consumerRecursive()::syncQueue.Single.push - error: ', error)
                 }
@@ -725,6 +759,7 @@ class Consumer extends EventEmitter {
             }
           }
         } else {
+          this._observeTransit(messages, fetchedAt)
           // todo: think how to start tracing span here (each message in the batch should have its own span?)
           Promise.resolve(workDoneCb(error, messages))
             .then((response) => {
@@ -758,6 +793,7 @@ class Consumer extends EventEmitter {
     const { logger } = this._config
     this._consumer.consume((error, message) => {
       this._updateLastPolledTime()
+      const fetchedAt = Date.now()
       if (error || !message) {
         if (error) {
           super.emit('error', error)
@@ -774,10 +810,11 @@ class Consumer extends EventEmitter {
         }
 
         if (this._config.options.sync) {
-          this._syncQueue.push({ error, message }, function (err) {
+          this._syncQueue.push({ error, message, fetchedAt }, function (err) {
             if (err) { logger.error('Consumer::_consumerFlow()::syncQueue.push - error: ', err) }
           })
         } else {
+          this._observeTransit(message, fetchedAt)
           // todo: think how to start tracing span here (each message in the batch should have its own span?)
           Promise.resolve(workDoneCb(error, message))
             .then((response) => {

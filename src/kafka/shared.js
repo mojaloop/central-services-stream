@@ -2,22 +2,38 @@ const contextLogger = require('../lib/logger').logger
 const { kafkaBrokerStates } = require('../constants')
 
 /**
+ * Parses librdkafka statistics from an event.stats payload.
+ * @param {Object|string} eventData - The event data (object or JSON string), optionally wrapping the stats JSON in a 'message' property
+ * @returns {Object|undefined} - The parsed stats, or undefined if they could not be parsed
+ */
+function parseStats (eventData, logger = contextLogger) {
+  let stats
+  try {
+    stats = typeof eventData === 'string' ? JSON.parse(eventData) : eventData
+  } catch (err) {
+    logger.error('Consumer::onEventStats - error parsing stats:', err)
+    return undefined
+  }
+  // If stats has a 'message' property, parse it as JSON
+  if (stats && typeof stats.message === 'string') {
+    try {
+      stats = JSON.parse(stats.message)
+    } catch (e) {
+      logger.error('Consumer::onEventStats - error parsing nested stats.message:', e)
+      return undefined
+    }
+  }
+  return stats
+}
+
+/**
  * Tracks connection health based on eventData.stats and logs broker states.
- * @param {Object|string} eventData - The event data (object or JSON string)
+ * @param {Object|string} eventData - The event data (object or JSON string), or stats already returned by parseStats
  * @returns {boolean} - True if all brokers are healthy, false otherwise
  */
 function trackConnectionHealth (eventData, logger = contextLogger) {
   try {
-    let stats = typeof eventData === 'string' ? JSON.parse(eventData) : eventData
-    // If stats has a 'message' property, parse it as JSON
-    if (stats && typeof stats.message === 'string') {
-      try {
-        stats = JSON.parse(stats.message)
-      } catch (e) {
-        logger.error('Consumer::onEventStats - error parsing nested stats.message:', e)
-        return false
-      }
-    }
+    const stats = parseStats(eventData, logger)
     logger.debug('Consumer::onEventStats - stats:', stats)
     if (stats && stats.brokers) {
       let allHealthy = true
@@ -61,5 +77,6 @@ function trackConnectionHealth (eventData, logger = contextLogger) {
 }
 
 module.exports = {
+  parseStats,
   trackConnectionHealth
 }

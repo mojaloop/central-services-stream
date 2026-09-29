@@ -53,8 +53,13 @@ require('async-exit-hook')(callback => Promise.allSettled(
 const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
 const { SemConv } = require('../constants')
 const { trackConnectionHealth } = require('./shared')
+const { observeProduceAck, observeProduceError } = require('../lib/observability')
 
 const tracer = trace.getTracer('kafka-producer') // think, if we need to change it to clientId
+
+// librdkafka error code -> name (e.g. -184 -> ERR__QUEUE_FULL), for readable metric labels
+const errorCodeNames = new Map(Object.entries(Kafka.CODES?.ERRORS || {}).map(([name, code]) => [code, name]))
+const errorCodeName = (err) => errorCodeNames.get(err?.code) || (err?.code !== undefined ? String(err.code) : undefined)
 
 /**
  * Producer ENUMs
@@ -318,6 +323,15 @@ class Producer extends EventEmitter {
 
       this._config.rdkafkaConf.dr_cb && this._producer.on('delivery-report', (err, report) => {
         logger.debug('Producer::onDeliveryReport - ', report)
+        if (err) {
+          // In sync mode the HighLevelProducer also hands this error to the
+          // per-message callback, where #produceMessageWithTrace counts it.
+          if (!this._config.options.sync) observeProduceError(report?.topic, errorCodeName(err))
+        } else if (report) {
+          // report.timestamp is the produce-time stamp set in sendMessage, so
+          // this is produce-to-ack measured on this host's clock.
+          observeProduceAck(report.topic, report.timestamp)
+        }
         super.emit('delivery-report', err, report)
       })
 
@@ -645,6 +659,8 @@ class Producer extends EventEmitter {
           span.setStatus({ code: SpanStatusCode.OK })
           resolve(result)
         } catch (err) {
+          // Enqueue failures (e.g. ERR__QUEUE_FULL) in both modes, plus delivery failures in sync mode
+          observeProduceError(topicConf.topicName, errorCodeName(err))
           span.setStatus({ code: SpanStatusCode.ERROR, message: err.message })
           span.recordException(err)
           reject(err)

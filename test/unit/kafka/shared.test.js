@@ -1,6 +1,6 @@
 const Test = require('tapes')(require('tape'))
 const Sinon = require('sinon')
-const { trackConnectionHealth } = require('../../../src/kafka/shared')
+const { parseStats, trackConnectionHealth } = require('../../../src/kafka/shared')
 const kafkaBrokerStates = require('../../../src/constants').kafkaBrokerStates
 
 Test('trackConnectionHealth', (t) => {
@@ -199,6 +199,64 @@ Test('trackConnectionHealth', (t) => {
       message: JSON.stringify({ foo: 'bar' })
     }
     assert.equal(trackConnectionHealth(eventData, logger), false)
+    assert.end()
+  })
+
+  t.test('accepts stats already returned by parseStats', (assert) => {
+    const stats = parseStats(JSON.stringify({ brokers: { 1: { state: kafkaBrokerStates.UP } } }), logger)
+    assert.equal(trackConnectionHealth(stats, logger), true)
+    assert.end()
+  })
+  t.end()
+})
+
+Test('parseStats', (t) => {
+  let sandbox
+  let logger
+
+  t.beforeEach((t) => {
+    sandbox = Sinon.createSandbox()
+    logger = require('../../../src/lib/logger').logger
+    sandbox.stub(logger, 'error')
+    t.end()
+  })
+
+  t.afterEach((t) => {
+    sandbox.restore()
+    t.end()
+  })
+
+  t.test('parses a JSON string', (assert) => {
+    assert.deepEqual(parseStats('{"cgrp":{"assignment_size":2}}', logger), { cgrp: { assignment_size: 2 } })
+    assert.end()
+  })
+
+  t.test('returns an object as-is', (assert) => {
+    const stats = { cgrp: { assignment_size: 2 } }
+    assert.equal(parseStats(stats, logger), stats)
+    assert.end()
+  })
+
+  t.test('unwraps stats JSON in the message property', (assert) => {
+    assert.deepEqual(parseStats({ message: '{"topics":{}}' }, logger), { topics: {} })
+    assert.end()
+  })
+
+  t.test('returns undefined and logs on invalid JSON', (assert) => {
+    assert.equal(parseStats('{notjson', logger), undefined)
+    assert.ok(logger.error.calledWithMatch(/error parsing stats/), 'logger.error called')
+    assert.end()
+  })
+
+  t.test('returns undefined and logs on invalid nested message JSON', (assert) => {
+    assert.equal(parseStats({ message: '{notjson' }, logger), undefined)
+    assert.ok(logger.error.calledWithMatch(/error parsing nested stats\.message/), 'logger.error called')
+    assert.end()
+  })
+
+  t.test('uses the default logger when none is given', (assert) => {
+    assert.equal(parseStats('{notjson'), undefined)
+    assert.ok(logger.error.called, 'default logger used')
     assert.end()
   })
   t.end()

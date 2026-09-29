@@ -29,7 +29,8 @@
     "lint",
     "test",
     "dep:check",
-    "audit:check"
+    "audit:check",
+    "license:check"
   ],
   "scripts": {
     "test": "npm run test:unit",
@@ -48,6 +49,7 @@
     "audit:check": "npx audit-ci --config ./audit-ci.jsonc",
     "dep:check": "npx ncu -e 2",
     "dep:update": "npx ncu -u",
+    "license:check": "npx @mojaloop/license-scanner-tool .",
     "release": "npx standard-version --no-verify --releaseCommitMessageFormat 'chore(release): {{currentTag}} [skip ci]'",
     "snapshot": "npx standard-version --no-verify --skip.changelog --prerelease snapshot --releaseCommitMessageFormat 'chore(snapshot): {{currentTag}}'"
   },
@@ -62,6 +64,8 @@
   "devDependencies": {
     "@mojaloop/central-services-error-handling": "13.2.0",
     "@mojaloop/central-services-logger": "11.10.6",
+    "@mojaloop/central-services-metrics": "12.8.8",
+    "@mojaloop/license-scanner-tool": "1.1.2",
     "@opentelemetry/auto-instrumentations-node": "0.80.0",
     "@opentelemetry/sdk-node": "0.222.0",
     "audit-ci": "7.1.0",
@@ -115,7 +119,8 @@
   },
   "peerDependencies": {
     "@mojaloop/central-services-error-handling": ">=13.x.x",
-    "@mojaloop/central-services-logger": ">=11.x.x"
+    "@mojaloop/central-services-logger": ">=11.x.x",
+    "@mojaloop/central-services-metrics": ">=12.x.x"
   },
   "peerDependenciesMeta": {
     "@mojaloop/central-services-error-handling": {
@@ -123,6 +128,9 @@
     },
     "@mojaloop/central-services-logger": {
       "optional": false
+    },
+    "@mojaloop/central-services-metrics": {
+      "optional": true
     }
   },
   "publishConfig": {
