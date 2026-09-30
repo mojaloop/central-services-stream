@@ -39,6 +39,7 @@ const Producer = require('../../../src/kafka').Producer
 const logger = require('../../../src/lib/logger').logger
 const Kafka = require('node-rdkafka')
 const Sinon = require('sinon')
+const Metrics = require('@mojaloop/central-services-metrics')
 const KafkaStubs = require('./KafkaStub')
 
 Test('Producer test', (producerTests) => {
@@ -449,6 +450,86 @@ Test('Producer test', (producerTests) => {
       assert.equal(connectedTime, 0, 'connectedTime result exists')
       assert.end()
     })
+  })
+
+  const metricsMessageProtocol = { message: { test: 'test' }, from: 'testAccountSender', to: 'testAccountReceiver', type: 'application/json', pp: '', id: 'id', metadata: {} }
+  const kafkaError = (code) => Object.assign(new Error(`kafka error ${code}`), { code })
+  const resetMetrics = () => {
+    Metrics.setup({ prefix: '', defaultMetrics: false })
+    Metrics.getDefaultRegister().resetMetrics()
+  }
+  const produceErrorCount = async (topic, code) => {
+    const metric = Metrics.getDefaultRegister().getSingleMetric('kafka_produce_errors_total')
+    const found = metric && (await metric.get()).values.find(v => v.labels.topic === topic && v.labels.code === code)
+    return found ? found.value : 0
+  }
+  const produceAckCount = async (topic) => {
+    const metric = Metrics.getDefaultRegister().getSingleMetric('kafka_produce_ack_seconds')
+    const found = metric && (await metric.get()).values.find(v => v.metricName === 'kafka_produce_ack_seconds_count' && v.labels.topic === topic)
+    return found ? found.value : 0
+  }
+
+  producerTests.test('Test Producer metrics - async mode: delivery report records ack latency on success and counts delivery failures by code name', async (assert) => {
+    resetMetrics()
+    const producer = new Producer(config)
+    await producer.connect()
+    producer._producer.emit('delivery-report', null, { topic: 'dr-topic', timestamp: Date.now() - 10 })
+    producer._producer.emit('delivery-report', kafkaError(Kafka.CODES.ERRORS.ERR__MSG_TIMED_OUT), { topic: 'dr-topic' })
+
+    assert.equal(await produceAckCount('dr-topic'), 1, 'ack latency observed')
+    assert.equal(await produceErrorCount('dr-topic', 'ERR__MSG_TIMED_OUT'), 1, 'delivery failure counted')
+    producer.disconnect()
+    assert.end()
+  })
+
+  producerTests.test('Test Producer metrics - async mode: enqueue failure thrown by produce() is counted and rethrown', async (assert) => {
+    resetMetrics()
+    sandbox.stub(KafkaStubs.KafkaProducer.prototype, 'produce').throws(kafkaError(Kafka.CODES.ERRORS.ERR__QUEUE_FULL))
+    const producer = new Producer(config)
+    await producer.connect()
+    try {
+      await producer.sendMessage(metricsMessageProtocol, { topicName: 'full-topic', key: '1234' })
+      assert.fail('should have thrown')
+    } catch (err) {
+      assert.equal(err.code, Kafka.CODES.ERRORS.ERR__QUEUE_FULL, 'original error rethrown')
+    }
+    assert.equal(await produceErrorCount('full-topic', 'ERR__QUEUE_FULL'), 1, 'queue full counted')
+    producer.disconnect()
+    assert.end()
+  })
+
+  producerTests.test('Test Producer metrics - sync mode: delivery failure is counted once, via the produce callback', async (assert) => {
+    resetMetrics()
+    const timedOut = kafkaError(Kafka.CODES.ERRORS.ERR__MSG_TIMED_OUT)
+    sandbox.stub(KafkaStubs.KafkaSyncProducer.prototype, 'produce').callsFake(function (topic, partition, message, key, timestamp, headers, callback) {
+      // HighLevelProducer delivers the error both as a delivery-report event and to the callback
+      this.emit('delivery-report', timedOut, { topic })
+      callback(timedOut)
+    })
+    const producer = new Producer({ ...config, options: { ...config.options, sync: true } })
+    await producer.connect()
+    try {
+      await producer.sendMessage(metricsMessageProtocol, { topicName: 'sync-topic', key: '1234' })
+      assert.fail('should have thrown')
+    } catch (err) {
+      assert.equal(err, timedOut, 'original error rethrown')
+    }
+    assert.equal(await produceErrorCount('sync-topic', 'ERR__MSG_TIMED_OUT'), 1, 'counted exactly once')
+    producer.disconnect()
+    assert.end()
+  })
+
+  producerTests.test('Test Producer metrics - errors without a known librdkafka code are labelled by raw code, or unknown', async (assert) => {
+    resetMetrics()
+    const producer = new Producer(config)
+    await producer.connect()
+    producer._producer.emit('delivery-report', kafkaError(12345), { topic: 'odd-topic' })
+    producer._producer.emit('delivery-report', new Error('no code'), { topic: 'odd-topic' })
+
+    assert.equal(await produceErrorCount('odd-topic', '12345'), 1, 'raw code used')
+    assert.equal(await produceErrorCount('odd-topic', 'unknown'), 1, 'unknown when no code')
+    producer.disconnect()
+    assert.end()
   })
 
   producerTests.end()
