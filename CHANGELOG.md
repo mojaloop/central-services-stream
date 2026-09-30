@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.11.0](https://github.com/mojaloop/central-services-stream/compare/v11.10.1...v11.11.0) (2026-09-30)
+
+
+### Features
+
+* added more metrics ([#201](https://github.com/mojaloop/central-services-stream/issues/201)) ([6e828b4](https://github.com/mojaloop/central-services-stream/commit/6e828b49438dde40d3f6d4fa6306f80d363f344b))
+
+
+### Bug Fixes
+
+* vulnerabilities in brace-expansion ([#202](https://github.com/mojaloop/central-services-stream/issues/202)) ([04bef81](https://github.com/mojaloop/central-services-stream/commit/04bef817ac230ec71ad2196aa6c5ae570f9e4b21))
+
 ### [11.10.1](https://github.com/mojaloop/central-services-stream/compare/v11.10.0...v11.10.1) (2026-09-22)
 
 ## [11.10.0](https://github.com/mojaloop/central-services-stream/compare/v11.9.3...v11.10.0) (2026-09-11)
