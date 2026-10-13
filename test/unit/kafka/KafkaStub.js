@@ -1,7 +1,7 @@
 /*****
  License
  --------------
- Copyright © 2020-2025 Mojaloop Foundation
+ Copyright © 2020-2026 Mojaloop Foundation
  The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
  http://www.apache.org/licenses/LICENSE-2.0
@@ -21,6 +21,7 @@
 
  * Mojaloop Foundation
  - Name Surname <name.surname@mojaloop.io>
+ - Shashikant Hirugade <shashi.mojaloop@gmail.com>
 
  * Lazola Lucas <lazola.lucas@modusbox.com>
  * Rajiv Mothilal <rajiv.mothilal@modusbox.com>
@@ -160,6 +161,15 @@ class KafkaConsumer extends KafkaClient {
 
   setDefaultConsumeTimeout () {
     this._dummyFunction()
+  }
+
+  setDefaultConsumeLoopTimeoutDelay () {
+    this._dummyFunction()
+  }
+
+  assignments () {
+    this._dummyFunction()
+    return [{ topic: 'test', partition: 0 }]
   }
 
   subscribe (topics) {
