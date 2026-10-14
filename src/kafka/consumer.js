@@ -326,6 +326,8 @@ class Consumer extends EventEmitter {
 
     return new Promise((resolve, reject) => {
       this._consumer = new Kafka.KafkaConsumer(this._config.rdkafkaConf, this._config.topicConf)
+      // A new client has no paused partitions, including when this instance reconnects
+      this._flowPaused = false
 
       this._consumer.setDefaultConsumeTimeout(this._config.options.consumeTimeout)
 
@@ -550,6 +552,10 @@ class Consumer extends EventEmitter {
     this._activeMode = [CONSUMER_MODES.poll, CONSUMER_MODES.recursive].includes(this._config.options.mode)
       ? this._config.options.mode
       : CONSUMER_MODES.flow
+    // A new consume loop and sync queue start here, so clear any state from a previous
+    // loop on this instance (e.g. one stopped by an error before a reconnect)
+    this._flowLoopStopped = false
+    this._lastProgressTime = Date.now()
 
     // setup queues to ensure sync processing of messages if options.sync is true
     if (this._config.options.sync) {

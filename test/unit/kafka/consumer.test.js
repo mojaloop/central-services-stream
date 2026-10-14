@@ -2693,6 +2693,28 @@ Test('Consumer flow mode', (flowTests) => {
     assert.end()
   })
 
+  flowTests.test('reconnect - a flow consumer stopped by an error is healthy and unpaused again after reconnecting and consuming', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ flowMaxQueueSize: 1, healthCheckPollInterval: 1000 }))
+    const flowCb = await consumeCapturingFlow(c, () => new Promise(() => {}))
+    c.on('error', () => {})
+
+    flowCb(null, kafkaMessage(1))
+    assert.ok(c._flowPaused, 'paused before the failure')
+    c._lastProgressTime = Date.now() - 60000
+    flowCb(new Error('consume loop terminated'))
+    assert.notOk(c.isPollHealthy(), 'unhealthy once the loop has stopped')
+
+    c.disconnect()
+    await c.connect()
+    assert.notOk(c._flowPaused, 'new client starts unpaused')
+    sandbox.stub(c._consumer, 'consume')
+    c.consume(async () => true)
+    assert.notOk(c._flowLoopStopped, 'new consume loop not marked stopped')
+    assert.ok(c.isPollHealthy(), 'healthy again after reconnecting')
+    assert.ok(Date.now() - c._lastProgressTime < 1000, 'progress window restarted')
+    assert.end()
+  })
+
   flowTests.test('isPollHealthy - a flow consumer without sync relies on the consume loop only', async (assert) => {
     const c = new Consumer(topicsList, flowConfig({ sync: false, healthCheckPollInterval: 1000 }))
     const flowCb = await consumeCapturingFlow(c, () => new Promise(() => {}))
