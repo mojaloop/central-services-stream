@@ -2550,9 +2550,12 @@ Test('Consumer flow mode', (flowTests) => {
     const resume = sandbox.spy(c._consumer, 'resume')
     const assigned = [{ topic: 'test', partition: 0 }]
 
-    for (let offset = 1; offset <= 5; offset++) flowCb(null, kafkaMessage(offset))
-    assert.ok(pause.calledOnceWithExactly(assigned), 'paused once when the queue reached flowMaxQueueSize')
+    for (let offset = 1; offset <= 3; offset++) flowCb(null, kafkaMessage(offset))
+    assert.ok(pause.notCalled, 'not paused below flowMaxQueueSize')
+    for (let offset = 4; offset <= 5; offset++) flowCb(null, kafkaMessage(offset))
+    assert.ok(pause.calledWithExactly(assigned), 'paused when the queue reached flowMaxQueueSize')
     assert.ok(c._flowPaused, 'consumer marked paused')
+    const pauseCount = pause.callCount
 
     await flush()
     inFlight[0].resolve(true)
@@ -2570,7 +2573,26 @@ Test('Consumer flow mode', (flowTests) => {
     await flush()
     inFlight[4].resolve(true)
     await flush()
-    assert.ok(pause.calledOnce, 'not paused again below the limit')
+    assert.equal(pause.callCount, pauseCount, 'not paused again below the limit')
+    assert.end()
+  })
+
+  flowTests.test('flowMaxQueueSize - partitions assigned while paused are paused again by the next message at the limit', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ flowMaxQueueSize: 2 }))
+    const flowCb = await consumeCapturingFlow(c, () => new Promise(() => {}))
+    const pause = sandbox.spy(c._consumer, 'pause')
+
+    for (let offset = 1; offset <= 3; offset++) flowCb(null, kafkaMessage(offset))
+    assert.ok(c._flowPaused, 'consumer marked paused')
+    const pauseCount = pause.callCount
+
+    // A rebalance assigns a new, unpaused partition while the consumer is still marked paused
+    const reassigned = [{ topic: 'test', partition: 0 }, { topic: 'test', partition: 1 }]
+    sandbox.stub(c._consumer, 'assignments').returns(reassigned)
+    flowCb(null, { ...kafkaMessage(1), partition: 1 })
+    assert.equal(pause.callCount, pauseCount + 1, 'paused again')
+    assert.ok(pause.lastCall.calledWithExactly(reassigned), 'newly assigned partition paused with the rest')
+    assert.ok(c._flowPaused, 'consumer still marked paused')
     assert.end()
   })
 

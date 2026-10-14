@@ -123,7 +123,7 @@ exports.ENUMS = ENUMS
  * @property {number} consumeTimeout - Set the default consume timeout (milliseconds) provided to RDKafka c++land. Defaults: 1000
  * @property {number} [consumeLoopTimeoutDelay] - The delay in milliseconds the consume loop waits after a read that returned no message. Only applicable when mode = CONSUMER_MODES.flow. Defaults: node-rdkafka's default (500)
  * @property {number} [flowMaxQueueSize] - Pause fetching from the assigned partitions once this many messages are waiting to be processed, and resume once half of them have been. Only applicable when mode = CONSUMER_MODES.flow and sync = true. Defaults: unbounded
- * @property {number} healthCheckPollInterval - The time in milliseconds used by isPollHealthy. In poll and recursive modes, the maximum time since the last poll. In flow mode, the maximum time without a processed message while messages are waiting or in progress. Defaults: 25000
+ * @property {number} healthCheckPollInterval - The time in milliseconds used by isPollHealthy. In poll and recursive modes, the maximum time since the last poll. In flow mode, the maximum time without a processed message while messages are waiting or in progress (with sync=true, set it above the slowest expected handler call). Defaults: 25000
  * @property {boolean} [disableOtelSpanAutoCreation] - Defines if kafka-stream lib should create OTel span automatically. Defaults: false
  *
  */
@@ -839,8 +839,10 @@ class Consumer extends EventEmitter {
           this._syncQueue.push({ error, message, fetchedAt }, function (err) {
             if (err) { logger.error('Consumer::_consumerFlow()::syncQueue.push - error: ', err) }
           })
+          // Not guarded by _flowPaused: a message arriving at the limit while already paused
+          // means the pause has leaked (e.g. partitions assigned by a rebalance), so pause again
           const { flowMaxQueueSize } = this._config.options
-          if (flowMaxQueueSize > 0 && !this._flowPaused && this._syncQueue.length() >= flowMaxQueueSize) {
+          if (flowMaxQueueSize > 0 && this._syncQueue.length() >= flowMaxQueueSize) {
             this._pauseFlow()
           }
         } else {
@@ -886,15 +888,21 @@ class Consumer extends EventEmitter {
    * which has no size limit of its own. When the handler falls behind — a slow
    * downstream, catching up on lag after a restart, or a rebalance that brings a
    * backlog — the backlog would otherwise move from Kafka into process memory:
-   * more heap and GC pressure, and more re-delivered messages after a crash or
-   * rebalance, since queued messages are not yet committed. Pausing leaves the
-   * backlog in Kafka. The consumer's position is kept, so fetching resumes from
+   * more heap and GC pressure, and a larger window of messages at risk after a
+   * crash or rebalance. With manual commits (enable.auto.commit=false) queued
+   * messages are not yet committed and are re-delivered. With auto-commit,
+   * librdkafka stores each offset when the message is handed to the consumer,
+   * so queued messages that have not been processed may already be committed
+   * and are lost on a crash. Pausing leaves the backlog in Kafka and keeps that
+   * window small. The consumer's position is kept, so fetching resumes from
    * the next undelivered offset and nothing is skipped.
    *
-   * Partitions assigned by a later rebalance start unpaused; the next time the
-   * queue reaches the limit they are paused with the rest.
-   * On failure (e.g. disconnected) the consumer stays unpaused, and the pause is
-   * retried on the next message.
+   * Partitions assigned by a later rebalance start unpaused, even while the
+   * consumer is marked paused. Any message that arrives with the queue at the
+   * limit calls this again, which pauses the newly assigned partitions with the rest.
+   * Pausing partitions that are already paused has no effect.
+   * On failure (e.g. disconnected) the consumer stays in its previous state, and
+   * the pause is retried on the next message.
    */
   _pauseFlow () {
     const { logger } = this._config
@@ -1107,7 +1115,9 @@ class Consumer extends EventEmitter {
    * arrives, so the time since the last poll measures traffic rather than health.
    * There it returns false if the consume loop has stopped, or if messages are
    * waiting or in progress and none has completed within healthCheckPollInterval.
-   * An idle flow consumer is healthy.
+   * An idle flow consumer is healthy. With sync=true, a single handler call that
+   * runs longer than healthCheckPollInterval also reports unhealthy, so set the
+   * interval above the slowest expected handler.
    * @returns {boolean}
    */
   isPollHealthy () {
@@ -1135,6 +1145,9 @@ class Consumer extends EventEmitter {
    *    within healthCheckPollInterval. Work arriving at an idle queue starts a new
    *    window, so a long idle period does not count against it.
    * An idle consumer, or one without sync, is healthy while its loop runs.
+   *
+   * The consume loop also exits, without reporting an error, when the client
+   * disconnects. That case is not detected here; isHealthy covers it via isConnected.
    * @returns {boolean}
    */
   _isFlowProgressHealthy () {
