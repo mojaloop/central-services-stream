@@ -2715,6 +2715,49 @@ Test('Consumer flow mode', (flowTests) => {
     assert.end()
   })
 
+  flowTests.test('disconnect - clears the pause so tasks finishing afterwards do not resume the disconnected client', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ flowMaxQueueSize: 1 }))
+    const inFlight = []
+    const flowCb = await consumeCapturingFlow(c, () => {
+      const work = deferred()
+      inFlight.push(work)
+      return work.promise
+    })
+    const errors = []
+    c.on('error', err => errors.push(err))
+
+    flowCb(null, kafkaMessage(1))
+    assert.ok(c._flowPaused, 'paused before disconnecting')
+    const resume = sandbox.spy(c._consumer, 'resume')
+    c.disconnect()
+    assert.notOk(c._flowPaused, 'pause cleared on disconnect')
+
+    await flush()
+    inFlight[0].resolve(true)
+    await flush()
+    assert.ok(resume.neverCalledWith(c._consumer.assignments()), 'assigned partitions not resumed')
+    assert.equal(errors.length, 0, 'no error emitted')
+    assert.end()
+  })
+
+  flowTests.test('reconnect - an error from the previous client\'s consume loop does not mark the new loop stopped', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig())
+    const oldFlowCb = await consumeCapturingFlow(c, async () => true)
+    const errors = []
+    c.on('error', err => errors.push(err))
+
+    c.disconnect()
+    await c.connect()
+    sandbox.stub(c._consumer, 'consume')
+    c.consume(async () => true)
+
+    oldFlowCb(new Error('KafkaConsumer is not connected'))
+    assert.notOk(c._flowLoopStopped, 'new loop not marked stopped')
+    assert.ok(c.isPollHealthy(), 'still healthy')
+    assert.equal(errors.length, 0, 'no error emitted')
+    assert.end()
+  })
+
   flowTests.test('isPollHealthy - a flow consumer without sync relies on the consume loop only', async (assert) => {
     const c = new Consumer(topicsList, flowConfig({ sync: false, healthCheckPollInterval: 1000 }))
     const flowCb = await consumeCapturingFlow(c, () => new Promise(() => {}))
@@ -2725,6 +2768,31 @@ Test('Consumer flow mode', (flowTests) => {
 
     flowCb(new Error('consume loop terminated'))
     assert.notOk(c.isPollHealthy(), 'unhealthy once the loop has stopped')
+    assert.end()
+  })
+
+  flowTests.test('flowMaxQueueSize - poll and recursive consumers with sync=true never pause or resume partitions', async (assert) => {
+    for (const mode of [ConsumerEnums.CONSUMER_MODES.poll, ConsumerEnums.CONSUMER_MODES.recursive]) {
+      const c = new Consumer(topicsList, flowConfig({ mode, batchSize: 3, pollFrequency: 10, flowMaxQueueSize: 1 }))
+      await c.connect()
+      let delivered = false
+      sandbox.stub(c._consumer, 'consume').callsFake((batchSize, cb) => {
+        if (delivered) return
+        delivered = true
+        cb(null, [kafkaMessage(1), kafkaMessage(2), kafkaMessage(3)])
+      })
+      const pause = sandbox.spy(c._consumer, 'pause')
+      const resume = sandbox.spy(c._consumer, 'resume')
+      const processed = deferred()
+      c.consume(async () => { processed.resolve(); return true })
+
+      await processed.promise
+      await flush()
+      assert.ok(pause.notCalled, `mode ${mode}: never paused`)
+      assert.ok(resume.neverCalledWith(c._consumer.assignments()), `mode ${mode}: assigned partitions never resumed`)
+      assert.notOk(c._flowPaused, `mode ${mode}: not marked paused`)
+      c.disconnect()
+    }
     assert.end()
   })
 

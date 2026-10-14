@@ -476,6 +476,9 @@ class Consumer extends EventEmitter {
       clearInterval(this._pollInterval)
     }
     this._status.running = false
+    // The pause goes with the client; without this, tasks still finishing in the sync queue
+    // would try to resume a disconnected client and emit an error each time
+    this._flowPaused = false
     this._consumer.disconnect(cb)
     this._consumer.removeAllListeners()
     // Drop this consumer's lag/assignment series so they don't report stale values after it stops
@@ -818,11 +821,16 @@ class Consumer extends EventEmitter {
    */
   _consumeFlow (workDoneCb) {
     const { logger } = this._config
+    const client = this._consumer
     this._consumer.consume((error, message) => {
       this._updateLastPolledTime()
       const fetchedAt = Date.now()
       if (error || !message) {
-        if (error) {
+        if (error && client !== this._consumer) {
+          // A loop on a replaced client can still end with an error (e.g. ERR__STATE when it
+          // read while disconnecting). Don't let it mark the current client's loop as stopped
+          logger.debug('Consumer::_consumerFlow() - ignoring error from a previous client\'s consume loop - ', error)
+        } else if (error) {
           // node-rdkafka reports an error here only once its consume loop has terminated
           this._flowLoopStopped = true
           logger.error('Consumer::_consumerFlow() - consume loop stopped - ', error)
