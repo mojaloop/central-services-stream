@@ -113,7 +113,7 @@ exports.ENUMS = ENUMS
  * The options that can be configured for the Consumer
  *
  * @typedef {object} Consumer~Options
- * @property {number} mode - @see ENUMS~CONSUMER_MODES. Defaults: CONSUMER_MODES.recursive
+ * @property {number} mode - @see ENUMS~CONSUMER_MODES. Defaults: CONSUMER_MODES.recursive when no options are given; CONSUMER_MODES.flow when options are given without a mode
  * @property {number} batchSize - The batch size to be requested by the Kafka consumer. Defaults: 1
  * @property {number} pollFrequency - The polling frequency in milliseconds. Only applicable when mode = CONSUMER_MODES.poll. Defaults: 10
  * @property {number} recursiveTimeout - The timeout in milliseconds for the recursive processing method should timeout. Only applicable when mode = CONSUMER_MODES.recursive. Defaults: 100
@@ -121,6 +121,9 @@ exports.ENUMS = ENUMS
  * @property {boolean} messageAsJSON - Parse processed message from Kafka into a JSON object. Defaults: true
  * @property {boolean} sync - Ensures that messages are processed in order via a single thread. This may impact performance. Defaults: false
  * @property {number} consumeTimeout - Set the default consume timeout (milliseconds) provided to RDKafka c++land. Defaults: 1000
+ * @property {number} [consumeLoopTimeoutDelay] - The delay in milliseconds the consume loop waits after a read that returned no message. Only applicable when mode = CONSUMER_MODES.flow. Defaults: node-rdkafka's default (500)
+ * @property {number} [flowMaxQueueSize] - Pause fetching from the assigned partitions once this many messages are waiting to be processed, and resume once half of them have been. Only applicable when mode = CONSUMER_MODES.flow and sync = true. Defaults: unbounded
+ * @property {number} healthCheckPollInterval - The time in milliseconds used by isPollHealthy. In poll and recursive modes, the maximum time since the last poll. In flow mode, the maximum time without a processed message while messages are waiting or in progress (with sync=true, set it above the slowest expected handler call). Defaults: 25000
  * @property {boolean} [disableOtelSpanAutoCreation] - Defines if kafka-stream lib should create OTel span automatically. Defaults: false
  *
  */
@@ -180,6 +183,7 @@ exports.ENUMS = ENUMS
  *     'auto.commit.interval.ms': 100,
  *   },
  *   options: {
+ *     mode: 2, // 0=FLOW, 1=POLL, 2=RECURSIVE. @see ENUMS~CONSUMER_MODES. When options are given without a mode, FLOW is used
  *     batchSize: 1, // only applicable when mode=1, 2 (i.e. POLL, RECURSIVE)
  *     pollFrequency: 10, // only applicable for poll mode=1 (i.e. POLL)
  *     recursiveTimeout: 100, // only applicable when mode=2 (i.e. RECURSIVE)
@@ -188,7 +192,9 @@ exports.ENUMS = ENUMS
  *     sync: false,
  *     syncConcurrency: 1, // only applicable when sync=true
  *     syncSingleMessage: false, // only applicable when sync=true, and only applicable when mode=2 (i.e. RECURSIVE)
- *     consumeTimeout: 1000
+ *     consumeTimeout: 1000,
+ *     consumeLoopTimeoutDelay: 1, // (optional) only applicable when mode=0 (i.e. FLOW)
+ *     flowMaxQueueSize: 500, // (optional) only applicable when sync=true, and only applicable when mode=0 (i.e. FLOW)
  *     deserializeFn: (object, opts) => {}, (optional)
  *   },
  *   topic: {}
@@ -272,6 +278,9 @@ class Consumer extends EventEmitter {
     this._status.running = false
     this._eventStatsConnectionHealthy = true
     this._lastPolledTime = Date.now()
+    this._lastProgressTime = Date.now()
+    this._flowLoopStopped = false
+    this._flowPaused = false
     this._offsetCommitErrorCount = 0
 
     // setup default onReady emit handler
@@ -317,8 +326,14 @@ class Consumer extends EventEmitter {
 
     return new Promise((resolve, reject) => {
       this._consumer = new Kafka.KafkaConsumer(this._config.rdkafkaConf, this._config.topicConf)
+      // A new client has no paused partitions, including when this instance reconnects
+      this._flowPaused = false
 
       this._consumer.setDefaultConsumeTimeout(this._config.options.consumeTimeout)
+
+      if (Number.isInteger(this._config.options.consumeLoopTimeoutDelay)) {
+        this._consumer.setDefaultConsumeLoopTimeoutDelay(this._config.options.consumeLoopTimeoutDelay)
+      }
 
       this._consumer.on('warning', (...args) => {
         logger.warn('Consumer::onWarning - ', { args })
@@ -461,6 +476,9 @@ class Consumer extends EventEmitter {
       clearInterval(this._pollInterval)
     }
     this._status.running = false
+    // The pause goes with the client; without this, tasks still finishing in the sync queue
+    // would try to resume a disconnected client and emit an error each time
+    this._flowPaused = false
     this._consumer.disconnect(cb)
     this._consumer.removeAllListeners()
     // Drop this consumer's lag/assignment series so they don't report stale values after it stops
@@ -533,11 +551,20 @@ class Consumer extends EventEmitter {
       workDoneCb = async () => {}
     }
 
+    // Any mode other than poll or recursive runs the flow consumer (see the switch below)
+    this._activeMode = [CONSUMER_MODES.poll, CONSUMER_MODES.recursive].includes(this._config.options.mode)
+      ? this._config.options.mode
+      : CONSUMER_MODES.flow
+    // A new consume loop and sync queue start here, so clear any state from a previous
+    // loop on this instance (e.g. one stopped by an error before a reconnect)
+    this._flowLoopStopped = false
+    this._lastProgressTime = Date.now()
+
     // setup queues to ensure sync processing of messages if options.sync is true
     if (this._config.options.sync) {
       this._syncQueue = async.queue((task, callbackDone) => {
         logger.silly(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - Sync Process - `, { task })
-        const payload = this._config.options.mode === ENUMS.CONSUMER_MODES.flow
+        const payload = this._activeMode === CONSUMER_MODES.flow
           ? task.message
           : task.messages
 
@@ -547,11 +574,13 @@ class Consumer extends EventEmitter {
 
         const workProcessing = () => Promise.resolve(workDoneCb(task.error, payload))
           .then((result) => {
+            this._onSyncTaskDone()
             callbackDone(task.error, result) // this marks the completion of the processing by the worker
           })
           .catch((err) => {
             logger.error(`Consumer::consume()::syncQueue.queue[${this._syncQueue?.length()}] - workDoneCb - error: `, err)
             super.emit('error', err)
+            this._onSyncTaskDone()
             callbackDone(err)
           })
 
@@ -573,6 +602,7 @@ class Consumer extends EventEmitter {
           logger.error('Consumer::syncQueue.drain() - error resuming consumer: ', err)
           super.emit('error', err)
         }
+        if (this._flowPaused) this._resumeFlow()
       })
     }
 
@@ -791,11 +821,19 @@ class Consumer extends EventEmitter {
    */
   _consumeFlow (workDoneCb) {
     const { logger } = this._config
+    const client = this._consumer
     this._consumer.consume((error, message) => {
       this._updateLastPolledTime()
       const fetchedAt = Date.now()
       if (error || !message) {
-        if (error) {
+        if (error && client !== this._consumer) {
+          // A loop on a replaced client can still end with an error (e.g. ERR__STATE when it
+          // read while disconnecting). Don't let it mark the current client's loop as stopped
+          logger.debug('Consumer::_consumerFlow() - ignoring error from a previous client\'s consume loop - ', error)
+        } else if (error) {
+          // node-rdkafka reports an error here only once its consume loop has terminated
+          this._flowLoopStopped = true
+          logger.error('Consumer::_consumerFlow() - consume loop stopped - ', error)
           super.emit('error', error)
         }
       } else {
@@ -810,9 +848,17 @@ class Consumer extends EventEmitter {
         }
 
         if (this._config.options.sync) {
+          // Work arriving at an idle queue starts a new progress window for the health check
+          if (this._syncQueue.idle()) this._lastProgressTime = Date.now()
           this._syncQueue.push({ error, message, fetchedAt }, function (err) {
             if (err) { logger.error('Consumer::_consumerFlow()::syncQueue.push - error: ', err) }
           })
+          // Not guarded by _flowPaused: a message arriving at the limit while already paused
+          // means the pause has leaked (e.g. partitions assigned by a rebalance), so pause again
+          const { flowMaxQueueSize } = this._config.options
+          if (flowMaxQueueSize > 0 && this._syncQueue.length() >= flowMaxQueueSize) {
+            this._pauseFlow()
+          }
         } else {
           this._observeTransit(message, fetchedAt)
           // todo: think how to start tracing span here (each message in the batch should have its own span?)
@@ -827,6 +873,80 @@ class Consumer extends EventEmitter {
         // super.emit('batch', message) // not applicable in flow mode since its one message at a time
       }
     })
+  }
+
+  /**
+   * (Internal) Called by the sync queue each time a task finishes, whether the
+   * handler succeeded or failed — either way the message has left the queue.
+   *
+   * 1. Records the completion time, which the flow-mode health check uses to tell
+   *    a consumer working through a backlog from one that is stuck.
+   * 2. Resumes a paused flow consumer once its backlog is down to half of
+   *    flowMaxQueueSize. Resuming at half rather than just below the limit stops
+   *    the consumer from toggling between paused and resumed on every message.
+   *
+   * Poll and recursive consumers with sync=true also pass through here; for them
+   * the timestamp is unused and the consumer is never paused.
+   */
+  _onSyncTaskDone () {
+    this._lastProgressTime = Date.now()
+    if (this._flowPaused && this._syncQueue.length() <= Math.floor(this._config.options.flowMaxQueueSize / 2)) {
+      this._resumeFlow()
+    }
+  }
+
+  /**
+   * (Internal) Stop fetching from the currently assigned partitions (flow mode, flowMaxQueueSize).
+   *
+   * The flow consume loop hands every fetched message straight to the sync queue,
+   * which has no size limit of its own. When the handler falls behind — a slow
+   * downstream, catching up on lag after a restart, or a rebalance that brings a
+   * backlog — the backlog would otherwise move from Kafka into process memory:
+   * more heap and GC pressure, and a larger window of messages at risk after a
+   * crash or rebalance. With manual commits (enable.auto.commit=false) queued
+   * messages are not yet committed and are re-delivered. With auto-commit,
+   * librdkafka stores each offset when the message is handed to the consumer,
+   * so queued messages that have not been processed may already be committed
+   * and are lost on a crash. Pausing leaves the backlog in Kafka and keeps that
+   * window small. The consumer's position is kept, so fetching resumes from
+   * the next undelivered offset and nothing is skipped.
+   *
+   * Partitions assigned by a later rebalance start unpaused, even while the
+   * consumer is marked paused. Any message that arrives with the queue at the
+   * limit calls this again, which pauses the newly assigned partitions with the rest.
+   * Pausing partitions that are already paused has no effect.
+   * On failure (e.g. disconnected) the consumer stays in its previous state, and
+   * the pause is retried on the next message.
+   */
+  _pauseFlow () {
+    const { logger } = this._config
+    try {
+      this._consumer.pause(this._consumer.assignments())
+      this._flowPaused = true
+      logger.verbose(`Consumer::_pauseFlow() - paused with ${this._syncQueue.length()} messages queued`)
+    } catch (err) {
+      logger.error('Consumer::_pauseFlow() - error pausing consumer: ', err)
+      super.emit('error', err)
+    }
+  }
+
+  /**
+   * (Internal) Resume fetching from the currently assigned partitions after _pauseFlow.
+   *
+   * Called when the backlog falls to half of flowMaxQueueSize, and when the queue drains.
+   * On failure (e.g. disconnected) the consumer stays marked paused, so the next
+   * finished task or drain tries again.
+   */
+  _resumeFlow () {
+    const { logger } = this._config
+    try {
+      this._consumer.resume(this._consumer.assignments())
+      this._flowPaused = false
+      logger.verbose(`Consumer::_resumeFlow() - resumed with ${this._syncQueue.length()} messages queued`)
+    } catch (err) {
+      logger.error('Consumer::_resumeFlow() - error resuming consumer: ', err)
+      super.emit('error', err)
+    }
   }
 
   /**
@@ -1004,15 +1124,50 @@ class Consumer extends EventEmitter {
   /**
    * Returns true if the time since last poll has not exceeded healthCheckPollInterval.
    * Uses config.options.healthCheckPollInterval if set, otherwise defaults to 25000 ms.
+   *
+   * In flow mode the consume loop only reports to the consumer when a message
+   * arrives, so the time since the last poll measures traffic rather than health.
+   * There it returns false if the consume loop has stopped, or if messages are
+   * waiting or in progress and none has completed within healthCheckPollInterval.
+   * An idle flow consumer is healthy. With sync=true, a single handler call that
+   * runs longer than healthCheckPollInterval also reports unhealthy, so set the
+   * interval above the slowest expected handler.
    * @returns {boolean}
    */
   isPollHealthy () {
+    if (this._activeMode === CONSUMER_MODES.flow) {
+      return this._isFlowProgressHealthy()
+    }
     const lastPoll = this.getLastPolledTime()
     if (!lastPoll) return false
     const opts = this._config?.options || {}
     const healthCheckPollInterval = opts.healthCheckPollInterval
     const timeSinceLastPoll = Date.now() - lastPoll
     return timeSinceLastPoll <= healthCheckPollInterval
+  }
+
+  /**
+   * (Internal) Flow-mode health check used by isPollHealthy.
+   *
+   * The flow consume loop runs in node-rdkafka's native thread and only calls back
+   * when a message arrives; empty reads never reach JavaScript. So the time since
+   * the last poll reflects traffic, and would fail an idle but healthy consumer.
+   * Instead this checks:
+   * 1. the consume loop is still running — node-rdkafka reports an error to the
+   *    flow callback only once its loop has terminated, after which nothing is consumed;
+   * 2. with sync=true, if messages are waiting or in progress, one has completed
+   *    within healthCheckPollInterval. Work arriving at an idle queue starts a new
+   *    window, so a long idle period does not count against it.
+   * An idle consumer, or one without sync, is healthy while its loop runs.
+   *
+   * The consume loop also exits, without reporting an error, when the client
+   * disconnects. That case is not detected here; isHealthy covers it via isConnected.
+   * @returns {boolean}
+   */
+  _isFlowProgressHealthy () {
+    if (this._flowLoopStopped) return false
+    if (!this._syncQueue || this._syncQueue.idle()) return true
+    return Date.now() - this._lastProgressTime <= this._config.options.healthCheckPollInterval
   }
 
   /* istanbul ignore next */

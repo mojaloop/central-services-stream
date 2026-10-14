@@ -2,7 +2,7 @@
 /*****
  License
  --------------
- Copyright © 2020-2025 Mojaloop Foundation
+ Copyright © 2020-2026 Mojaloop Foundation
  The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
  http://www.apache.org/licenses/LICENSE-2.0
@@ -22,6 +22,7 @@
 
  * Mojaloop Foundation
  - Name Surname <name.surname@mojaloop.io>
+ - Shashikant Hirugade <shashi.mojaloop@gmail.com>
 
  * Lazola Lucas <lazola.lucas@modusbox.com>
  * Rajiv Mothilal <rajiv.mothilal@modusbox.com>
@@ -2447,4 +2448,365 @@ Test('Consumer test for KafkaConsumer events', (consumerTests) => {
   })
 
   consumerTests.end()
+})
+
+Test('Consumer flow mode', (flowTests) => {
+  let sandbox
+  const topicsList = ['test']
+
+  const flowConfig = (options = {}) => ({
+    options: {
+      mode: ConsumerEnums.CONSUMER_MODES.flow,
+      messageCharset: 'utf8',
+      messageAsJSON: true,
+      sync: true,
+      syncConcurrency: 1,
+      consumeTimeout: 10,
+      ...options
+    },
+    rdkafkaConf: {
+      'group.id': 'kafka-test',
+      'metadata.broker.list': 'localhost:9092',
+      'enable.auto.commit': false
+    },
+    topicConf: {},
+    logger
+  })
+
+  const kafkaMessage = (offset) => {
+    const value = Buffer.from(JSON.stringify({ offset }), 'utf8')
+    return { value, topic: 'test', partition: 0, offset, key: 'key', size: value.length, timestamp: Date.now() }
+  }
+
+  const deferred = () => {
+    let resolve
+    const promise = new Promise(_resolve => { resolve = _resolve })
+    return { promise, resolve }
+  }
+
+  const flush = async () => {
+    for (let i = 0; i < 5; i++) await new Promise(resolve => setImmediate(resolve))
+  }
+
+  // Connects and starts consuming, capturing the flow-mode callback so a test
+  // can deliver messages (or a consume-loop error) one at a time.
+  const consumeCapturingFlow = async (c, workDoneCb) => {
+    await c.connect()
+    let flowCb
+    sandbox.stub(c._consumer, 'consume').callsFake(cb => { flowCb = cb })
+    c.consume(workDoneCb)
+    return flowCb
+  }
+
+  flowTests.beforeEach((test) => {
+    sandbox = Sinon.createSandbox()
+    sandbox.stub(Kafka, 'KafkaConsumer').callsFake(() => new KafkaStubs.KafkaConsumer())
+    test.end()
+  })
+
+  flowTests.afterEach((test) => {
+    sandbox.restore()
+    test.end()
+  })
+
+  flowTests.test('connect - sets consumeLoopTimeoutDelay on the client only when configured', async (assert) => {
+    const setDelay = sandbox.spy(KafkaStubs.KafkaConsumer.prototype, 'setDefaultConsumeLoopTimeoutDelay')
+
+    await new Consumer(topicsList, flowConfig()).connect()
+    assert.ok(setDelay.notCalled, 'not set when the option is absent')
+
+    await new Consumer(topicsList, flowConfig({ consumeLoopTimeoutDelay: 1 })).connect()
+    assert.ok(setDelay.calledOnceWithExactly(1), 'set to the configured value')
+
+    await new Consumer(topicsList, flowConfig({ consumeLoopTimeoutDelay: 0 })).connect()
+    assert.ok(setDelay.calledWithExactly(0), 'zero is a valid value')
+    assert.end()
+  })
+
+  flowTests.test('consume - an unrecognised mode with sync=true runs the flow consumer and passes a single message', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ mode: undefined }))
+    await c.connect()
+    const received = deferred()
+    c.consume(async (error, message) => {
+      received.resolve({ error, message })
+      return true
+    })
+    const { error, message } = await received.promise
+    assert.notOk(error, 'no error')
+    assert.notOk(Array.isArray(message), 'a single message, not a batch')
+    assert.equal(typeof message.value, 'object', 'message value deserialized')
+    assert.end()
+  })
+
+  flowTests.test('flowMaxQueueSize - pauses the assigned partitions when the queue fills, and resumes at half', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ flowMaxQueueSize: 4 }))
+    const inFlight = []
+    const flowCb = await consumeCapturingFlow(c, () => {
+      const work = deferred()
+      inFlight.push(work)
+      return work.promise
+    })
+    const pause = sandbox.spy(c._consumer, 'pause')
+    const resume = sandbox.spy(c._consumer, 'resume')
+    const assigned = [{ topic: 'test', partition: 0 }]
+
+    for (let offset = 1; offset <= 3; offset++) flowCb(null, kafkaMessage(offset))
+    assert.ok(pause.notCalled, 'not paused below flowMaxQueueSize')
+    for (let offset = 4; offset <= 5; offset++) flowCb(null, kafkaMessage(offset))
+    assert.ok(pause.calledWithExactly(assigned), 'paused when the queue reached flowMaxQueueSize')
+    assert.ok(c._flowPaused, 'consumer marked paused')
+    const pauseCount = pause.callCount
+
+    await flush()
+    inFlight[0].resolve(true)
+    await flush()
+    inFlight[1].resolve(true)
+    await flush()
+    assert.ok(resume.notCalled, 'still paused while the queue is above half')
+
+    inFlight[2].resolve(true)
+    await flush()
+    assert.ok(resume.calledWithExactly(assigned), 'resumed once the queue fell to half')
+    assert.notOk(c._flowPaused, 'consumer marked resumed')
+
+    inFlight[3].resolve(true)
+    await flush()
+    inFlight[4].resolve(true)
+    await flush()
+    assert.equal(pause.callCount, pauseCount, 'not paused again below the limit')
+    assert.end()
+  })
+
+  flowTests.test('flowMaxQueueSize - partitions assigned while paused are paused again by the next message at the limit', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ flowMaxQueueSize: 2 }))
+    const flowCb = await consumeCapturingFlow(c, () => new Promise(() => {}))
+    const pause = sandbox.spy(c._consumer, 'pause')
+
+    for (let offset = 1; offset <= 3; offset++) flowCb(null, kafkaMessage(offset))
+    assert.ok(c._flowPaused, 'consumer marked paused')
+    const pauseCount = pause.callCount
+
+    // A rebalance assigns a new, unpaused partition while the consumer is still marked paused
+    const reassigned = [{ topic: 'test', partition: 0 }, { topic: 'test', partition: 1 }]
+    sandbox.stub(c._consumer, 'assignments').returns(reassigned)
+    flowCb(null, { ...kafkaMessage(1), partition: 1 })
+    assert.equal(pause.callCount, pauseCount + 1, 'paused again')
+    assert.ok(pause.lastCall.calledWithExactly(reassigned), 'newly assigned partition paused with the rest')
+    assert.ok(c._flowPaused, 'consumer still marked paused')
+    assert.end()
+  })
+
+  flowTests.test('flowMaxQueueSize - absent leaves the queue unbounded', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig())
+    const flowCb = await consumeCapturingFlow(c, () => new Promise(() => {}))
+    const pause = sandbox.spy(c._consumer, 'pause')
+
+    for (let offset = 1; offset <= 50; offset++) flowCb(null, kafkaMessage(offset))
+    assert.ok(pause.notCalled, 'never paused')
+    assert.end()
+  })
+
+  flowTests.test('flowMaxQueueSize - a failed pause is reported and retried on the next message', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ flowMaxQueueSize: 1 }))
+    const flowCb = await consumeCapturingFlow(c, () => new Promise(() => {}))
+    const pause = sandbox.stub(c._consumer, 'pause')
+    pause.onFirstCall().throws(new Error('pause failed'))
+    const errors = []
+    c.on('error', err => errors.push(err))
+
+    flowCb(null, kafkaMessage(1))
+    assert.equal(errors.length, 1, 'error emitted')
+    assert.notOk(c._flowPaused, 'not marked paused')
+
+    flowCb(null, kafkaMessage(2))
+    assert.ok(pause.calledTwice, 'pause retried')
+    assert.ok(c._flowPaused, 'marked paused after the retry succeeded')
+    assert.end()
+  })
+
+  flowTests.test('flowMaxQueueSize - a failed resume is reported and the consumer stays paused', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ flowMaxQueueSize: 1 }))
+    const inFlight = []
+    const flowCb = await consumeCapturingFlow(c, () => {
+      const work = deferred()
+      inFlight.push(work)
+      return work.promise
+    })
+    sandbox.stub(c._consumer, 'resume').throws(new Error('resume failed'))
+    const errors = []
+    c.on('error', err => errors.push(err))
+
+    flowCb(null, kafkaMessage(1))
+    await flush()
+    inFlight[0].resolve(true)
+    await flush()
+    assert.ok(errors.length >= 1, 'error emitted')
+    assert.ok(c._flowPaused, 'still marked paused')
+    assert.end()
+  })
+
+  flowTests.test('isPollHealthy - an idle flow consumer is healthy whatever the time since the last message', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ healthCheckPollInterval: 1000 }))
+    await consumeCapturingFlow(c, async () => true)
+    c._lastPolledTime = Date.now() - 60000
+    assert.ok(c.isPollHealthy(), 'healthy while idle')
+    assert.end()
+  })
+
+  flowTests.test('isPollHealthy - a flow consumer with work pending is unhealthy when nothing completes within healthCheckPollInterval', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ healthCheckPollInterval: 1000 }))
+    const work = deferred()
+    const flowCb = await consumeCapturingFlow(c, () => work.promise)
+
+    flowCb(null, kafkaMessage(1))
+    await flush()
+    assert.ok(c.isPollHealthy(), 'healthy at the start of the progress window')
+
+    c._lastProgressTime = Date.now() - 2000
+    assert.notOk(c.isPollHealthy(), 'unhealthy once the window has passed without progress')
+
+    work.resolve(true)
+    await flush()
+    assert.ok(c.isPollHealthy(), 'healthy again after the message completed')
+    assert.end()
+  })
+
+  flowTests.test('isPollHealthy - work arriving at an idle flow consumer starts a new progress window', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ healthCheckPollInterval: 1000 }))
+    const flowCb = await consumeCapturingFlow(c, () => new Promise(() => {}))
+    c._lastProgressTime = Date.now() - 60000
+
+    flowCb(null, kafkaMessage(1))
+    assert.ok(c.isPollHealthy(), 'a long idle period does not count against new work')
+    assert.end()
+  })
+
+  flowTests.test('isPollHealthy - a flow consumer is unhealthy once its consume loop has stopped', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig())
+    const flowCb = await consumeCapturingFlow(c, async () => true)
+    const errors = []
+    c.on('error', err => errors.push(err))
+
+    flowCb(new Error('consume loop terminated'))
+    assert.equal(errors.length, 1, 'error emitted')
+    assert.notOk(c.isPollHealthy(), 'unhealthy')
+    assert.end()
+  })
+
+  flowTests.test('reconnect - a flow consumer stopped by an error is healthy and unpaused again after reconnecting and consuming', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ flowMaxQueueSize: 1, healthCheckPollInterval: 1000 }))
+    const flowCb = await consumeCapturingFlow(c, () => new Promise(() => {}))
+    c.on('error', () => {})
+
+    flowCb(null, kafkaMessage(1))
+    assert.ok(c._flowPaused, 'paused before the failure')
+    c._lastProgressTime = Date.now() - 60000
+    flowCb(new Error('consume loop terminated'))
+    assert.notOk(c.isPollHealthy(), 'unhealthy once the loop has stopped')
+
+    c.disconnect()
+    await c.connect()
+    assert.notOk(c._flowPaused, 'new client starts unpaused')
+    sandbox.stub(c._consumer, 'consume')
+    c.consume(async () => true)
+    assert.notOk(c._flowLoopStopped, 'new consume loop not marked stopped')
+    assert.ok(c.isPollHealthy(), 'healthy again after reconnecting')
+    assert.ok(Date.now() - c._lastProgressTime < 1000, 'progress window restarted')
+    assert.end()
+  })
+
+  flowTests.test('disconnect - clears the pause so tasks finishing afterwards do not resume the disconnected client', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ flowMaxQueueSize: 1 }))
+    const inFlight = []
+    const flowCb = await consumeCapturingFlow(c, () => {
+      const work = deferred()
+      inFlight.push(work)
+      return work.promise
+    })
+    const errors = []
+    c.on('error', err => errors.push(err))
+
+    flowCb(null, kafkaMessage(1))
+    assert.ok(c._flowPaused, 'paused before disconnecting')
+    const resume = sandbox.spy(c._consumer, 'resume')
+    c.disconnect()
+    assert.notOk(c._flowPaused, 'pause cleared on disconnect')
+
+    await flush()
+    inFlight[0].resolve(true)
+    await flush()
+    assert.ok(resume.neverCalledWith(c._consumer.assignments()), 'assigned partitions not resumed')
+    assert.equal(errors.length, 0, 'no error emitted')
+    assert.end()
+  })
+
+  flowTests.test('reconnect - an error from the previous client\'s consume loop does not mark the new loop stopped', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig())
+    const oldFlowCb = await consumeCapturingFlow(c, async () => true)
+    const errors = []
+    c.on('error', err => errors.push(err))
+
+    c.disconnect()
+    await c.connect()
+    sandbox.stub(c._consumer, 'consume')
+    c.consume(async () => true)
+
+    oldFlowCb(new Error('KafkaConsumer is not connected'))
+    assert.notOk(c._flowLoopStopped, 'new loop not marked stopped')
+    assert.ok(c.isPollHealthy(), 'still healthy')
+    assert.equal(errors.length, 0, 'no error emitted')
+    assert.end()
+  })
+
+  flowTests.test('isPollHealthy - a flow consumer without sync relies on the consume loop only', async (assert) => {
+    const c = new Consumer(topicsList, flowConfig({ sync: false, healthCheckPollInterval: 1000 }))
+    const flowCb = await consumeCapturingFlow(c, () => new Promise(() => {}))
+    flowCb(null, kafkaMessage(1))
+    c._lastPolledTime = Date.now() - 60000
+    c._lastProgressTime = Date.now() - 60000
+    assert.ok(c.isPollHealthy(), 'healthy while the loop runs')
+
+    flowCb(new Error('consume loop terminated'))
+    assert.notOk(c.isPollHealthy(), 'unhealthy once the loop has stopped')
+    assert.end()
+  })
+
+  flowTests.test('flowMaxQueueSize - poll and recursive consumers with sync=true never pause or resume partitions', async (assert) => {
+    for (const mode of [ConsumerEnums.CONSUMER_MODES.poll, ConsumerEnums.CONSUMER_MODES.recursive]) {
+      const c = new Consumer(topicsList, flowConfig({ mode, batchSize: 3, pollFrequency: 10, flowMaxQueueSize: 1 }))
+      await c.connect()
+      let delivered = false
+      sandbox.stub(c._consumer, 'consume').callsFake((batchSize, cb) => {
+        if (delivered) return
+        delivered = true
+        cb(null, [kafkaMessage(1), kafkaMessage(2), kafkaMessage(3)])
+      })
+      const pause = sandbox.spy(c._consumer, 'pause')
+      const resume = sandbox.spy(c._consumer, 'resume')
+      const processed = deferred()
+      c.consume(async () => { processed.resolve(); return true })
+
+      await processed.promise
+      await flush()
+      assert.ok(pause.notCalled, `mode ${mode}: never paused`)
+      assert.ok(resume.neverCalledWith(c._consumer.assignments()), `mode ${mode}: assigned partitions never resumed`)
+      assert.notOk(c._flowPaused, `mode ${mode}: not marked paused`)
+      c.disconnect()
+    }
+    assert.end()
+  })
+
+  flowTests.test('isPollHealthy - poll and recursive consumers keep the time-since-last-poll check', async (assert) => {
+    for (const mode of [ConsumerEnums.CONSUMER_MODES.poll, ConsumerEnums.CONSUMER_MODES.recursive]) {
+      const c = new Consumer(topicsList, flowConfig({ mode, healthCheckPollInterval: 1000 }))
+      c._activeMode = mode
+      c._lastPolledTime = Date.now() - 2000
+      assert.notOk(c.isPollHealthy(), `mode ${mode}: unhealthy when the last poll is too old`)
+      c._lastPolledTime = Date.now()
+      assert.ok(c.isPollHealthy(), `mode ${mode}: healthy after a recent poll`)
+    }
+    assert.end()
+  })
+
+  flowTests.end()
 })
