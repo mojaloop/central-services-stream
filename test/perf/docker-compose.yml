@@ -10,7 +10,7 @@ services:
     container_name: kafka-provisioning
     networks:
       - kafka-net
-    image: docker.io/bitnami/kafka:3.4.0
+    image: docker.io/soldevelo/kafka:3.4.1
     env_file:
       - docker.env
     depends_on:
