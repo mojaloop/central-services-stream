@@ -285,7 +285,6 @@ Test('Producer', producerTest => {
         test.ok(e instanceof Error)
         test.end()
       }
-      getProducerStub.restore()
     })
 
     disconnectTest.test('throw error if failure to disconnect from kafka if topic does not exist', async test => {
