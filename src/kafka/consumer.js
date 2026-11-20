@@ -46,11 +46,6 @@ const Kafka = require('node-rdkafka')
 const Protocol = require('./protocol')
 const getConfig = require('./config')
 
-const connectedClients = new Set()
-require('async-exit-hook')(callback => Promise.allSettled(
-  Array.from(connectedClients).map(client => new Promise(resolve => client.disconnect(resolve)))
-).finally(callback))
-
 const otel = require('./otel')
 const { parseStats, trackConnectionHealth } = require('./shared')
 const { observeConsumedMessage, createConsumerStatsObserver } = require('../lib/observability')
@@ -386,7 +381,6 @@ class Consumer extends EventEmitter {
       })
 
       this._consumer.on('disconnected', (...metrics) => {
-        connectedClients.delete(this)
         logger.warn('Consumer::onDisconnected - ', { metrics })
         super.emit('disconnected', metrics)
       })
@@ -411,7 +405,6 @@ class Consumer extends EventEmitter {
           super.emit('error', error)
           return reject(error)
         }
-        connectedClients.add(this)
         logger.verbose('Consumer::connect() - connected')
       })
     })

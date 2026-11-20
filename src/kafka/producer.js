@@ -45,11 +45,6 @@ const contextLogger = require('../lib/logger').logger
 const Protocol = require('./protocol')
 const getConfig = require('./config')
 
-const connectedClients = new Set()
-require('async-exit-hook')(callback => Promise.allSettled(
-  Array.from(connectedClients).map(client => new Promise(resolve => client.disconnect(resolve)))
-).finally(callback))
-
 const { context, propagation, trace, SpanKind, SpanStatusCode } = require('@opentelemetry/api')
 const { SemConv } = require('../constants')
 const { trackConnectionHealth } = require('./shared')
@@ -336,7 +331,6 @@ class Producer extends EventEmitter {
       })
 
       this._producer.on('disconnected', (metrics) => {
-        connectedClients.delete(this)
         logger.warn('Producer::onDisconnected - ', metrics)
         super.emit('disconnected', metrics)
       })
@@ -363,7 +357,6 @@ class Producer extends EventEmitter {
           logger.silly('Producer::connect() - end')
           return reject(error)
         }
-        connectedClients.add(this)
         logger.silly('Producer::connect() - metadata:')
         logger.silly(metadata)
         resolve(true)
