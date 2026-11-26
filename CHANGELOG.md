@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [12.0.0](https://github.com/mojaloop/central-services-stream/compare/v11.12.0...v12.0.0) (2026-11-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* leave the process exit to the application (#204)
+
+### Bug Fixes
+
+* leave the process exit to the application ([#204](https://github.com/mojaloop/central-services-stream/issues/204)) ([89f4d55](https://github.com/mojaloop/central-services-stream/commit/89f4d554cbc388f777906b50298c132706ff1ef9))
+
 ## [11.12.0](https://github.com/mojaloop/central-services-stream/compare/v11.11.0...v11.12.0) (2026-10-14)
 
 
